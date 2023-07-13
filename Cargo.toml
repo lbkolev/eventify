@@ -1,0 +1,18 @@
+[package]
+name = "chainthru"
+version = "0.1.0"
+edition = "2021"
+authors = [ "Lachezar Kolev <lachezarkolevgg@gmail.com>" ]
+rust-version = "1.70.0"
+description = "Ethereum indexer"
+documentation = "https://docs.rs/chainthru"
+readme = "README.md"
+homepage = "https://github.com/lbkolev/chainthru"
+license = "MIT"
+
+[[bin]]
+path = "src/main.rs"
+name = "chainthru"
+
+[dependencies]
+sqlx = "0.7.0"
