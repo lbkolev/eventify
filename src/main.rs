@@ -1,47 +1,11 @@
 use clap::Parser;
 use web3::types::{BlockId, BlockNumber};
 
-#[derive(Parser, Debug)]
-#[command(name = "Chainthru")]
-#[command(author = "Lachezar Kolev <lachezarkolevgg@gmail.com>")]
-#[command(version = "0.1")]
-#[command(about = "Index Ethereum into a database.")]
-pub struct Settings {
-    #[arg(
-        long,
-        env = "CHAINTHRU_NODE_URL",
-        help = "The Ethereum node URL to connect to.",
-        default_value = "http://localhost:8545"
-    )]
-    node_url: String,
-
-    #[arg(
-        long,
-        env = "CHAINTHRU_DATABASE_URL",
-        help = "The database URL to connect to."
-    )]
-    database_url: String,
-
-    #[arg(
-        long,
-        env = "CHAINTHRU_FROM_BLOCK",
-        help = "The block to begin the indexing from. Defaults to 0.",
-        default_value_t = 0
-    )]
-    from_block: u64,
-
-    #[arg(
-        long,
-        env = "CHAINTHRU_TO_BLOCK",
-        help = "The block to end the indexing at. Defaults to the latest block."
-    )]
-    to_block: Option<u64>,
-}
+use chainthru::settings::Settings;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::parse();
-
     let db_conn = sqlx::PgPool::connect(&settings.database_url).await?;
     sqlx::migrate!("./migrations").run(&db_conn).await?;
 
@@ -49,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let web3 = web3::Web3::new(web3::transports::Http::new(&settings.node_url)?);
 
     // Specify the block number or block hash to retrieve
-    let block_number = BlockNumber::Number(1345340.into()); // Replace with your desired block number
+    let block_number = BlockNumber::Number(13950340.into()); // Replace with your desired block number
 
     // Retrieve the block with transactions
     let block_with_txs = web3
@@ -57,7 +21,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .block_with_txs(BlockId::Number(block_number))
         .await?;
 
-    println!("Block: {:?}", block_with_txs);
+    //println!("Block: {:#?}", block_with_txs);
 
+    if let Some(block) = block_with_txs {
+        for tx in block.transactions {
+            println!("Tx: {:0.2X?}", tx);
+            if let Some(input) = tx.input.0.strip_prefix(&[0xa9, 0x05, 0x9c, 0xbb]) {
+                println!("Input: {:0.2X?}", input);
+                let mut input = input.to_vec();
+                input.reverse();
+                let mut input = input.as_slice();
+                let mut amount = [0u8; 32];
+                input.read_exact(&mut amount)?;
+                let mut amount = amount.as_ref();
+                let mut amount = u128::from_le_bytes(amount.try_into().unwrap());
+                println!("Amount: {}", amount);
+                let mut address = [0u8; 20];
+                input.read_exact(&mut address)?;
+                let mut address = address.as_ref();
+                let mut address = [0u8; 32];
+                address.copy_from_slice(&address);
+                println!("Address: {:0.2X?}", address);
+            }
+        }
+    }
     Ok(())
 }
