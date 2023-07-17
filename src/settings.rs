@@ -32,7 +32,8 @@ pub struct Settings {
     #[arg(
         long,
         env = "CHAINTHRU_TO_BLOCK",
-        help = "The block to end the indexing at. Defaults to the latest block."
+        help = "The block to end the indexing at. Defaults to the latest block.",
+        default_value = None
     )]
     pub to_block: Option<u64>,
 }

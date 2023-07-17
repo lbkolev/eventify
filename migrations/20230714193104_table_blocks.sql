@@ -1,5 +1,5 @@
 -- Add migration script here
-CREATE TABLE blocks (
+CREATE TABLE public.blocks (
     id SERIAL PRIMARY KEY,
     block_number INTEGER UNIQUE NOT NULL,
     block_hash VARCHAR(255) UNIQUE NOT NULL,
