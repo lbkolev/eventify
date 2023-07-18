@@ -1,0 +1,19 @@
+[package]
+name = "chainthru-index"
+authors = [ "Lachezar Kolev <lachezarkolevgg@gmail.com>" ]
+description = "Ethereum block/transaction indexer"
+
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ethereum-types.workspace = true
+serde-aux.workspace = true
+serde_derive.workspace = true
+
+serde = { workspace = true, features = ["derive"]}
+sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
+tokio = { workspace = true, features = ["full"] }
