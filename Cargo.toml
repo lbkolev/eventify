@@ -1,26 +1,29 @@
-[package]
-name = "chainthru"
-version = "0.1.0"
-edition = "2021"
+[workspace.package]
 authors = [ "Lachezar Kolev <lachezarkolevgg@gmail.com>" ]
-rust-version = "1.70.0"
 description = "Ethereum indexer"
 documentation = "https://docs.rs/chainthru"
-readme = "README.md"
+edition = "2021"
 homepage = "https://github.com/lbkolev/chainthru"
 license = "MIT"
+version = "0.1.0"
+rust-version = "1.70.0"
+readme = "README.md"
+repository = "https://github.com/lbkolev/chainthru"
 
-[[bin]]
-path = "src/main.rs"
-name = "chainthru"
+[workspace]
+members = [
+    "chainthru",
+    "chainthru-index",
+    "chainthru-server"
+]
 
-[dependencies]
-clap = { version = "4.3.12", features = ["derive", "env"] }
-config = "0.13.3"
+[workspace.dependencies]
+chainthru-index = { path = "./chainthru-index" }
+chainthru-server = { path = "./chainthru-server" }
+
 ethereum-types = "0.14.1"
-serde = { version = "1.0.171", features = ["derive"] }
+serde = "1.0.171"
 serde-aux = "4.2.0"
 serde_derive = "1.0.171"
-sqlx = { version = "0.7.0", features = ["postgres", "runtime-tokio"] }
-tokio = { version = "1.29.1", features = ["macros", "full"] }
-web3 = "0.19.0"
+sqlx = "0.7.0"
+tokio = "1.29.1"

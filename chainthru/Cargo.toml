@@ -1,0 +1,27 @@
+[package]
+name = "chainthru"
+authors = [ "Lachezar Kolev <lachezarkolevgg@gmail.com>" ]
+description = "A complete Ethereum Rust indexer"
+
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+path = "src/main.rs"
+name = "chainthru"
+
+[dependencies]
+chainthru-server.workspace = true
+chainthru-index.workspace = true
+
+ethereum-types.workspace = true
+
+sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
+
+clap = { version = "4.3.12", features = ["derive", "env"] }
+config = "0.13.3"
+tokio = { version = "1.29.1", features = ["macros", "full"] }
+web3 = "0.19.0"
