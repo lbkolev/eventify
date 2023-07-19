@@ -16,3 +16,4 @@ serde_derive.workspace = true
 serde = { workspace = true, features = ["derive"]}
 sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
 tokio = { workspace = true, features = ["full"] }
+actix-web = "4.3.1"
