@@ -18,10 +18,10 @@ chainthru-server.workspace = true
 chainthru-index.workspace = true
 
 ethereum-types.workspace = true
+web3.workspace = true
 
 sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
 
 clap = { version = "4.3.12", features = ["derive", "env"] }
 config = "0.13.3"
 tokio = { version = "1.29.1", features = ["macros", "full"] }
-web3 = "0.19.0"

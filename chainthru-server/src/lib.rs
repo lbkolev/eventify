@@ -24,3 +24,8 @@ pub fn run(
 
     Ok(server)
 }
+
+pub struct ServerSettings {
+    pub database_url: String,
+    pub listener: TcpListener,
+}

@@ -11,6 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 ethereum-types.workspace = true
+web3.workspace = true
 serde-aux.workspace = true
 serde_derive.workspace = true
 

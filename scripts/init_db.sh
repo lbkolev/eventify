@@ -10,7 +10,7 @@ fi
 if ! [ -x "$(command -v sqlx)" ]; then
   echo >&2 "Error: sqlx is not installed."
   echo >&2 "Use:"
-  echo >&2 "    cargo install --version='~0.6' sqlx-cli --no-default-features --features rustls,postgres"
+  echo >&2 "    cargo install --version='~0.7' sqlx-cli --no-default-features --features rustls,postgres"
   echo >&2 "to install it."
   exit 1
 fi
@@ -57,7 +57,9 @@ done
 >&2 echo "Postgres is up and running on port ${DB_PORT} - running migrations now!"
 
 export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+cd chainthru-index
 sqlx database create
 sqlx migrate run
+cd ..
 
 >&2 echo "Postgres has been migrated, ready to go!"

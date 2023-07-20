@@ -1,8 +1,6 @@
 use clap::Parser;
-use ethereum_types::{H160, U256};
-use web3::types::BlockId;
 
-use chainthru_index::transaction::erc20::{self, TRANSFER_SIGNATURE};
+use chainthru_index::IndexSettings;
 
 #[derive(Parser)]
 #[command(name = "Chainthru")]
@@ -47,50 +45,40 @@ pub struct Settings {
         default_value_t = false
     )]
     pub server: bool,
+
+    #[arg(
+        long,
+        env = "CHAINTHRU_SERVER_PORT",
+        help = "The port to run the API server on.",
+        default_value_t = 80,
+        value_parser = clap::value_parser!(u16).range(1..),
+
+    )]
+    pub server_port: u16,
+}
+
+impl From<Settings> for IndexSettings {
+    fn from(settings: Settings) -> Self {
+        Self {
+            database_url: settings.database_url,
+            node_url: settings.node_url,
+            from_block: settings.from_block,
+            to_block: settings.to_block,
+        }
+    }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::parse();
-    let db_conn = sqlx::PgPool::connect(&settings.database_url).await?;
-    sqlx::migrate!("../migrations").run(&db_conn).await?;
 
-    // Connect to the Ethereum node
-    let web3 = web3::Web3::new(web3::transports::Http::new(&settings.node_url)?);
+    let index_settings = IndexSettings::from(settings);
 
-    let from_block = settings.from_block;
-    let to_block = match settings.to_block {
-        Some(block) => block,
-        None => web3.eth().block_number().await?.as_u64(),
-    };
+    //tokio::spawn(async {
+    //    chainthru_server::run(TcpListener::bind("127.0.0.1:80", &settings.)).await;
+    //})
 
-    for block in from_block..=to_block {
-        // Retrieve the block with transactions
-        let block_with_txs = web3
-            .eth()
-            .block_with_txs(BlockId::Number(block.into()))
-            .await?;
-
-        if let Some(block) = block_with_txs {
-            for tx in block.transactions {
-                println!("{:?}", tx);
-                if tx.input.0.starts_with(TRANSFER_SIGNATURE) && tx.input.0.len() == 68 {
-                    let transfer = erc20::Method::Transfer(erc20::transfer::Transfer {
-                        hash: tx.hash,
-                        from: tx.from.unwrap(),
-                        to: H160::from_slice(&tx.input.0[16..36]),
-                        value: U256::from(&tx.input.0[36..68]),
-                    });
-                    println!("{:?}", transfer);
-
-                    if let Some(to) = tx.to {
-                        let erc20 = erc20::ERC20::new(to, transfer);
-                        erc20.insert(&db_conn).await?;
-                    }
-                }
-            }
-        }
-    }
+    chainthru_index::run(&index_settings).await?;
 
     Ok(())
 }
