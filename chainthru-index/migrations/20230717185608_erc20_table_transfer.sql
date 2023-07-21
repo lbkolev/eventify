@@ -1,7 +1,6 @@
 -- Add migration script here
 CREATE TABLE erc20.transfer (
-    id SERIAL PRIMARY KEY,
-    transaction_hash bytea UNIQUE NOT NULL,
+    transaction_hash bytea PRIMARY KEY,
     contract bytea NOT NULL,
     send_from bytea NOT NULL,
     send_to bytea NOT NULL,

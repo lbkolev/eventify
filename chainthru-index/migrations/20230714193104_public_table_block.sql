@@ -1,6 +1,5 @@
 CREATE TABLE public.block (
-    id SERIAL PRIMARY KEY,
-    hash BYTEA UNIQUE,
+    hash BYTEA PRIMARY KEY,
     parent_hash BYTEA UNIQUE NOT NULL,
     uncles_hash BYTEA NOT NULL,
     author BYTEA NOT NULL,

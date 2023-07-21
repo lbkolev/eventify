@@ -1,6 +1,10 @@
+use async_trait::async_trait;
+use derive_builder::Builder;
 use ethereum_types::{H160, H256, U256};
 
-#[derive(Debug, Default)]
+use crate::transaction::TransactionInsert;
+
+#[derive(Builder, Clone, Debug, Default)]
 pub struct Transfer {
     pub hash: H256,
     pub from: H160,
@@ -17,8 +21,11 @@ impl Transfer {
             value,
         }
     }
+}
 
-    pub async fn insert(&self, contract: H160, db_conn: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+#[async_trait]
+impl TransactionInsert for Transfer {
+    async fn insert(&self, contract: H160, db_conn: &sqlx::PgPool) -> Result<(), sqlx::Error> {
         sqlx::query(
             "INSERT INTO erc20.transfer (contract, transaction_hash, send_from, send_to, value) VALUES ($1, $2, $3, $4, $5::numeric)",
         )

@@ -14,7 +14,10 @@ ethereum-types.workspace = true
 web3.workspace = true
 serde-aux.workspace = true
 serde_derive.workspace = true
+thiserror.workspace = true
 
 serde = { workspace = true, features = ["derive"]}
 sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
 tokio = { workspace = true, features = ["full"] }
+derive_builder = "0.12.0"
+async-trait = "0.1.72"

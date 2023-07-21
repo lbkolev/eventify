@@ -7,7 +7,7 @@ use web3::types::BlockId;
 use crate::block::insert_block;
 use transaction::erc20::{self, TRANSFER_SIGNATURE};
 
-pub async fn run(settings: &IndexSettings) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(settings: IndexSettings) -> Result<(), IndexError> {
     let db_conn = sqlx::PgPool::connect(&settings.database_url).await?;
     sqlx::migrate!().run(&db_conn).await?;
 
@@ -53,6 +53,22 @@ pub async fn run(settings: &IndexSettings) -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum IndexError {
+    #[error("SQL error: {0}")]
+    Sql(#[from] sqlx::Error),
+
+    #[error("Web3 error: {0}")]
+    Web3(#[from] web3::Error),
+
+    #[error("Migration error: {0}")]
+    Migrate(#[from] sqlx::migrate::MigrateError),
+
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+#[derive(Debug, Clone)]
 pub struct IndexSettings {
     pub database_url: String,
     pub node_url: String,
