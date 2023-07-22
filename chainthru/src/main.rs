@@ -1,12 +1,14 @@
 use clap::Parser;
+use env_logger::Builder;
 
-use chainthru_index::IndexSettings;
+use chainthru_index as index;
+use chainthru_server as server;
 
-#[derive(Parser)]
+#[derive(Clone, Debug, Parser)]
 #[command(name = "Chainthru")]
 #[command(author = "Lachezar Kolev <lachezarkolevgg@gmail.com>")]
 #[command(version = "0.1")]
-#[command(about = "Index Ethereum into a Postgresql database & optionally serve it via an API.")]
+#[command(about = "Index Ethereum into a Postgresql database & serve it via an API server.")]
 pub struct Settings {
     #[arg(
         long,
@@ -72,9 +74,26 @@ pub struct Settings {
 
     )]
     pub server_port: u16,
+
+    #[arg(
+        long = "server.threads",
+        env = "CHAINTHRU_SERVER_THREADS",
+        help = "The number of threads to use for the API server",
+        default_value_t = num_cpus::get(),
+    )]
+    pub server_threads: usize,
+
+    #[arg(
+        long = "log.level",
+        env = "RUST_LOG",
+        help = "The log level to use",
+        default_value = "warn",
+        value_parser = clap::value_parser!(log::Level),
+    )]
+    pub log_level: log::Level,
 }
 
-impl From<Settings> for IndexSettings {
+impl From<Settings> for index::Settings {
     fn from(settings: Settings) -> Self {
         Self {
             database_url: settings.database_url,
@@ -85,16 +104,39 @@ impl From<Settings> for IndexSettings {
     }
 }
 
+impl From<Settings> for server::AppSettings {
+    fn from(settings: Settings) -> Self {
+        Self {
+            host: settings.server_host,
+            port: settings.server_port,
+            database_url: settings.database_url,
+            worker_threads: settings.server_threads,
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::parse();
-    let index_settings = IndexSettings::from(settings);
+    Builder::new()
+        .parse_filters(settings.log_level.as_str())
+        .init();
+    log::info!("Settings: {:?}", settings);
+
+    let index_settings = index::Settings::from(settings.clone());
+    let server_settings = server::AppSettings::from(settings.clone());
+
+    let mut handles = vec![];
+    if settings.server {
+        handles.push(tokio::spawn(server::run(server_settings).await?));
+    }
 
     if index_settings.from_block > index_settings.to_block.unwrap_or(0) {
         panic!("The from block cannot be greater than the to block.");
     }
 
-    let _ = tokio::task::spawn(chainthru_index::run(index_settings.clone())).await;
+    tokio::spawn(index::run(index_settings));
+    futures::future::join_all(handles).await;
 
     Ok(())
 }

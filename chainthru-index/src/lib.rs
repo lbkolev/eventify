@@ -7,7 +7,7 @@ use web3::types::BlockId;
 use crate::block::insert_block;
 use transaction::erc20::{self, TRANSFER_SIGNATURE};
 
-pub async fn run(settings: IndexSettings) -> Result<(), IndexError> {
+pub async fn run(settings: Settings) -> std::result::Result<(), crate::Error> {
     let db_conn = sqlx::PgPool::connect(&settings.database_url).await?;
     sqlx::migrate!().run(&db_conn).await?;
 
@@ -31,7 +31,7 @@ pub async fn run(settings: IndexSettings) -> Result<(), IndexError> {
             insert_block(&block, &db_conn).await?;
 
             for tx in block.transactions {
-                println!("{:?}", tx);
+                log::info!("{:?}", tx);
                 if tx.input.0.starts_with(TRANSFER_SIGNATURE) && tx.input.0.len() == 68 {
                     let transfer = erc20::Method::Transfer(erc20::transfer::Transfer {
                         hash: tx.hash,
@@ -39,8 +39,8 @@ pub async fn run(settings: IndexSettings) -> Result<(), IndexError> {
                         to: H160::from_slice(&tx.input.0[16..36]),
                         value: U256::from(&tx.input.0[36..68]),
                     });
-                    println!("{:?}", transfer);
 
+                    log::info!("{:?}", transfer);
                     if let Some(to) = tx.to {
                         let erc20 = erc20::ERC20::new(to, transfer);
                         erc20.insert(&db_conn).await?;
@@ -54,7 +54,7 @@ pub async fn run(settings: IndexSettings) -> Result<(), IndexError> {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum IndexError {
+pub enum Error {
     #[error("SQL error: {0}")]
     Sql(#[from] sqlx::Error),
 
@@ -69,7 +69,7 @@ pub enum IndexError {
 }
 
 #[derive(Debug, Clone)]
-pub struct IndexSettings {
+pub struct Settings {
     pub database_url: String,
     pub node_url: String,
     pub from_block: u64,
