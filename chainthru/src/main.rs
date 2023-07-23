@@ -1,8 +1,9 @@
 use clap::Parser;
 use env_logger::Builder;
 
-use chainthru_index as index;
+use chainthru_index as indexer;
 use chainthru_server as server;
+use url::Url;
 
 #[derive(Clone, Debug, Parser)]
 #[command(name = "Chainthru")]
@@ -93,7 +94,7 @@ pub struct Settings {
     pub log_level: log::Level,
 }
 
-impl From<Settings> for index::Settings {
+impl From<Settings> for indexer::Settings {
     fn from(settings: Settings) -> Self {
         Self {
             database_url: settings.database_url,
@@ -123,7 +124,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
     log::info!("Settings: {:?}", settings);
 
-    let index_settings = index::Settings::from(settings.clone());
+    log::warn!("parsing..the settings..");
+    let a = Url::parse(&settings.node_url)?;
+    log::warn!("The url is {:?}", a.scheme());
+
+    let index_settings = indexer::Settings::from(settings.clone());
     let server_settings = server::AppSettings::from(settings.clone());
 
     let mut handles = vec![];
@@ -131,11 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         handles.push(tokio::spawn(server::run(server_settings).await?));
     }
 
-    if index_settings.from_block > index_settings.to_block.unwrap_or(0) {
-        panic!("The from block cannot be greater than the to block.");
-    }
-
-    tokio::spawn(index::run(index_settings));
+    tokio::spawn(indexer::run(index_settings));
     futures::future::join_all(handles).await;
 
     Ok(())
