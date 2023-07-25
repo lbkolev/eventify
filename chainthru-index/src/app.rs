@@ -1,12 +1,17 @@
 use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
-use web3::types::{Block, BlockId, Transaction};
+use web3::types::{Block, BlockId, Transaction, H160};
 use web3::{Transport, Web3};
 
-use crate::{block, Result};
+use crate::transaction::erc20;
+use crate::transaction::erc20::Method;
+use crate::transaction::erc20::ERC20;
+use crate::transaction::erc20::TRANSFER_SIGNATURE;
+use crate::transaction::TransactionType;
+use crate::Result;
 
 #[derive(Debug)]
-struct App<T: Transport> {
+pub struct App<T: Transport> {
     block_from: BlockId,
     block_to: BlockId,
 
@@ -61,6 +66,52 @@ impl<T: Transport> App<T> {
                 ),
             ),
             ..self
+        }
+    }
+
+    pub async fn process_transaction(&self, transaction: Option<Transaction>) {
+        if let Some(transaction) = transaction {
+            match crate::transaction_type(transaction.clone()) {
+                TransactionType::ERC20 => {
+                    self.process_erc20(&transaction).await;
+                }
+                TransactionType::ERC721 => {
+                    todo!()
+                }
+                TransactionType::ERC1155 => {
+                    todo!()
+                }
+                TransactionType::Other => {
+                    todo!()
+                }
+                _ => {
+                    todo!()
+                }
+            }
+        }
+    }
+
+    pub async fn process_erc20(&self, transaction: &Transaction) {
+        match &transaction.input.0[0..4] {
+            TRANSFER_SIGNATURE => {
+                self.process_erc20_transfer(transaction).await;
+            }
+            _ => {
+                todo!()
+            }
+        }
+    }
+
+    pub async fn process_erc20_transfer(&self, transaction: &Transaction) {
+        let method = Method::Transfer(erc20::Transfer::from_transaction(transaction));
+        log::info!("{:?}", method);
+
+        if let Some(to) = transaction.to {
+            let erc20 = ERC20::new(to, method);
+            erc20
+                .insert(&self.inner.transport_db.as_ref().unwrap().clone())
+                .await
+                .unwrap();
         }
     }
 }
@@ -126,15 +177,14 @@ impl App<Http> {
         }
     }
 
-    pub async fn run(&self) -> Result<Option<Block<Transaction>>> {
+    pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
         let block = self
             .inner
             .transport_node
             .as_ref()
-            .expect("No transport node provided")
-            .clone()
+            .expect("Unable to get transport node")
             .eth()
-            .block_with_txs(self.block_from)
+            .block_with_txs(block)
             .await?;
 
         Ok(block)
@@ -158,15 +208,14 @@ impl App<Ipc> {
         }
     }
 
-    pub async fn run(&self) -> Result<Option<Block<Transaction>>> {
+    pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
         let block = self
             .inner
             .transport_node
             .as_ref()
-            .expect("No transport node provided")
-            .clone()
+            .expect("Unable to get transport node")
             .eth()
-            .block_with_txs(self.block_from)
+            .block_with_txs(block)
             .await?;
 
         Ok(block)
@@ -197,15 +246,14 @@ impl App<WebSocket> {
         self.with_websocket(node_url).await
     }
 
-    pub async fn run(&self) -> Result<Option<Block<Transaction>>> {
+    pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
         let block: Option<Block<Transaction>> = self
             .inner
             .transport_node
             .as_ref()
-            .expect("No transport node provided")
-            .clone()
+            .expect("Unable to get transport node")
             .eth()
-            .block_with_txs(self.block_from)
+            .block_with_txs(block)
             .await?;
 
         Ok(block)

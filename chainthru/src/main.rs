@@ -1,9 +1,10 @@
 use clap::Parser;
 use env_logger::Builder;
+use url::Url;
 
 use chainthru_index as indexer;
 use chainthru_server as server;
-use url::Url;
+use indexer::app::App;
 
 #[derive(Clone, Debug, Parser)]
 #[command(name = "Chainthru")]
@@ -128,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let a = Url::parse(&settings.node_url)?;
     log::warn!("The url is {:?}", a.scheme());
 
-    let index_settings = indexer::Settings::from(settings.clone());
+    let index_settings = App::from(settings);
     let server_settings = server::AppSettings::from(settings.clone());
 
     let mut handles = vec![];

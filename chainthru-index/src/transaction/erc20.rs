@@ -1,10 +1,11 @@
 pub mod transfer;
 
+pub use transfer::Transfer;
+
 use derive_builder::Builder;
 use ethereum_types::H160;
 
-use crate::transaction::TransactionInsert;
-use transfer::Transfer;
+use crate::transaction::DBInsert;
 
 /// The signature of the ERC20 approve method
 pub const APPROVE_SIGNATURE: &[u8] = &[0x09, 0xb6, 0x7f, 0x8e];
@@ -46,5 +47,25 @@ impl ERC20 {
         }
 
         Ok(())
+    }
+
+    pub async fn insert_where(
+        &self,
+        db_conn: &sqlx::PgPool,
+        where_clause: &str,
+    ) -> Result<(), sqlx::Error> {
+        match &self.method {
+            Method::Transfer(transfer) => {
+                transfer
+                    .insert_where(self.contract, db_conn, where_clause)
+                    .await?
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn method_type(&self) -> crate::Result<crate::transaction::TransactionType> {
+        todo!()
     }
 }
