@@ -2,13 +2,9 @@ pub mod app;
 pub mod block;
 pub mod transaction;
 
-use ethereum_types::{H160, U256};
-use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
-use web3::types::BlockId;
-use web3::{Transport, Web3};
+use web3::types::Transaction;
 
-use crate::block::insert_block;
-use transaction::erc20::{self, TRANSFER_SIGNATURE};
+use crate::transaction::{erc20::TRANSFER_SIGNATURE, TransactionType};
 
 type Result<T> = std::result::Result<T, crate::Error>;
 
@@ -28,4 +24,12 @@ pub enum Error {
 
     #[error("URL error: {0}")]
     Url(#[from] url::ParseError),
+}
+
+pub fn transaction_type(transaction: Transaction) -> transaction::TransactionType {
+    if transaction.input.0.starts_with(TRANSFER_SIGNATURE) && transaction.input.0.len() == 68 {
+        TransactionType::ERC20
+    } else {
+        TransactionType::Other
+    }
 }
