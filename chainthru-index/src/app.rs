@@ -1,6 +1,6 @@
 use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
-use web3::types::{Block, BlockId, Transaction, H160};
+use web3::types::{Block, BlockId, BlockNumber, Transaction, H160};
 use web3::{Transport, Web3};
 
 use crate::transaction::erc20;
@@ -21,15 +21,15 @@ pub struct App<T: Transport> {
 impl<T: Transport> App<T> {
     /// Create a new instance of the indexer
     pub fn new(
-        block_from: BlockId,
-        block_to: BlockId,
+        block_from: u64,
+        block_to: u64,
         transport_node: Option<Web3<T>>,
         transport_db: Option<PgPool>,
     ) -> Self {
         Self {
             inner: Inner::new(transport_node, transport_db),
-            block_from,
-            block_to,
+            block_from: BlockId::Number(block_from.into()),
+            block_to: BlockId::Number(block_to.into()),
         }
     }
 
@@ -67,6 +67,39 @@ impl<T: Transport> App<T> {
             ),
             ..self
         }
+    }
+
+    pub async fn run(&self) -> Result<()> {
+        let from = match self.block_from {
+            BlockId::Number(block) => match block {
+                BlockNumber::Number(block) => block.as_u64(),
+                _ => 0,
+            },
+            _ => unimplemented!(),
+        };
+
+        let to = match self.block_to {
+            BlockId::Number(block) => match block {
+                BlockNumber::Number(block) => block.as_u64(),
+                _ => self
+                    .inner
+                    .transport_node
+                    .as_ref()
+                    .unwrap()
+                    .eth()
+                    .block_number()
+                    .await?
+                    .as_u64(),
+            },
+            _ => unimplemented!(),
+        };
+
+        for block in from..=to {
+            let block = self.fetch_block(BlockId::Number(block.into())).await?;
+            self.process_block(block).await;
+        }
+
+        Ok(())
     }
 
     pub async fn process_transaction(&self, transaction: Option<Transaction>) {
