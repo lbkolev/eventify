@@ -6,6 +6,16 @@ pub struct Block {
 }
 
 impl Block {
+    pub fn new(inner: web3::types::Block<Transaction>) -> Self {
+        Self { inner }
+    }
+
+    pub fn hash(&self) -> H256 {
+        self.inner.hash.unwrap_or(H256::zero())
+    }
+
+    
+
     pub async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<(), sqlx::Error> {
         sqlx::query(
         "INSERT INTO block

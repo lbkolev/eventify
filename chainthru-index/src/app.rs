@@ -12,10 +12,10 @@ use crate::Result;
 
 #[derive(Debug)]
 pub struct App<T: Transport> {
-    block_from: BlockId,
-    block_to: BlockId,
-
     inner: Inner<T>,
+
+    pub block_from: BlockId,
+    pub block_to: BlockId,
 }
 
 impl<T: Transport> App<T> {
@@ -69,6 +69,32 @@ impl<T: Transport> App<T> {
         }
     }
 
+    pub async fn latest_block(&self) -> Result<u64> {
+        let block = self
+            .inner
+            .transport_node
+            .as_ref()
+            .unwrap()
+            .eth()
+            .block_number()
+            .await?;
+
+        Ok(block.as_u64())
+    }
+
+    pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
+        let block = self
+            .inner
+            .transport_node
+            .as_ref()
+            .expect("Unable to get transport node")
+            .eth()
+            .block_with_txs(block)
+            .await?;
+
+        Ok(block)
+    }
+
     pub async fn run(&self) -> Result<()> {
         let from = match self.block_from {
             BlockId::Number(block) => match block {
@@ -81,15 +107,7 @@ impl<T: Transport> App<T> {
         let to = match self.block_to {
             BlockId::Number(block) => match block {
                 BlockNumber::Number(block) => block.as_u64(),
-                _ => self
-                    .inner
-                    .transport_node
-                    .as_ref()
-                    .unwrap()
-                    .eth()
-                    .block_number()
-                    .await?
-                    .as_u64(),
+                _ => self.latest_block().await?,
             },
             _ => unimplemented!(),
         };
@@ -209,19 +227,6 @@ impl App<Http> {
             ..self
         }
     }
-
-    pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
-        let block = self
-            .inner
-            .transport_node
-            .as_ref()
-            .expect("Unable to get transport node")
-            .eth()
-            .block_with_txs(block)
-            .await?;
-
-        Ok(block)
-    }
 }
 
 impl App<Ipc> {
@@ -239,19 +244,6 @@ impl App<Ipc> {
             ),
             ..self
         }
-    }
-
-    pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
-        let block = self
-            .inner
-            .transport_node
-            .as_ref()
-            .expect("Unable to get transport node")
-            .eth()
-            .block_with_txs(block)
-            .await?;
-
-        Ok(block)
     }
 }
 
@@ -277,19 +269,6 @@ impl App<WebSocket> {
     /// An alias for `with_websocket`
     pub async fn with_ws(self, node_url: String) -> Self {
         self.with_websocket(node_url).await
-    }
-
-    pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
-        let block: Option<Block<Transaction>> = self
-            .inner
-            .transport_node
-            .as_ref()
-            .expect("Unable to get transport node")
-            .eth()
-            .block_with_txs(block)
-            .await?;
-
-        Ok(block)
     }
 }
 
