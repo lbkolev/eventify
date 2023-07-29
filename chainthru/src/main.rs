@@ -1,10 +1,12 @@
 use clap::Parser;
 use env_logger::Builder;
+
 use url::Url;
 
 use chainthru_index as indexer;
 use chainthru_server as server;
 use indexer::app::App;
+use web3::transports::{Http, Ipc, WebSocket};
 
 #[derive(Clone, Debug, Parser)]
 #[command(name = "Chainthru")]
@@ -95,17 +97,6 @@ pub struct Settings {
     pub log_level: log::Level,
 }
 
-impl From<Settings> for indexer::Settings {
-    fn from(settings: Settings) -> Self {
-        Self {
-            database_url: settings.database_url,
-            node_url: settings.node_url,
-            from_block: settings.from_block,
-            to_block: settings.to_block,
-        }
-    }
-}
-
 impl From<Settings> for server::AppSettings {
     fn from(settings: Settings) -> Self {
         Self {
@@ -125,19 +116,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
     log::info!("Settings: {:?}", settings);
 
-    log::warn!("parsing..the settings..");
-    let a = Url::parse(&settings.node_url)?;
-    log::warn!("The url is {:?}", a.scheme());
-
-    let index_settings = App::from(settings);
     let server_settings = server::AppSettings::from(settings.clone());
-
     let mut handles = vec![];
     if settings.server {
         handles.push(tokio::spawn(server::run(server_settings).await?));
     }
 
-    tokio::spawn(indexer::run(index_settings));
+    match Url::parse(&settings.node_url)?.scheme() {
+        "http" | "https" => {
+            tokio::spawn(indexer::run::<Http>(
+                App::default()
+                    .with_database_url(&settings.database_url)
+                    .await
+                    .with_http(&settings.node_url),
+            ));
+        }
+        "ws" => {
+            tokio::spawn(indexer::run::<WebSocket>(
+                App::default()
+                    .with_database_url(&settings.database_url)
+                    .await
+                    .with_websocket(&settings.node_url)
+                    .await,
+            ));
+        }
+        "ipc" => {
+            tokio::spawn(indexer::run::<Ipc>(
+                App::default()
+                    .with_database_url(&settings.database_url)
+                    .await
+                    .with_ipc(&settings.node_url)
+                    .await,
+            ));
+        }
+        _ => {
+            return Err("Invalid node URL scheme".into());
+        }
+    };
+
     futures::future::join_all(handles).await;
 
     Ok(())

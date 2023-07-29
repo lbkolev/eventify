@@ -4,9 +4,7 @@ pub mod transaction;
 
 use app::App;
 use web3::types::{BlockId, BlockNumber};
-use web3::{types::Transaction, Transport};
-
-use crate::transaction::{erc20::TRANSFER_SIGNATURE, TransactionType};
+use web3::Transport;
 
 type Result<T> = std::result::Result<T, crate::Error>;
 
@@ -28,15 +26,7 @@ pub enum Error {
     Url(#[from] url::ParseError),
 }
 
-pub fn transaction_type(transaction: Transaction) -> transaction::TransactionType {
-    if transaction.input.0.starts_with(TRANSFER_SIGNATURE) && transaction.input.0.len() == 68 {
-        TransactionType::ERC20
-    } else {
-        TransactionType::Other
-    }
-}
-
-pub async fn run<T: Transport>(app: &App<T>) -> Result<()> {
+pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
     let from = match app.block_from {
         BlockId::Number(block) => match block {
             BlockNumber::Number(block) => block.as_u64(),
@@ -55,7 +45,9 @@ pub async fn run<T: Transport>(app: &App<T>) -> Result<()> {
 
     for block in from..=to {
         let block = app.fetch_block(BlockId::Number(block.into())).await?;
-        app.process_block(block).await;
+        
+
+        log::info!("Processing block {:#?}", block);
     }
 
     Ok(())

@@ -1,13 +1,8 @@
 use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
-use web3::types::{Block, BlockId, BlockNumber, Transaction, H160};
+use web3::types::{Block, BlockId, BlockNumber, Transaction};
 use web3::{Transport, Web3};
 
-use crate::transaction::erc20;
-use crate::transaction::erc20::Method;
-use crate::transaction::erc20::ERC20;
-use crate::transaction::erc20::TRANSFER_SIGNATURE;
-use crate::transaction::TransactionType;
 use crate::Result;
 
 #[derive(Debug)]
@@ -18,13 +13,23 @@ pub struct App<T: Transport> {
     pub block_to: BlockId,
 }
 
+impl<T: Transport> Default for App<T> {
+    fn default() -> Self {
+        Self {
+            inner: Inner::default(),
+            block_from: BlockId::Number(BlockNumber::Earliest),
+            block_to: BlockId::Number(BlockNumber::Latest),
+        }
+    }
+}
+
 impl<T: Transport> App<T> {
     /// Create a new instance of the indexer
     pub fn new(
-        block_from: u64,
-        block_to: u64,
         transport_node: Option<Web3<T>>,
         transport_db: Option<PgPool>,
+        block_from: u64,
+        block_to: u64,
     ) -> Self {
         Self {
             inner: Inner::new(transport_node, transport_db),
@@ -69,19 +74,6 @@ impl<T: Transport> App<T> {
         }
     }
 
-    pub async fn latest_block(&self) -> Result<u64> {
-        let block = self
-            .inner
-            .transport_node
-            .as_ref()
-            .unwrap()
-            .eth()
-            .block_number()
-            .await?;
-
-        Ok(block.as_u64())
-    }
-
     pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
         let block = self
             .inner
@@ -95,132 +87,28 @@ impl<T: Transport> App<T> {
         Ok(block)
     }
 
-    pub async fn run(&self) -> Result<()> {
-        let from = match self.block_from {
-            BlockId::Number(block) => match block {
-                BlockNumber::Number(block) => block.as_u64(),
-                _ => 0,
-            },
-            _ => unimplemented!(),
-        };
-
-        let to = match self.block_to {
-            BlockId::Number(block) => match block {
-                BlockNumber::Number(block) => block.as_u64(),
-                _ => self.latest_block().await?,
-            },
-            _ => unimplemented!(),
-        };
-
-        for block in from..=to {
-            let block = self.fetch_block(BlockId::Number(block.into())).await?;
-            self.process_block(block).await;
-        }
-
-        Ok(())
-    }
-
-    pub async fn process_transaction(&self, transaction: Option<Transaction>) {
-        if let Some(transaction) = transaction {
-            match crate::transaction_type(transaction.clone()) {
-                TransactionType::ERC20 => {
-                    self.process_erc20(&transaction).await;
-                }
-                TransactionType::ERC721 => {
-                    todo!()
-                }
-                TransactionType::ERC1155 => {
-                    todo!()
-                }
-                TransactionType::Other => {
-                    todo!()
-                }
-                _ => {
-                    todo!()
-                }
-            }
-        }
-    }
-
-    pub async fn process_erc20(&self, transaction: &Transaction) {
-        match &transaction.input.0[0..4] {
-            TRANSFER_SIGNATURE => {
-                self.process_erc20_transfer(transaction).await;
-            }
-            _ => {
-                todo!()
-            }
-        }
-    }
-
-    pub async fn process_erc20_transfer(&self, transaction: &Transaction) {
-        let method = Method::Transfer(erc20::Transfer::from_transaction(transaction));
-        log::info!("{:?}", method);
-
-        if let Some(to) = transaction.to {
-            let erc20 = ERC20::new(to, method);
-            erc20
-                .insert(&self.inner.transport_db.as_ref().unwrap().clone())
-                .await
-                .unwrap();
-        }
-    }
-}
-
-/*
-pub async fn run(&self) -> std::result::Result<(), crate::Error> {
-    let db_conn = sqlx::PgPool::connect(&self.inner.database_url).await?;
-    sqlx::migrate!().run(&db_conn).await?;
-
-    let conn = web3::Web3::new(web3::transports::Http::new(&self.inner.node_url)?);
-
-    let begin = self.inner.from_block;
-    let end = match self.inner.to_block {
-        Some(block) => block,
-        None => conn.eth().block_number().await?.as_u64(),
-    };
-
-    for block in begin..=end {
-        // Retrieve the block with transactions
-        let block_with_txs = conn
+    pub async fn latest_block(&self) -> Result<u64> {
+        let block = self
+            .inner
+            .transport_node
+            .as_ref()
+            .unwrap()
             .eth()
-            .block_with_txs(BlockId::Number(block.into()))
+            .block_number()
             .await?;
 
-        if let Some(block) = block_with_txs {
-            insert_block(&block, &db_conn).await?;
-
-            for tx in block.transactions {
-                log::info!("{:?}", tx);
-                if tx.input.0.starts_with(TRANSFER_SIGNATURE) && tx.input.0.len() == 68 {
-                    let transfer = erc20::Method::Transfer(erc20::transfer::Transfer {
-                        hash: tx.hash,
-                        from: tx.from.unwrap(),
-                        to: H160::from_slice(&tx.input.0[16..36]),
-                        value: U256::from(&tx.input.0[36..68]),
-                    });
-
-                    log::info!("{:?}", transfer);
-                    if let Some(to) = tx.to {
-                        let erc20 = erc20::ERC20::new(to, transfer);
-                        erc20.insert(&db_conn).await?;
-                    }
-                }
-            }
-        }
+        Ok(block.as_u64())
     }
-    Ok(())
 }
-*/
 
 impl App<Http> {
     /// Create a new instance of the indexer with the HTTP transport
     #[allow(unused)]
-    pub fn with_http(self, node_url: String) -> Self {
+    pub fn with_http(self, node_url: &str) -> Self {
         Self {
             inner: Inner::new(
                 Some(Web3::new(
-                    Http::new(&node_url).expect("Failed to create HTTP transport"),
+                    Http::new(node_url).expect("Failed to create HTTP transport"),
                 )),
                 self.inner.transport_db,
             ),
@@ -232,11 +120,11 @@ impl App<Http> {
 impl App<Ipc> {
     /// Create a new instance of the indexer with the IPC transport
     #[allow(unused)]
-    pub async fn with_ipc(self, node_url: String) -> Self {
+    pub async fn with_ipc(self, node_url: &str) -> Self {
         Self {
             inner: Inner::new(
                 Some(Web3::new(
-                    Ipc::new(&node_url)
+                    Ipc::new(node_url)
                         .await
                         .expect("Failed to create HTTP transport"),
                 )),
@@ -250,11 +138,11 @@ impl App<Ipc> {
 impl App<WebSocket> {
     /// Create a new instance of the indexer with the WebSocket transport
     #[allow(unused)]
-    pub async fn with_websocket(self, node_url: String) -> Self {
+    pub async fn with_websocket(self, node_url: &str) -> Self {
         Self {
             inner: Inner::new(
                 Some(Web3::new(
-                    WebSocket::new(&node_url)
+                    WebSocket::new(node_url)
                         .await
                         .expect("Failed to create HTTP transport"),
                 )),
@@ -267,7 +155,7 @@ impl App<WebSocket> {
     /// Create a new instance of the indexer with the WebSocket transport
     ///
     /// An alias for `with_websocket`
-    pub async fn with_ws(self, node_url: String) -> Self {
+    pub async fn with_ws(self, node_url: &str) -> Self {
         self.with_websocket(node_url).await
     }
 }

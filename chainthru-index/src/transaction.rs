@@ -3,6 +3,9 @@ pub mod erc20;
 use async_trait::async_trait;
 use ethereum_types::{H160, H256, U256};
 
+use crate::transaction::erc20::{TRANSFER_SIGNATURE};
+use crate::Result;
+
 #[derive(Debug)]
 pub enum TransactionType {
     ERC20,
@@ -12,24 +15,27 @@ pub enum TransactionType {
 }
 
 #[async_trait]
-pub trait DBInsert {
-    async fn insert(&self, contract: H160, db_conn: &sqlx::PgPool) -> Result<(), sqlx::Error>;
-
-    async fn insert_where(
-        &self,
-        contract: H160,
-        db_conn: &sqlx::PgPool,
-        where_clause: &str,
-    ) -> Result<(), sqlx::Error>;
+pub trait Process {
+    /// Process the transaction and insert everything relevant into the storage.
+    async fn process(&self);
 }
 
-struct Transaction {
-    inner: web3::types::Transaction,
+#[async_trait]
+pub trait DBInsert {
+    async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()>;
+
+    async fn insert_where(&self, db_conn: &sqlx::PgPool, where_clause: &str) -> Result<()>;
+}
+
+pub struct Transaction {
+    pub inner: web3::types::Transaction,
+
+    pub r#type: TransactionType,
 }
 
 impl Transaction {
-    pub fn new(inner: web3::types::Transaction) -> Self {
-        Self { inner }
+    pub fn new(inner: web3::types::Transaction, r#type: TransactionType) -> Self {
+        Self { inner, r#type }
     }
 
     pub fn hash(&self) -> H256 {
@@ -61,7 +67,7 @@ impl Transaction {
     }
 
     pub fn input(&self) -> Vec<u8> {
-        self.inner.input.0
+        self.inner.input.0.clone()
     }
 
     pub fn transaction_type(&self) -> TransactionType {
@@ -70,27 +76,5 @@ impl Transaction {
         } else {
             TransactionType::Other
         }
-    }
-
-    pub async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<(), sqlx::Error> {
-        sqlx::query(
-            "INSERT INTO transaction
-            (hash, from, to, value, gas, gas_price, nonce, input, transaction_type)
-            VALUES
-            ($1, $2, $3, $4::numeric, $5::numeric, $6::numeric, $7::numeric, $8, $9)",
-        )
-        .bind(self.hash().as_bytes())
-        .bind(self.from().as_bytes())
-        .bind(self.to().as_bytes())
-        .bind(self.value().to_string())
-        .bind(self.gas().to_string())
-        .bind(self.gas_price().to_string())
-        .bind(self.nonce().to_string())
-        .bind(self.input())
-        .bind(self.transaction_type().to_string())
-        .execute(db_conn)
-        .await?;
-
-        Ok(())
     }
 }

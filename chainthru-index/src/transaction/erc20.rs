@@ -1,11 +1,10 @@
 pub mod transfer;
-
 pub use transfer::Transfer;
 
 use derive_builder::Builder;
-use ethereum_types::H160;
 
 use crate::transaction::DBInsert;
+use crate::Result;
 
 /// The signature of the ERC20 approve method
 pub const APPROVE_SIGNATURE: &[u8] = &[0x09, 0xb6, 0x7f, 0x8e];
@@ -18,7 +17,6 @@ pub const TRANSFER_FROM_SIGNATURE: &[u8] = &[0x23, 0xb8, 0x72, 0xdd];
 
 #[derive(Builder, Debug)]
 pub struct ERC20 {
-    pub contract: H160,
     pub method: Method,
 }
 
@@ -37,29 +35,21 @@ impl std::fmt::Display for Method {
 }
 
 impl ERC20 {
-    pub fn new(contract: H160, method: Method) -> Self {
-        Self { contract, method }
+    pub fn new(method: Method) -> Self {
+        Self { method }
     }
 
-    pub async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+    pub async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()> {
         match &self.method {
-            Method::Transfer(transfer) => transfer.insert(self.contract, db_conn).await?,
+            Method::Transfer(transfer) => transfer.insert(db_conn).await?,
         }
 
         Ok(())
     }
 
-    pub async fn insert_where(
-        &self,
-        db_conn: &sqlx::PgPool,
-        where_clause: &str,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn insert_where(&self, db_conn: &sqlx::PgPool, where_clause: &str) -> Result<()> {
         match &self.method {
-            Method::Transfer(transfer) => {
-                transfer
-                    .insert_where(self.contract, db_conn, where_clause)
-                    .await?
-            }
+            Method::Transfer(transfer) => transfer.insert_where(db_conn, where_clause).await?,
         }
 
         Ok(())
