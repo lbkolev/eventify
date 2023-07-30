@@ -6,6 +6,9 @@ use thiserror::Error;
 
 pub mod api;
 
+use api::block;
+use api::generic;
+
 pub async fn run(settings: AppSettings) -> std::result::Result<Server, crate::Error> {
     let listener = TcpListener::bind(format!("{}:{}", settings.host, settings.port))?;
     let db_pool = sqlx::PgPool::connect(&settings.database_url).await?;
@@ -15,14 +18,21 @@ pub async fn run(settings: AppSettings) -> std::result::Result<Server, crate::Er
         App::new()
             .route("/health", web::get().to(api::health))
             .service(
-                web::scope("/api")
-                    .service(
-                        web::scope("/transaction")
-                            .route("/erc20", web::get().to(HttpResponse::Ok))
-                            .route("/tmp", web::get().to(api::transaction::erc20::test2)),
-                    )
-                    .route("/placeholder", web::get().to(HttpResponse::Ok))
-                    .route("/placeholder", web::post().to(HttpResponse::Ok)),
+                web::scope("/api").service(
+                    web::scope("/v1")
+                        .route(
+                            "/count/{name}/{type}/{method}",
+                            web::get().to(api::generic::count),
+                        )
+                        .route("/count/{name}", web::get().to(api::generic::count))
+                        .service(web::scope("/block").route("/count", web::get().to(block::count)))
+                        .service(
+                            web::scope("/transaction")
+                                .route("/erc20", web::get().to(HttpResponse::Ok))
+                                .route("/tmp", web::get().to(api::transaction::erc20::test2)),
+                        )
+                        .route("/placeholder", web::post().to(HttpResponse::Ok)),
+                ),
             )
             .app_data(conn.clone())
     })
