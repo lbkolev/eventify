@@ -99,6 +99,15 @@ impl<T: Transport> App<T> {
 
         Ok(block.as_u64())
     }
+
+    pub async fn dbconn(&self) -> Result<PgPool> {
+        Ok(self
+            .inner
+            .transport_db
+            .as_ref()
+            .expect("Unable to get transport db")
+            .clone())
+    }
 }
 
 impl App<Http> {
