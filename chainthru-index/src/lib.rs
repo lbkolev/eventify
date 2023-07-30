@@ -6,6 +6,10 @@ use app::App;
 use web3::types::{BlockId, BlockNumber};
 use web3::Transport;
 
+use crate::transaction::erc20::ERC20;
+use crate::transaction::erc20::TRANSFER_SIGNATURE;
+use crate::transaction::erc20::{self, Transfer};
+
 type Result<T> = std::result::Result<T, crate::Error>;
 
 #[derive(thiserror::Error, Debug)]
@@ -43,11 +47,37 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
         _ => unimplemented!(),
     };
 
-    for block in from..=to {
-        let block = app.fetch_block(BlockId::Number(block.into())).await?;
-        
+    for target in from..=to {
+        let block = app.fetch_block(BlockId::Number(target.into())).await?;
+        log::debug!("Processing block {:#?}", block);
 
-        log::info!("Processing block {:#?}", block);
+        if target % 250 == 0 {
+            log::info!("Processed 250 blocks [{}, {})", target - 250, target);
+        }
+
+        let db_handler = app.dbconn().await?;
+        match block {
+            Some(block) => {
+                let db_transaction = db_handler.begin().await?;
+                block::insert(&block, &db_handler).await?;
+
+                for tx in block.transactions {
+                    // The type of transaction is determined by the initial bytes & the length of the input data
+                    if tx.input.0.starts_with(TRANSFER_SIGNATURE) && tx.input.0.len() == 68 {
+                        log::debug!("ERC20 transfer detected: {:#?}", tx);
+                        let erc20 = ERC20::new(erc20::Method::Transfer(Transfer::from(tx)));
+
+                        erc20.insert(&db_handler).await?;
+                    }
+                }
+
+                db_transaction.commit().await?;
+            }
+
+            None => {
+                log::warn!("Block {:#?} not found", block);
+            }
+        }
     }
 
     Ok(())

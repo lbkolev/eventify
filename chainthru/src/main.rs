@@ -6,7 +6,10 @@ use url::Url;
 use chainthru_index as indexer;
 use chainthru_server as server;
 use indexer::app::App;
-use web3::transports::{Http, Ipc, WebSocket};
+use web3::{
+    transports::{Http, Ipc, WebSocket},
+    types::{BlockId, BlockNumber},
+};
 
 #[derive(Clone, Debug, Parser)]
 #[command(name = "Chainthru")]
@@ -126,6 +129,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "http" | "https" => {
             tokio::spawn(indexer::run::<Http>(
                 App::default()
+                    .with_from_block(BlockId::Number(BlockNumber::Number(
+                        settings.from_block.into(),
+                    )))
+                    .with_to_block(BlockId::Number(BlockNumber::Number(
+                        settings.to_block.unwrap().into(),
+                    )))
                     .with_database_url(&settings.database_url)
                     .await
                     .with_http(&settings.node_url),
@@ -134,6 +143,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "ws" => {
             tokio::spawn(indexer::run::<WebSocket>(
                 App::default()
+                    .with_from_block(BlockId::Number(BlockNumber::Number(
+                        settings.from_block.into(),
+                    )))
+                    .with_to_block(BlockId::Number(BlockNumber::Number(
+                        settings.to_block.unwrap().into(),
+                    )))
                     .with_database_url(&settings.database_url)
                     .await
                     .with_websocket(&settings.node_url)
@@ -143,6 +158,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "ipc" => {
             tokio::spawn(indexer::run::<Ipc>(
                 App::default()
+                    .with_from_block(BlockId::Number(BlockNumber::Number(
+                        settings.from_block.into(),
+                    )))
+                    .with_to_block(BlockId::Number(BlockNumber::Number(
+                        settings.to_block.unwrap().into(),
+                    )))
                     .with_database_url(&settings.database_url)
                     .await
                     .with_ipc(&settings.node_url)
