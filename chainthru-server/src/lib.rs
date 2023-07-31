@@ -7,7 +7,6 @@ use thiserror::Error;
 pub mod api;
 
 use api::block;
-use api::generic;
 
 pub async fn run(settings: AppSettings) -> std::result::Result<Server, crate::Error> {
     let listener = TcpListener::bind(format!("{}:{}", settings.host, settings.port))?;
@@ -20,18 +19,17 @@ pub async fn run(settings: AppSettings) -> std::result::Result<Server, crate::Er
             .service(
                 web::scope("/api").service(
                     web::scope("/v1")
-                        .route(
-                            "/count/{name}/{type}/{method}",
-                            web::get().to(api::generic::count),
-                        )
-                        .route("/count/{name}", web::get().to(api::generic::count))
-                        .service(web::scope("/block").route("/count", web::get().to(block::count)))
                         .service(
-                            web::scope("/transaction")
-                                .route("/erc20", web::get().to(HttpResponse::Ok))
-                                .route("/tmp", web::get().to(api::transaction::erc20::test2)),
+                            web::scope("/blocks")
+                                .route("/count", web::get().to(block::count))
+                                .route("/hash/{hash}", web::get().to(HttpResponse::NotImplemented))
+                                .route("/number/{number}", web::get().to(block::number)),
                         )
-                        .route("/placeholder", web::post().to(HttpResponse::Ok)),
+                        .service(
+                            web::scope("/transactions")
+                                .route("/count", web::get().to(HttpResponse::NotImplemented))
+                                .route("/erc20", web::get().to(HttpResponse::NotImplemented)),
+                        ),
                 ),
             )
             .app_data(conn.clone())

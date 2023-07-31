@@ -14,6 +14,7 @@ serde_derive.workspace = true
 thiserror.workspace = true
 futures.workspace = true
 num_cpus.workspace = true
+web3.workspace = true
 
 serde = { workspace = true, features = ["derive"]}
 sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
