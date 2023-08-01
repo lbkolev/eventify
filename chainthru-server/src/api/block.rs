@@ -2,6 +2,7 @@ use actix_web::HttpResponse;
 use actix_web::{web, Responder};
 use serde_json::json;
 use sqlx::{Decode, FromRow, PgPool, Row};
+use std::error::Error;
 use web3::types::H256;
 
 // struct Block(web3::types::Block<H256>);
@@ -30,7 +31,7 @@ impl FromRow<'_, sqlx::postgres::PgRow> for Block {
 struct Block {
     number: i64,
 }
-*/
+
 
 impl FromRow<'_, sqlx::postgres::PgRow> for Block {
     fn from_row(row: &sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
@@ -40,7 +41,6 @@ impl FromRow<'_, sqlx::postgres::PgRow> for Block {
     }
 }
 
-/*
 impl<'de> Decode<'de, DB> for H256 {
     fn decode(value: PgValueRef<'de>) -> Result<Self, Box<dyn Error + 'static + Send + Sync>> {
         // Here, you define how to convert `value` into `H256`.
@@ -96,15 +96,15 @@ pub async fn hash(path: web::Path<u32>, pool: web::Data<PgPool>) -> impl Respond
 pub async fn number(path: web::Path<u32>, pool: web::Data<PgPool>) -> impl Responder {
     let number = path.into_inner();
     let sql = "SELECT hash FROM public.block WHERE number = $1";
-    let row: Result<Block, sqlx::Error> = sqlx::query_as(sql)
+    let row = sqlx::query(sql)
         .bind(number as i64)
         .fetch_one(pool.as_ref())
         .await;
 
     match row {
         Ok(row) => {
-            // let count: i64 = row.get(0);
-            HttpResponse::Ok().json(json!({ "": row.number }))
+            let number: i64 = row.get(0);
+            HttpResponse::Ok().json(json!({ "": number }))
         }
         Err(err) => {
             eprintln!("Error: {}", err);
