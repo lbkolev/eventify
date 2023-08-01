@@ -13,11 +13,13 @@ repository = "https://github.com/lbkolev/chainthru"
 [workspace]
 members = [
     "chainthru",
+    "chainthru-types",
     "chainthru-index",
-    "chainthru-server"
+    "chainthru-server",
 ]
 
 [workspace.dependencies]
+chainthru-types = { path = "./chainthru-types" }
 chainthru-index = { path = "./chainthru-index" }
 chainthru-server = { path = "./chainthru-server" }
 
@@ -33,3 +35,4 @@ futures = "0.3.28"
 log = "0.4.19"
 num_cpus = "1.16.0"
 url = "2.4.0"
+derive_builder = "0.12.0"

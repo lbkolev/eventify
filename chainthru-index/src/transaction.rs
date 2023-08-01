@@ -3,11 +3,11 @@ pub mod erc20;
 use async_trait::async_trait;
 use ethereum_types::{H160, H256, U256};
 
-use crate::transaction::erc20::{TRANSFER_SIGNATURE};
+use crate::transaction::erc20::TRANSFER_SIGNATURE;
 use crate::Result;
 
 #[derive(Debug)]
-pub enum TransactionType {
+pub enum ContractType {
     ERC20,
     ERC721,
     ERC1155,
@@ -30,11 +30,11 @@ pub trait DBInsert {
 pub struct Transaction {
     pub inner: web3::types::Transaction,
 
-    pub r#type: TransactionType,
+    pub r#type: ContractType,
 }
 
 impl Transaction {
-    pub fn new(inner: web3::types::Transaction, r#type: TransactionType) -> Self {
+    pub fn new(inner: web3::types::Transaction, r#type: ContractType) -> Self {
         Self { inner, r#type }
     }
 
@@ -70,11 +70,11 @@ impl Transaction {
         self.inner.input.0.clone()
     }
 
-    pub fn transaction_type(&self) -> TransactionType {
+    pub fn transaction_type(&self) -> ContractType {
         if self.input().starts_with(TRANSFER_SIGNATURE) && self.input().len() == 68 {
-            TransactionType::ERC20
+            ContractType::ERC20
         } else {
-            TransactionType::Other
+            ContractType::Other
         }
     }
 }

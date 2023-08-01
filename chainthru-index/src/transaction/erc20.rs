@@ -55,7 +55,7 @@ impl ERC20 {
         Ok(())
     }
 
-    pub async fn method_type(&self) -> crate::Result<crate::transaction::TransactionType> {
+    pub async fn method_type(&self) -> crate::Result<crate::transaction::ContractType> {
         todo!()
     }
 }

@@ -1,11 +1,16 @@
-use async_trait::async_trait;
 use derive_builder::Builder;
 use ethereum_types::{H160, H256, U256};
 use web3::types::Transaction;
 
-use crate::transaction::DBInsert;
-use crate::Result;
-use chainthru_types::Transfer;
+use crate::contract_func;
+
+contract_func!(Transfer(
+    contract: H160,
+    hash: H256,
+    from: H160,
+    to: H160,
+    value: U256
+));
 
 impl From<Transaction> for Transfer {
     fn from(transaction: Transaction) -> Self {
@@ -19,8 +24,7 @@ impl From<Transaction> for Transfer {
     }
 }
 
-#[async_trait]
-impl DBInsert for Transfer {
+impl Transfer {
     async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()> {
         let sql = format!(
             "
