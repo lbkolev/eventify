@@ -1,6 +1,8 @@
 ## Chainthru
 
 ## Documentation
+Documentation is segregated in two:
+- one part is 
 
 ### Indexer
 - [Introductory & Architectural](./docs/chainthru-index.md)
