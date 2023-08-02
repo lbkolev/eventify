@@ -8,3 +8,5 @@ CREATE TABLE erc20.transfer_from (
     _value NUMERIC,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+comment on column erc20.transfer_from._from is 'The address which owns the funds';
