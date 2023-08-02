@@ -6,9 +6,8 @@ use app::App;
 use web3::types::{BlockId, BlockNumber};
 use web3::Transport;
 
-use crate::transaction::erc20::ERC20;
 use crate::transaction::erc20::TRANSFER_SIGNATURE;
-use crate::transaction::erc20::{self, Transfer};
+use chainthru_types::erc20::Transfer;
 
 type Result<T> = std::result::Result<T, crate::Error>;
 
@@ -65,9 +64,9 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
                     // The type of transaction is determined by the initial bytes & the length of the input data
                     if tx.input.0.starts_with(TRANSFER_SIGNATURE) && tx.input.0.len() == 68 {
                         log::debug!("ERC20 transfer detected: {:#?}", tx);
-                        let erc20 = ERC20::new(erc20::Method::Transfer(Transfer::from(tx)));
+                        let tf = Transfer::from(tx);
 
-                        erc20.insert(&db_handler).await?;
+                        tf.insert(&db_handler).await?;
                     }
                 }
 

@@ -1,10 +1,7 @@
-pub mod transfer;
-pub use transfer::Transfer;
-
+use crate::Result;
 use derive_builder::Builder;
 
-use crate::transaction::DBInsert;
-use crate::Result;
+use chainthru_types::erc20::Transfer;
 
 /// The signature of the ERC20 approve method
 pub const APPROVE_SIGNATURE: &[u8] = &[0x09, 0xb6, 0x7f, 0x8e];

@@ -49,6 +49,13 @@ pub struct Settings {
     pub to_block: Option<u64>,
 
     #[arg(
+        long = "indexer.enabled",
+        help = "Toggler enabling the indexer",
+        default_value_t = true
+    )]
+    pub indexer: bool,
+
+    #[arg(
         long = "indexer.threads",
         env = "CHAINTHRU_INDEXER_THREADS",
         help = "The number of threads to use for indexing",
@@ -60,7 +67,7 @@ pub struct Settings {
     #[arg(
         long = "server.enabled",
         help = "Toggler enabling the API server",
-        default_value_t = false
+        default_value_t = true
     )]
     pub server: bool,
 
@@ -121,59 +128,62 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server_settings = server::AppSettings::from(settings.clone());
     let mut handles = vec![];
+
     if settings.server {
         handles.push(tokio::spawn(server::run(server_settings).await?));
     }
 
-    match Url::parse(&settings.node_url)?.scheme() {
-        "http" | "https" => {
-            tokio::spawn(indexer::run::<Http>(
-                App::default()
-                    .with_from_block(BlockId::Number(BlockNumber::Number(
-                        settings.from_block.into(),
-                    )))
-                    .with_to_block(BlockId::Number(BlockNumber::Number(
-                        settings.to_block.unwrap().into(),
-                    )))
-                    .with_database_url(&settings.database_url)
-                    .await
-                    .with_http(&settings.node_url),
-            ));
-        }
-        "ws" => {
-            tokio::spawn(indexer::run::<WebSocket>(
-                App::default()
-                    .with_from_block(BlockId::Number(BlockNumber::Number(
-                        settings.from_block.into(),
-                    )))
-                    .with_to_block(BlockId::Number(BlockNumber::Number(
-                        settings.to_block.unwrap().into(),
-                    )))
-                    .with_database_url(&settings.database_url)
-                    .await
-                    .with_websocket(&settings.node_url)
-                    .await,
-            ));
-        }
-        "ipc" => {
-            tokio::spawn(indexer::run::<Ipc>(
-                App::default()
-                    .with_from_block(BlockId::Number(BlockNumber::Number(
-                        settings.from_block.into(),
-                    )))
-                    .with_to_block(BlockId::Number(BlockNumber::Number(
-                        settings.to_block.unwrap().into(),
-                    )))
-                    .with_database_url(&settings.database_url)
-                    .await
-                    .with_ipc(&settings.node_url)
-                    .await,
-            ));
-        }
-        _ => {
-            return Err("Invalid node URL scheme".into());
-        }
-    };
+    if settings.indexer {
+        match Url::parse(&settings.node_url)?.scheme() {
+            "http" | "https" => {
+                tokio::spawn(indexer::run::<Http>(
+                    App::default()
+                        .with_from_block(BlockId::Number(BlockNumber::Number(
+                            settings.from_block.into(),
+                        )))
+                        .with_to_block(BlockId::Number(BlockNumber::Number(
+                            settings.to_block.unwrap().into(),
+                        )))
+                        .with_database_url(&settings.database_url)
+                        .await
+                        .with_http(&settings.node_url),
+                ));
+            }
+            "ws" => {
+                tokio::spawn(indexer::run::<WebSocket>(
+                    App::default()
+                        .with_from_block(BlockId::Number(BlockNumber::Number(
+                            settings.from_block.into(),
+                        )))
+                        .with_to_block(BlockId::Number(BlockNumber::Number(
+                            settings.to_block.unwrap().into(),
+                        )))
+                        .with_database_url(&settings.database_url)
+                        .await
+                        .with_websocket(&settings.node_url)
+                        .await,
+                ));
+            }
+            "ipc" => {
+                tokio::spawn(indexer::run::<Ipc>(
+                    App::default()
+                        .with_from_block(BlockId::Number(BlockNumber::Number(
+                            settings.from_block.into(),
+                        )))
+                        .with_to_block(BlockId::Number(BlockNumber::Number(
+                            settings.to_block.unwrap().into(),
+                        )))
+                        .with_database_url(&settings.database_url)
+                        .await
+                        .with_ipc(&settings.node_url)
+                        .await,
+                ));
+            }
+            _ => {
+                return Err("Invalid node URL scheme".into());
+            }
+        };
+    }
 
     futures::future::join_all(handles).await;
 
