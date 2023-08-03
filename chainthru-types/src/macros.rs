@@ -1,3 +1,7 @@
+use ethereum_types::H256;
+
+pub trait ContractFunction {}
+
 #[macro_export]
 macro_rules! contract_func {
     ($struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {
@@ -5,6 +9,8 @@ macro_rules! contract_func {
         pub struct $struct_name {
             $(pub $field_name: $field_type),*
         }
+
+        impl $crate::macros::ContractFunction for $struct_name {}
 
         impl $struct_name {
             pub fn new($($field_name: $field_type),*) -> Self {
@@ -22,11 +28,15 @@ macro_rules! contract_func {
     };
 }
 
+pub struct Contract<T: ContractFunction> {
+    pub contract_func: Vec<T>,
+    pub contract_address: H256,
+}
+
 mod tests {
     #[test]
     fn test_contract_func() {
         contract_func!(TestContractFunc[field1: u32, field2: String]);
-
         let test_struct = TestContractFunc::new(1, "test".to_string());
 
         assert_eq!(test_struct.field1, 1);

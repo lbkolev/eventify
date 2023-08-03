@@ -1,13 +1,13 @@
 pub mod app;
 pub mod block;
-pub mod transaction;
+pub mod tx;
 
 use app::App;
 use web3::types::{BlockId, BlockNumber};
 use web3::Transport;
 
-use crate::transaction::erc20::TRANSFER_SIGNATURE;
-use chainthru_types::erc20::Transfer;
+use crate::tx::{ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE, ERC20_TRANSFER_SIGNATURE};
+use chainthru_types::erc20::{Approve, Transfer, TransferFrom};
 
 type Result<T> = std::result::Result<T, crate::Error>;
 
@@ -62,11 +62,23 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
 
                 for tx in block.transactions {
                     // The type of transaction is determined by the initial bytes & the length of the input data
-                    if tx.input.0.starts_with(TRANSFER_SIGNATURE) && tx.input.0.len() == 68 {
+                    if tx.input.0.starts_with(ERC20_TRANSFER_SIGNATURE) && tx.input.0.len() == 68 {
                         log::debug!("ERC20 transfer detected: {:#?}", tx);
                         let tf = Transfer::from(tx);
 
                         tf.insert(&db_handler).await?;
+                    } else if tx.input.0.starts_with(ERC20_TRANSFER_FROM_SIGNATURE) {
+                        log::debug!("ERC20 transferFrom detected: {:#?}", tx);
+
+                        let tf = TransferFrom::from(tx);
+                        tf.insert(&db_handler).await?;
+                    } else if tx.input.0.starts_with(ERC20_APPROVE_SIGNATURE) {
+                        log::debug!("ERC20 approve detected: {:#?}", tx);
+
+                        let tf = Approve::from(tx);
+                        tf.insert(&db_handler).await?;
+                    } else {
+                        log::debug!("Unknown transaction: {:#?}", tx);
                     }
                 }
 
