@@ -33,6 +33,19 @@ pub struct Contract<T: ContractFunction> {
     pub contract_address: H256,
 }
 
+impl<T: ContractFunction> Contract<T> {
+    pub fn new(contract_func: Vec<T>, contract_address: H256) -> Self {
+        Self {
+            contract_func,
+            contract_address,
+        }
+    }
+
+    pub fn insert(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
+    }
+}
+
 mod tests {
     #[test]
     fn test_contract_func() {

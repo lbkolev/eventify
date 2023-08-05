@@ -1,15 +1,15 @@
 use clap::Parser;
 use env_logger::Builder;
-
 use url::Url;
-
-use chainthru_index as indexer;
-use chainthru_server as server;
-use indexer::app::App;
 use web3::{
     transports::{Http, Ipc, WebSocket},
     types::{BlockId, BlockNumber},
 };
+
+use chainthru_index as indexer;
+use chainthru_server as server;
+use chainthru_types as types;
+use indexer::app::App;
 
 #[derive(Clone, Debug, Parser)]
 #[command(name = "Chainthru")]
@@ -127,6 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::info!("Settings: {:?}", settings);
 
     let server_settings = server::AppSettings::from(settings.clone());
+    let database_settings = types::DatabaseSettings::from(settings.database_url.clone());
     let mut handles = vec![];
 
     if settings.server {

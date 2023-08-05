@@ -3,7 +3,7 @@ pub mod block;
 pub mod tx;
 
 use app::App;
-use web3::types::{BlockId, BlockNumber};
+use web3::types::{BlockId, BlockNumber, Transaction};
 use web3::Transport;
 
 use crate::tx::{ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE, ERC20_TRANSFER_SIGNATURE};
@@ -29,22 +29,15 @@ pub enum Error {
     Url(#[from] url::ParseError),
 }
 
-pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
-    let from = match app.block_from {
-        BlockId::Number(block) => match block {
-            BlockNumber::Number(block) => block.as_u64(),
-            _ => 0,
-        },
-        _ => unimplemented!(),
-    };
+pub enum Contract {
+    ERC20,
+    Other,
+}
 
-    let to = match app.block_to {
-        BlockId::Number(block) => match block {
-            BlockNumber::Number(block) => block.as_u64(),
-            _ => app.latest_block().await?,
-        },
-        _ => unimplemented!(),
-    };
+pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
+    let from = app.src_block().await;
+    let to = app.dst_block().await?;
+    let db_handler = app.dbconn().await?;
 
     for target in from..=to {
         let block = app.fetch_block(BlockId::Number(target.into())).await?;
@@ -54,7 +47,6 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
             log::info!("Processed 250 blocks [{}, {})", target - 250, target);
         }
 
-        let db_handler = app.dbconn().await?;
         match block {
             Some(block) => {
                 let db_transaction = db_handler.begin().await?;
@@ -92,4 +84,18 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
     }
 
     Ok(())
+}
+
+// #[cfg(feature = "parallelism")]
+pub async fn run_par() -> () {
+    unimplemented!()
+}
+
+fn tx_type(tx: Transaction) -> Contract {
+    match &tx.input.0[0..4] {
+        ERC20_TRANSFER_SIGNATURE | ERC20_TRANSFER_FROM_SIGNATURE | ERC20_APPROVE_SIGNATURE => {
+            Contract::ERC20
+        }
+        _ => Contract::Other,
+    }
 }

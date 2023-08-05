@@ -9,6 +9,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[features]
+parallelism = ["dep:rayon"]
+
 [dependencies]
 chainthru-types.workspace = true
 
@@ -26,3 +29,4 @@ serde = { workspace = true, features = ["derive"]}
 sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
 tokio = { workspace = true, features = ["full"] }
 async-trait = "0.1.72"
+rayon = { version = "1.7.0", optional = true }

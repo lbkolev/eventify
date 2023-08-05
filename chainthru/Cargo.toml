@@ -15,7 +15,8 @@ name = "chainthru"
 
 [dependencies]
 chainthru-server.workspace = true
-chainthru-index.workspace = true
+chainthru-types.workspace = true
+chainthru-index = { workspace = true, features = ["parallelism"]}
 
 ethereum-types.workspace = true
 web3.workspace = true
@@ -23,7 +24,6 @@ futures.workspace = true
 log.workspace = true
 num_cpus.workspace = true
 url.workspace = true
-
 sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
 
 clap = { version = "4.3.12", features = ["derive", "env"] }

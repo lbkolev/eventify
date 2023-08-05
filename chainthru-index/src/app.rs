@@ -108,6 +108,26 @@ impl<T: Transport> App<T> {
             .expect("Unable to get transport db")
             .clone())
     }
+
+    pub async fn src_block(&self) -> u64 {
+        match self.block_from {
+            BlockId::Number(block) => match block {
+                BlockNumber::Number(block) => block.as_u64(),
+                _ => 0,
+            },
+            BlockId::Hash(_) => 0,
+        }
+    }
+
+    pub async fn dst_block(&self) -> Result<u64> {
+        match self.block_to {
+            BlockId::Number(block) => match block {
+                BlockNumber::Number(block) => Ok(block.as_u64()),
+                _ => self.latest_block().await,
+            },
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl App<Http> {
