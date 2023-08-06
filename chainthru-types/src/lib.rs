@@ -1,21 +1,32 @@
 //! chainthru-types contains all the types used in the chainthru project.
+#![allow(clippy::option_map_unit_fn)]
 
+use secrecy::{ExposeSecret, Secret};
+use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::PgPool;
 use url::Url;
 
+pub mod block;
 pub mod erc20;
 pub mod erc721;
+pub mod error;
 pub mod macros;
 
-#[derive(serde::Deserialize, Clone)]
+pub use block::IndexedBlock;
+
+/// The result type used through the types application code.
+type Result<T> = std::result::Result<T, error::Error>;
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct DatabaseSettings {
     pub database_name: String,
     pub host: String,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub username: String,
-    pub password: String,
+    pub password: Secret<String>,
     pub require_ssl: bool,
 }
 
@@ -30,7 +41,7 @@ impl DatabaseSettings {
         PgConnectOptions::new()
             .host(&self.host)
             .username(&self.username)
-            .password(&self.password)
+            .password(self.password.expose_secret())
             .port(self.port)
             .ssl_mode(require_ssl)
     }
@@ -49,8 +60,13 @@ impl From<String> for DatabaseSettings {
             host: url.host_str().unwrap_or("localhost").to_owned(),
             port: url.port().unwrap_or(5432),
             username: url.username().to_owned(),
-            password: url.password().unwrap_or("").to_owned(),
+            password: Secret::new(url.password().unwrap_or("").to_owned()),
             require_ssl: false,
         }
     }
+}
+
+#[async_trait::async_trait]
+pub trait Insert: Sized {
+    async fn insert(&self, conn: &PgPool) -> Result<()>;
 }

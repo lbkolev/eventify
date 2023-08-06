@@ -7,15 +7,15 @@ CREATE TABLE public.block (
     transactions_root BYTEA NOT NULL,
     receipts_root BYTEA NOT NULL,
     number BIGSERIAL,
-    gas_used NUMERIC NOT NULL,
-    gas_limit NUMERIC NOT NULL,
-    base_fee_per_gas NUMERIC,
-    timestamp BIGSERIAL NOT NULL,
-    difficulty NUMERIC NOT NULL,
-    total_difficulty NUMERIC,
+    gas_used BYTEA,
+    gas_limit BYTEA,
+    base_fee_per_gas BYTEA,
+    timestamp BIGSERIAL,
+    difficulty BYTEA,
+    total_difficulty BYTEA,
     transactions INTEGER,
-    size NUMERIC,
-    nonce BYTEA NOT NULL
+    size BYTEA,
+    nonce BYTEA
 );
 
 comment on column public.block.hash is 'Hash of execution block';

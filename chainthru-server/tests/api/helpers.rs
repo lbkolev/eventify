@@ -1,10 +1,36 @@
+use secrecy::Secret;
+use sqlx::{Connection, Executor, PgConnection, PgPool};
+use uuid::Uuid;
+
+pub struct TestApp {
+    pub address: String,
+    pub port: u16,
+    pub db_pool: PgPool,
+}
+
 /// Run the server as a background task
 pub async fn spawn_app() -> TestApp {
-    Lazy::force(&TRACING);
+    //Lazy::force(&TRACING);
 
     // Randomise configuration to ensure test isolation
     let configuration = {
-        let mut c = get_configuration().expect("Failed to read configuration.");
+        //let mut c = get_configuration().expect("Failed to read configuration.");
+        let mut c = chainthru_server::Settings {
+            application: chainthru_server::ApplicationSettings {
+                host: String::from("localhost"),
+                port: 0,
+                worker_threads: 1,
+            },
+            database: chainthru_types::DatabaseSettings {
+                host: String::from("localhost"),
+                port: 5432,
+                username: String::from("postgres"),
+                password: Secret::new(String::from("password")),
+                database_name: String::from(""),
+                require_ssl: false,
+            },
+        };
+
         // Use a different database for each test case
         c.database.database_name = Uuid::new_v4().to_string();
         // Use a random OS port
@@ -17,7 +43,7 @@ pub async fn spawn_app() -> TestApp {
     configure_database(&configuration.database).await;
 
     // Launch the application as a background task
-    let application = Application::build(configuration.clone())
+    let application = chainthru_server::startup::Application::build(configuration.clone())
         .await
         .expect("Failed to build application.");
     let application_port = application.port();
@@ -26,11 +52,11 @@ pub async fn spawn_app() -> TestApp {
     TestApp {
         address: format!("http://localhost:{}", application_port),
         port: application_port,
-        db_pool: get_connection_pool(&configuration.database),
+        db_pool: chainthru_server::startup::get_connection_pool(&configuration.database),
     }
 }
 
-async fn configure_database(config: &DatabaseSettings) -> PgPool {
+async fn configure_database(config: &chainthru_types::DatabaseSettings) -> PgPool {
     // Create database
     let mut connection = PgConnection::connect_with(&config.without_db())
         .await
@@ -44,7 +70,7 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
     let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to connect to Postgres.");
-    sqlx::migrate!("./migrations")
+    sqlx::migrate!("../migrations")
         .run(&connection_pool)
         .await
         .expect("Failed to migrate the database");

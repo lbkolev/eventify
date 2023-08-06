@@ -16,7 +16,7 @@ use indexer::app::App;
 #[command(author = "Lachezar Kolev <lachezarkolevgg@gmail.com>")]
 #[command(version = "0.1")]
 #[command(about = "Index Ethereum into a Postgresql database & serve it via an API server.")]
-pub struct Settings {
+pub struct ChainthruSettings {
     #[arg(
         long,
         env = "CHAINTHRU_NODE_URL",
@@ -49,11 +49,11 @@ pub struct Settings {
     pub to_block: Option<u64>,
 
     #[arg(
-        long = "indexer.enabled",
-        help = "Toggler enabling the indexer",
-        default_value_t = true
+        long = "indexer.disabled",
+        help = "Toggler disabling the indexer",
+        default_value_t = false
     )]
-    pub indexer: bool,
+    pub indexer_disabled: bool,
 
     #[arg(
         long = "indexer.threads",
@@ -65,11 +65,11 @@ pub struct Settings {
     pub indexer_threads: u16,
 
     #[arg(
-        long = "server.enabled",
-        help = "Toggler enabling the API server",
-        default_value_t = true
+        long = "server.disabled",
+        help = "Toggler disabling the API server",
+        default_value_t = false
     )]
-    pub server: bool,
+    pub server_disabled: bool,
 
     #[arg(
         long = "server.host",
@@ -107,34 +107,35 @@ pub struct Settings {
     pub log_level: log::Level,
 }
 
-impl From<Settings> for server::AppSettings {
-    fn from(settings: Settings) -> Self {
+impl From<ChainthruSettings> for server::Settings {
+    fn from(settings: ChainthruSettings) -> Self {
         Self {
-            host: settings.server_host,
-            port: settings.server_port,
-            database_url: settings.database_url,
-            worker_threads: settings.server_threads,
+            database: types::DatabaseSettings::from(settings.database_url.clone()),
+            application: server::ApplicationSettings {
+                host: settings.server_host,
+                port: settings.server_port,
+                worker_threads: settings.server_threads,
+            },
         }
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::parse();
+    let settings = ChainthruSettings::parse();
     Builder::new()
         .parse_filters(settings.log_level.as_str())
         .init();
     log::info!("Settings: {:?}", settings);
 
-    let server_settings = server::AppSettings::from(settings.clone());
-    let database_settings = types::DatabaseSettings::from(settings.database_url.clone());
+    let server_settings = server::Settings::from(settings.clone());
     let mut handles = vec![];
 
-    if settings.server {
-        handles.push(tokio::spawn(server::run(server_settings).await?));
+    if !settings.server_disabled {
+        handles.push(tokio::spawn(server::run(server_settings)));
     }
 
-    if settings.indexer {
+    if !settings.indexer_disabled {
         match Url::parse(&settings.node_url)?.scheme() {
             "http" | "https" => {
                 tokio::spawn(indexer::run::<Http>(
