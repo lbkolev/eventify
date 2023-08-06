@@ -5,7 +5,7 @@ pub trait ContractFunction {}
 #[macro_export]
 macro_rules! contract_func {
     ($struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {
-        #[derive(Builder, Clone, Debug, Default)]
+        #[derive(derive_builder::Builder, Clone, Debug, Default)]
         pub struct $struct_name {
             $(pub $field_name: $field_type),*
         }

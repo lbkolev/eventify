@@ -1,4 +1,4 @@
-use derive_builder::Builder;
+
 use ethereum_types::{H160, H256, U256};
 use web3::types::Transaction;
 

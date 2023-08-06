@@ -22,5 +22,6 @@ url.workspace = true
 serde.workspace = true
 serde-aux.workspace = true
 thiserror.workspace = true
-async-trait = "0.1.72"
+secrecy.workspace = true
 
+async-trait = "0.1.72"
