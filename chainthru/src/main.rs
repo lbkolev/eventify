@@ -49,11 +49,11 @@ pub struct Settings {
     pub to_block: Option<u64>,
 
     #[arg(
-        long = "indexer.enabled",
-        help = "Toggler enabling the indexer",
-        default_value_t = true
+        long = "indexer.disabled",
+        help = "Toggler disabling the indexer",
+        default_value_t = false
     )]
-    pub indexer: bool,
+    pub indexer_disabled: bool,
 
     #[arg(
         long = "indexer.threads",
@@ -65,11 +65,11 @@ pub struct Settings {
     pub indexer_threads: u16,
 
     #[arg(
-        long = "server.enabled",
-        help = "Toggler enabling the API server",
-        default_value_t = true
+        long = "server.disabled",
+        help = "Toggler disabling the API server",
+        default_value_t = false
     )]
-    pub server: bool,
+    pub server_disabled: bool,
 
     #[arg(
         long = "server.host",
@@ -130,11 +130,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let database_settings = types::DatabaseSettings::from(settings.database_url.clone());
     let mut handles = vec![];
 
-    if settings.server {
+    if !settings.server_disabled {
         handles.push(tokio::spawn(server::run(server_settings).await?));
     }
 
-    if settings.indexer {
+    if !settings.indexer_disabled {
         match Url::parse(&settings.node_url)?.scheme() {
             "http" | "https" => {
                 tokio::spawn(indexer::run::<Http>(

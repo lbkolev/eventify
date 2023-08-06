@@ -9,6 +9,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+chainthru-types.workspace = true
+
 serde-aux.workspace = true
 serde_derive.workspace = true
 thiserror.workspace = true

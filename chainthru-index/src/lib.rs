@@ -3,11 +3,15 @@ pub mod block;
 pub mod tx;
 
 use app::App;
+use chainthru_types::Insert;
 use web3::types::{BlockId, BlockNumber, Transaction};
 use web3::Transport;
 
 use crate::tx::{ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE, ERC20_TRANSFER_SIGNATURE};
-use chainthru_types::erc20::{Approve, Transfer, TransferFrom};
+use chainthru_types::{
+    erc20::{Approve, Transfer, TransferFrom},
+    IndexedBlock,
+};
 
 type Result<T> = std::result::Result<T, crate::Error>;
 
@@ -50,8 +54,19 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
         match block {
             Some(block) => {
                 let db_transaction = db_handler.begin().await?;
-                block::insert(&block, &db_handler).await?;
+                match IndexedBlock::from(block).insert(&db_handler).await {
+                    Ok(_) => {
+                        log::debug!("Indexed block");
+                    }
+                    Err(e) => {
+                        log::error!("Error indexing block : {}", e);
+                        db_transaction.rollback().await?;
+                        continue;
+                    }
+                }
+                //block::insert(&block, &db_handler).await?;
 
+                /*
                 for tx in block.transactions {
                     // The type of transaction is determined by the initial bytes & the length of the input data
                     if tx.input.0.starts_with(ERC20_TRANSFER_SIGNATURE) && tx.input.0.len() == 68 {
@@ -73,7 +88,7 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
                         log::debug!("Unknown transaction: {:#?}", tx);
                     }
                 }
-
+                */
                 db_transaction.commit().await?;
             }
 
