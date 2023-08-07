@@ -1,9 +1,11 @@
+use chainthru_types::tx::IndexedTransaction;
 use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
 use web3::types::{Block, BlockId, BlockNumber, Transaction};
 use web3::{Transport, Web3};
 
 use crate::Result;
+use chainthru_types::block::IndexedBlock;
 
 #[derive(Debug)]
 pub struct App<T: Transport> {
@@ -11,6 +13,9 @@ pub struct App<T: Transport> {
 
     pub block_from: BlockId,
     pub block_to: BlockId,
+
+    block: Option<IndexedBlock>,
+    transactions: Option<Vec<IndexedTransaction>>,
 }
 
 impl<T: Transport> Default for App<T> {
@@ -19,6 +24,8 @@ impl<T: Transport> Default for App<T> {
             inner: Inner::default(),
             block_from: BlockId::Number(BlockNumber::Earliest),
             block_to: BlockId::Number(BlockNumber::Latest),
+            block: None,
+            transactions: None,
         }
     }
 }
@@ -35,6 +42,8 @@ impl<T: Transport> App<T> {
             inner: Inner::new(transport_node, transport_db),
             block_from: BlockId::Number(block_from.into()),
             block_to: BlockId::Number(block_to.into()),
+            block: None,
+            transactions: None,
         }
     }
 
@@ -74,17 +83,30 @@ impl<T: Transport> App<T> {
         }
     }
 
-    pub async fn fetch_block(&self, block: BlockId) -> Result<Option<Block<Transaction>>> {
-        let block = self
-            .inner
+    async fn fetch_block(&self, block: BlockId) -> Option<Block<Transaction>> {
+        self.inner
             .transport_node
             .as_ref()
             .expect("Unable to get transport node")
             .eth()
             .block_with_txs(block)
-            .await?;
+            .await
+            .unwrap_or(None)
+    }
 
-        Ok(block)
+    pub async fn fetch_indexed_data(
+        &self,
+        block: BlockId,
+    ) -> Option<(IndexedBlock, Vec<IndexedTransaction>)> {
+        let block = self.fetch_block(block).await?;
+        let transactions = block
+            .clone()
+            .transactions
+            .into_iter()
+            .map(IndexedTransaction::from)
+            .collect();
+
+        Some((IndexedBlock::from(block), transactions))
     }
 
     pub async fn latest_block(&self) -> Result<u64> {

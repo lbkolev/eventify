@@ -13,6 +13,7 @@ pub mod erc20;
 pub mod erc721;
 pub mod error;
 pub mod macros;
+pub mod tx;
 
 pub use block::IndexedBlock;
 

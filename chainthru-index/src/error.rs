@@ -1,12 +1,12 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("SQL error: {0}")]
+    #[error("executing query {0}")]
     Sql(#[from] sqlx::Error),
 
     #[error("Web3 error: {0}")]
     Web3(#[from] web3::Error),
 
-    #[error("Migration error: {0}")]
+    #[error("executing database migrations: {0}")]
     Migrate(#[from] sqlx::migrate::MigrateError),
 
     #[error("IO error: {0}")]
