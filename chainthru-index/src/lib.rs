@@ -4,7 +4,7 @@ pub mod error;
 use web3::types::BlockId;
 use web3::Transport;
 
-use chainthru_types::Insert;
+use chainthru_types::Insertable;
 
 /// The result type used throughout the indexer
 type Result<T> = std::result::Result<T, error::Error>;

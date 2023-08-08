@@ -6,6 +6,7 @@ use actix_web::{web, App, HttpResponse, HttpServer};
 use sqlx::migrate;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
+use crate::api::transaction;
 use crate::{
     api::{self, block},
     Result,
@@ -74,7 +75,7 @@ pub fn start(
                         )
                         .service(
                             web::scope("/transactions")
-                                .route("/count", web::get().to(HttpResponse::NotImplemented))
+                                .route("/count", web::get().to(transaction::count))
                                 .route("/erc20", web::get().to(HttpResponse::NotImplemented)),
                         ),
                 ),

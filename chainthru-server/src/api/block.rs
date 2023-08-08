@@ -6,9 +6,9 @@ use sqlx::PgPool;
 use chainthru_types::IndexedBlock;
 
 /// Returns the number of blocks in the database
-pub async fn count(pool: web::Data<PgPool>) -> impl Responder {
+pub async fn count(conn: web::Data<PgPool>) -> impl Responder {
     let sql = "SELECT COUNT(*) FROM public.block";
-    let row: Result<IndexedBlock, sqlx::Error> = sqlx::query_as(sql).fetch_one(pool.as_ref()).await;
+    let row: Result<IndexedBlock, sqlx::Error> = sqlx::query_as(sql).fetch_one(conn.as_ref()).await;
 
     match row {
         Ok(row) => HttpResponse::Ok().json(json!(row)),

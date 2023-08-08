@@ -4,7 +4,7 @@ pub trait ContractFunction {}
 
 #[macro_export]
 macro_rules! contract_func {
-    ($struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {
+    (contract=$contract_name:ident, $struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {
         #[derive(derive_builder::Builder, Clone, Debug, Default)]
         pub struct $struct_name {
             $(pub $field_name: $field_type),*
@@ -18,6 +18,13 @@ macro_rules! contract_func {
                     $($field_name),*
                 }
             }
+
+            $(
+                pub fn $field_name(&mut self, $field_name: $field_type) -> &mut Self {
+                    self.$field_name = $field_name;
+                    self
+                }
+            )*
         }
 
         impl std::fmt::Display for $struct_name {
@@ -25,25 +32,39 @@ macro_rules! contract_func {
                 write!(f, "{}: {:?}", stringify!($struct_name), self)
             }
         }
-    };
-}
+/*
+        #[$crate::async_trait]
+        impl $crate::Insertable for $struct_name {
+            async fn insert(&self, conn: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+                let sql = format!("
+                    INSERT INTO {}.{} ({})
+                    VALUES ({})
+                    ON CONFLICT DO NOTHING
+                    ",
+                    $contract_name.to_lowercase(),
+                    stringify!($struct_name).to_case($crate::Case::Snake).to_lowercase(),
+                    stringify!($($field_name),*).to_lowercase(),
+                    stringify!($($field_name),*).split(',').map(|_| "$").collect::<Vec<&str>>().join(", ")
+                );
 
-pub struct Contract<T: ContractFunction> {
-    pub contract_func: Vec<T>,
-    pub contract_address: H256,
-}
+                sqlx::query(&sql)
+                    $(if stringify!($field_type).starts_with("H") {
+                        .bind(self.$field_name.as_bytes())
+                    } else {
+                        .bind(self.$field_name)
+                    })*
+                    .execute(conn)
+                    .await?;
 
-impl<T: ContractFunction> Contract<T> {
-    pub fn new(contract_func: Vec<T>, contract_address: H256) -> Self {
-        Self {
-            contract_func,
-            contract_address,
+                sqlx::query(&sql)
+                    $(.bind(self.$field_name.as_bytes()))*
+                    .execute(conn)
+                    .await?;
+
+            }
         }
-    }
-
-    pub fn insert(&self) -> Result<(), Box<dyn std::error::Error>> {
-        Ok(())
-    }
+*/
+    };
 }
 
 mod tests {

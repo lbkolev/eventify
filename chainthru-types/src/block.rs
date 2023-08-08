@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool, Row};
 use web3::types::{H160, H256, H64, U256};
 
-use crate::{Insert, Result};
+use crate::{Result, Insertable};
 
 /// Minimum block representation
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -115,7 +115,7 @@ impl From<web3::types::Block<web3::types::Transaction>> for IndexedBlock {
 }
 
 #[async_trait]
-impl Insert for IndexedBlock {
+impl Insertable for IndexedBlock {
     async fn insert(&self, conn: &PgPool) -> Result<()> {
         let mut number_slice = [0u8; 8];
         self.number.map(|v| v.to_big_endian(&mut number_slice));

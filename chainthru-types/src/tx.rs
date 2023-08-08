@@ -9,7 +9,7 @@ use crate::erc20::{
     ERC20_TRANSFER_SIGNATURE,
 };
 use crate::macros::ContractFunction;
-use crate::{Insert, Result};
+use crate::{Insertable, Result};
 
 /// Minimum block representation
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -39,7 +39,7 @@ impl From<Transaction> for IndexedTransaction {
 }
 
 #[async_trait]
-impl Insert for IndexedTransaction {
+impl Insertable for IndexedTransaction {
     async fn insert(&self, dbconn: &PgPool) -> Result<()> {
         if let Some(s) = &self.input {
             if s.0.len() < 4 {

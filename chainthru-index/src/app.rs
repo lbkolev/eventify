@@ -13,9 +13,6 @@ pub struct App<T: Transport> {
 
     pub block_from: BlockId,
     pub block_to: BlockId,
-
-    block: Option<IndexedBlock>,
-    transactions: Option<Vec<IndexedTransaction>>,
 }
 
 impl<T: Transport> Default for App<T> {
@@ -24,8 +21,6 @@ impl<T: Transport> Default for App<T> {
             inner: Inner::default(),
             block_from: BlockId::Number(BlockNumber::Earliest),
             block_to: BlockId::Number(BlockNumber::Latest),
-            block: None,
-            transactions: None,
         }
     }
 }
@@ -42,8 +37,6 @@ impl<T: Transport> App<T> {
             inner: Inner::new(transport_node, transport_db),
             block_from: BlockId::Number(block_from.into()),
             block_to: BlockId::Number(block_to.into()),
-            block: None,
-            transactions: None,
         }
     }
 

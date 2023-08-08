@@ -17,6 +17,10 @@ pub mod tx;
 
 pub use block::IndexedBlock;
 
+// re-exports necessary for macros to work
+pub use async_trait::async_trait;
+pub use convert_case::{Case, Casing};
+
 /// The result type used through the types application code.
 type Result<T> = std::result::Result<T, error::Error>;
 
@@ -68,6 +72,6 @@ impl From<String> for DatabaseSettings {
 }
 
 #[async_trait::async_trait]
-pub trait Insert: Sized {
+pub trait Insertable: Sized {
     async fn insert(&self, conn: &PgPool) -> Result<()>;
 }

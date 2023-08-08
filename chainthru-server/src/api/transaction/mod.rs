@@ -1,1 +1,42 @@
 pub mod erc20;
+
+use std::result;
+
+use actix_web::{web, HttpResponse, Responder};
+use serde_derive::{Deserialize, Serialize};
+use serde_json::json;
+use sqlx::{FromRow, PgPool, Row};
+use web3::types::U256;
+
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct TXCount {
+    #[sqlx(flatten)]
+    erc20: ERC20,
+}
+
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct ERC20 {
+    #[sqlx(rename = "erc20_approve")]
+    pub approve: i64,
+    #[sqlx(rename = "erc20_transfer")]
+    pub transfer: i64,
+    #[sqlx(rename = "erc20_transfer_from")]
+    pub transfer_from: i64,
+}
+
+pub async fn count(conn: web::Data<PgPool>) -> impl Responder {
+    let sql = "SELECT
+        (SELECT COUNT(*) FROM erc20.approve) as erc20_approve,
+        (SELECT COUNT(*) FROM erc20.transfer) as erc20_transfer,
+        (SELECT COUNT(*) FROM erc20.transfer_from) as erc20_transfer_from;
+    ";
+
+    let result: Result<TXCount, sqlx::Error> = sqlx::query_as(sql).fetch_one(conn.as_ref()).await;
+    match result {
+        Ok(result) => HttpResponse::Ok().json(result),
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}

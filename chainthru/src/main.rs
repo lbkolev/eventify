@@ -1,5 +1,6 @@
 use clap::Parser;
 use env_logger::Builder;
+use secrecy::{ExposeSecret, Secret};
 use url::Url;
 use web3::{
     transports::{Http, Ipc, WebSocket},
@@ -30,7 +31,7 @@ pub struct ChainthruSettings {
         env = "CHAINTHRU_DATABASE_URL",
         help = "The database URL to connect to"
     )]
-    pub database_url: String,
+    pub database_url: Secret<String>,
 
     #[arg(
         long,
@@ -110,7 +111,7 @@ pub struct ChainthruSettings {
 impl From<ChainthruSettings> for server::Settings {
     fn from(settings: ChainthruSettings) -> Self {
         Self {
-            database: types::DatabaseSettings::from(settings.database_url.clone()),
+            database: types::DatabaseSettings::from(settings.database_url.expose_secret().clone()),
             application: server::ApplicationSettings {
                 host: settings.server_host,
                 port: settings.server_port,
@@ -126,7 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Builder::new()
         .parse_filters(settings.log_level.as_str())
         .init();
-    log::info!("Settings: {:?}", settings);
+    log::info!("{:#?}", settings);
 
     let server_settings = server::Settings::from(settings.clone());
     let mut handles = vec![];
@@ -146,7 +147,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_to_block(BlockId::Number(BlockNumber::Number(
                             settings.to_block.unwrap().into(),
                         )))
-                        .with_database_url(&settings.database_url)
+                        .with_database_url(settings.database_url.expose_secret())
                         .await
                         .with_http(&settings.node_url),
                 ));
@@ -160,7 +161,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_to_block(BlockId::Number(BlockNumber::Number(
                             settings.to_block.unwrap().into(),
                         )))
-                        .with_database_url(&settings.database_url)
+                        .with_database_url(settings.database_url.expose_secret())
                         .await
                         .with_websocket(&settings.node_url)
                         .await,
@@ -175,7 +176,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_to_block(BlockId::Number(BlockNumber::Number(
                             settings.to_block.unwrap().into(),
                         )))
-                        .with_database_url(&settings.database_url)
+                        .with_database_url(settings.database_url.expose_secret())
                         .await
                         .with_ipc(&settings.node_url)
                         .await,
