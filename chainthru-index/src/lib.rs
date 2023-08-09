@@ -2,6 +2,7 @@ pub mod app;
 pub mod error;
 
 use web3::types::BlockId;
+use web3::types::H160;
 use web3::Transport;
 
 use chainthru_types::Insertable;
@@ -23,11 +24,26 @@ pub async fn run<T: Transport>(app: app::App<T>) -> Result<()> {
         let db_transaction = db_handler.begin().await?;
         block.insert(&db_handler).await;
         for transaction in transactions {
-            transaction.insert(&db_handler).await;
+            if transaction.to.is_none() {
+                let a = app
+                    .fetch_transaction_receipt(transaction.hash.unwrap())
+                    .await;
+
+                if let Some(receipt) = a {
+                    let contract = chainthru_types::tx::Contract {
+                        address: receipt.contract_address.unwrap(),
+                        transaction_hash: receipt.transaction_hash,
+                        from: transaction.from.unwrap(),
+                        input: transaction.input.clone().unwrap(),
+                    };
+                    contract.insert(&db_handler).await;
+                }
+            } else {
+                transaction.insert(&db_handler).await;
+            }
         }
         db_transaction.commit().await?;
     }
-
     Ok(())
 }
 

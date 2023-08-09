@@ -1,7 +1,8 @@
 use chainthru_types::tx::IndexedTransaction;
+use ethereum_types::H256;
 use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
-use web3::types::{Block, BlockId, BlockNumber, Transaction};
+use web3::types::{Block, BlockId, BlockNumber, Transaction, H160};
 use web3::{Transport, Web3};
 
 use crate::Result;
@@ -100,6 +101,20 @@ impl<T: Transport> App<T> {
             .collect();
 
         Some((IndexedBlock::from(block), transactions))
+    }
+
+    pub async fn fetch_transaction_receipt(
+        &self,
+        transaction_hash: H256,
+    ) -> Option<web3::types::TransactionReceipt> {
+        self.inner
+            .transport_node
+            .as_ref()
+            .expect("Unable to get transport node")
+            .eth()
+            .transaction_receipt(transaction_hash)
+            .await
+            .unwrap_or(None)
     }
 
     pub async fn latest_block(&self) -> Result<u64> {

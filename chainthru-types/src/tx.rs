@@ -1,14 +1,12 @@
 use async_trait::async_trait;
-use ethereum_types::U64;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool, Row};
-use web3::types::{Bytes, Transaction, H160, H256, H64, U256};
+use sqlx::PgPool;
+use web3::types::{Bytes, Transaction, TransactionReceipt, H160, H256};
 
 use crate::erc20::{
     Approve, Transfer, TransferFrom, ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE,
     ERC20_TRANSFER_SIGNATURE,
 };
-use crate::macros::ContractFunction;
 use crate::{Insertable, Result};
 
 /// Minimum block representation
@@ -60,6 +58,35 @@ impl Insertable for IndexedTransaction {
                 _ => {}
             }
         }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+pub struct Contract {
+    pub address: H160,
+    pub transaction_hash: H256,
+    pub from: H160,
+    pub input: Bytes,
+}
+
+#[async_trait]
+impl Insertable for Contract {
+    async fn insert(&self, dbconn: &PgPool) -> Result<()> {
+        let sql = "INSERT INTO public.contract 
+            (contract_addr, transaction_hash, _from, input) 
+            VALUES ($1, $2, $3, $4) 
+            ON CONFLICT DO NOTHING";
+
+        let tmp = &self.input.0;
+        sqlx::query(sql)
+            .bind(self.address.as_bytes())
+            .bind(self.transaction_hash.as_bytes())
+            .bind(self.from.as_bytes())
+            .bind(tmp)
+            .execute(dbconn)
+            .await?;
+
         Ok(())
     }
 }
