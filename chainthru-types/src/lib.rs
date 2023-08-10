@@ -7,6 +7,7 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use sqlx::PgPool;
 use url::Url;
+use web3::types::{H160, H256};
 
 pub mod block;
 pub mod erc20;
@@ -74,4 +75,14 @@ impl From<String> for DatabaseSettings {
 #[async_trait::async_trait]
 pub trait Insertable: Sized {
     async fn insert(&self, conn: &PgPool) -> Result<()>;
+}
+
+#[derive(
+    derive_builder::Builder, Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq,
+)]
+#[serde(rename_all = "camelCase")]
+pub struct TXBoilerplate {
+    contract_addr: H160,
+    transaction_hash: H256,
+    transaction_sender: H160,
 }

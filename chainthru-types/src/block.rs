@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool, Row};
 use web3::types::{H160, H256, H64, U256};
 
-use crate::{Result, Insertable};
+use crate::{Insertable, Result};
 
 /// Minimum block representation
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct IndexedBlock {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hash: Option<H256>,
@@ -81,10 +82,7 @@ impl FromRow<'_, sqlx::postgres::PgRow> for IndexedBlock {
                 .try_get("total_difficulty")
                 .ok()
                 .map(U256::from_big_endian),
-            transactions: row
-                .try_get("transactions")
-                .ok()
-                .map(|v: i32| v as u32),
+            transactions: row.try_get("transactions").ok().map(|v: i32| v as u32),
             size: row.try_get("size").ok().map(U256::from_big_endian),
             nonce: row.try_get("nonce").ok().map(H64::from_slice),
         })
@@ -169,5 +167,40 @@ impl Insertable for IndexedBlock {
             .execute(conn).await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serialize_block() {
+        let json = serde_json::json!({
+            "hash": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
+            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
+            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
+            "author": "0x0000000000000000000000000000000000000001",
+            "stateRoot": "0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff",
+            "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "number": "0x1b4",
+            "gasUsed": "0x9f759",
+            "gasLimit": "0x9f759",
+            "baseFeePerGas": "0x7",
+            "difficulty": "0x27f07",
+            "totalDifficulty": "0x27f07",
+            "transactions": 1,
+            "size": "0x27f07",
+            "nonce": "0x0000000000000000"
+        });
+
+        serde_json::from_value::<IndexedBlock>(json).unwrap();
+    }
+
+    #[test]
+    fn serialize_empty_block() {
+        let json = serde_json::json!({});
+
+        serde_json::from_value::<IndexedBlock>(json).unwrap();
     }
 }
