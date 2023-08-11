@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use ethereum_types::{H160, H256, U256};
 
-use crate::{contract_func, tx::IndexedTransaction, Insertable, Result};
+use crate::{contract_func, transaction::IndexedTransaction, Insertable, Result};
 
 pub const ERC721_APPROVE_SIGNATURE: &[u8] = &[0x09, 0x5e, 0xa7, 0xb3];
 

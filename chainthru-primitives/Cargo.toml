@@ -1,0 +1,29 @@
+[package]
+name = "chainthru-primitives"
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+version.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ethereum-types.workspace = true
+derive_builder.workspace = true
+web3.workspace = true
+sqlx.workspace = true
+url.workspace = true
+serde.workspace = true
+serde-aux.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+secrecy.workspace = true
+
+async-trait = "0.1.72"
+convert_case = "0.6.0"

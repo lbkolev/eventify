@@ -15,7 +15,7 @@ name = "chainthru"
 
 [dependencies]
 chainthru-server.workspace = true
-chainthru-types.workspace = true
+chainthru-primitives.workspace = true
 chainthru-index = { workspace = true, features = ["parallelism"]}
 
 ethereum-types.workspace = true

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use ethereum_types::{H160, H256, U256};
 
-use crate::{contract_func, tx::IndexedTransaction, Insertable, Result, TXBoilerplate};
+use crate::{contract_func, transaction::IndexedTransaction, Insertable, Result, TransactionBoilerplate};
 
 /// The signature of the ERC20 approve method
 pub const ERC20_APPROVE_SIGNATURE: &[u8] = &[0x09, 0xb6, 0x7f, 0x8e];
@@ -41,7 +41,7 @@ impl From<IndexedTransaction> for Transfer {
     fn from(transaction: IndexedTransaction) -> Self {
         let input = transaction.input.expect("Empty transaction input");
         Self {
-            boilerplate: TXBoilerplate {
+            boilerplate: TransactionBoilerplate {
                 contract_addr: transaction.to.unwrap_or(H160::default()),
                 transaction_hash: transaction.hash.unwrap_or(H256::default()),
                 transaction_sender: transaction.from.unwrap_or(H160::default()),
@@ -82,7 +82,7 @@ impl From<IndexedTransaction> for TransferFrom {
     fn from(transaction: IndexedTransaction) -> Self {
         let input = transaction.input.expect("Empty transaction input");
         Self {
-            boilerplate: TXBoilerplate {
+            boilerplate: TransactionBoilerplate {
                 contract_addr: transaction.to.unwrap_or(H160::default()),
                 transaction_hash: transaction.hash.unwrap_or(H256::default()),
                 transaction_sender: transaction.from.unwrap_or(H160::default()),
@@ -125,7 +125,7 @@ impl From<IndexedTransaction> for Approve {
     fn from(value: IndexedTransaction) -> Self {
         let input = value.input.expect("Empty transaction input");
         Self {
-            boilerplate: TXBoilerplate {
+            boilerplate: TransactionBoilerplate {
                 contract_addr: value.to.unwrap_or(H160::default()),
                 transaction_hash: value.hash.unwrap_or(H256::default()),
                 transaction_sender: value.from.unwrap_or(H160::default()),

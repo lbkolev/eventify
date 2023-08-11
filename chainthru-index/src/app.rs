@@ -1,4 +1,4 @@
-use chainthru_types::tx::IndexedTransaction;
+use chainthru_primitives::transaction::IndexedTransaction;
 use ethereum_types::H256;
 use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
@@ -6,7 +6,7 @@ use web3::types::{Block, BlockId, BlockNumber, Transaction, H160};
 use web3::{Transport, Web3};
 
 use crate::Result;
-use chainthru_types::block::IndexedBlock;
+use chainthru_primitives::block::IndexedBlock;
 
 #[derive(Debug)]
 pub struct App<T: Transport> {

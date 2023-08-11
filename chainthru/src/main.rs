@@ -8,8 +8,8 @@ use web3::{
 };
 
 use chainthru_index as indexer;
+use chainthru_primitives as types;
 use chainthru_server as server;
-use chainthru_types as types;
 use indexer::app::App;
 
 #[derive(Clone, Debug, Parser)]

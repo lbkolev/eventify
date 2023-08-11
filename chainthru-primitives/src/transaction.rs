@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use web3::types::{Bytes, Transaction, TransactionReceipt, H160, H256};
+use web3::types::{Bytes, Transaction, H160, H256};
 
 use crate::erc20::{
     Approve, Transfer, TransferFrom, ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE,
@@ -93,6 +93,16 @@ impl Insertable for Contract {
     }
 }
 
+#[derive(
+    derive_builder::Builder, Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq,
+)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionBoilerplate {
+    pub contract_addr: H160,
+    pub transaction_hash: H256,
+    pub transaction_sender: H160,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,5 +136,16 @@ mod tests {
         });
 
         serde_json::from_value::<Contract>(json).unwrap();
+    }
+
+    #[test]
+    fn serialize_transaction_boilerplate() {
+        let json = serde_json::json!({
+            "contractAddr": "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
+            "transactionHash": "0x422fb0d5953c0c48cbb42fb58e1c30f5e150441c68374d70ca7d4f191fd56f26",
+            "transactionSender": "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
+        });
+
+        serde_json::from_value::<TransactionBoilerplate>(json).unwrap();
     }
 }

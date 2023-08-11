@@ -3,7 +3,7 @@ use actix_web::{web, Responder};
 use serde_json::json;
 use sqlx::PgPool;
 
-use chainthru_types::IndexedBlock;
+use chainthru_primitives::IndexedBlock;
 
 /// Returns the number of blocks in the database
 pub async fn count(conn: web::Data<PgPool>) -> impl Responder {

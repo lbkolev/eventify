@@ -21,7 +21,7 @@ pub async fn spawn_app() -> TestApp {
                 port: 0,
                 worker_threads: 1,
             },
-            database: chainthru_types::DatabaseSettings {
+            database: chainthru_primitives::DatabaseSettings {
                 host: String::from("localhost"),
                 port: 5432,
                 username: String::from("postgres"),
@@ -56,7 +56,7 @@ pub async fn spawn_app() -> TestApp {
     }
 }
 
-async fn configure_database(config: &chainthru_types::DatabaseSettings) -> PgPool {
+async fn configure_database(config: &chainthru_primitives::DatabaseSettings) -> PgPool {
     // Create database
     let mut connection = PgConnection::connect_with(&config.without_db())
         .await

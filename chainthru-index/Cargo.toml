@@ -13,7 +13,7 @@ rust-version.workspace = true
 parallelism = ["dep:rayon"]
 
 [dependencies]
-chainthru-types.workspace = true
+chainthru-primitives.workspace = true
 
 ethereum-types.workspace = true
 web3.workspace = true

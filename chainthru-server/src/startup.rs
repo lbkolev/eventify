@@ -11,7 +11,7 @@ use crate::{
     api::{self, block},
     Result,
 };
-use chainthru_types::DatabaseSettings;
+use chainthru_primitives::DatabaseSettings;
 
 pub struct Application {
     port: u16,
@@ -76,7 +76,8 @@ pub fn start(
                         .service(
                             web::scope("/transactions")
                                 .route("/count", web::get().to(transaction::count))
-                                .route("/erc20", web::get().to(HttpResponse::NotImplemented)),
+                                .route("/erc20", web::get().to(HttpResponse::NotImplemented))
+                                .route("/erc721", web::get().to(HttpResponse::NotImplemented)),
                         ),
                 ),
             )

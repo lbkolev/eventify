@@ -2,7 +2,7 @@ use web3::types::BlockId;
 use web3::Transport;
 
 use crate::{App, Result};
-use chainthru_types::Insertable;
+use chainthru_primitives::Insertable;
 
 pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
     let from = app.src_block().await;
@@ -24,7 +24,7 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
                     .await;
 
                 if let Some(receipt) = a {
-                    let contract = chainthru_types::tx::Contract {
+                    let contract = chainthru_primitives::transaction::Contract {
                         address: receipt.contract_address.unwrap(),
                         transaction_hash: receipt.transaction_hash,
                         from: transaction.from.unwrap(),

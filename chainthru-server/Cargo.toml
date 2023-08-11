@@ -9,7 +9,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chainthru-types.workspace = true
+chainthru-primitives.workspace = true
 
 serde-aux.workspace = true
 serde_derive.workspace = true

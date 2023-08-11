@@ -18,7 +18,7 @@ pub struct ApplicationSettings {
 
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct Settings {
-    pub database: chainthru_types::DatabaseSettings,
+    pub database: chainthru_primitives::DatabaseSettings,
     pub application: ApplicationSettings,
 }
 

@@ -13,13 +13,13 @@ repository = "https://github.com/lbkolev/chainthru"
 [workspace]
 members = [
     "chainthru",
-    "chainthru-types",
+    "chainthru-primitives",
     "chainthru-index",
     "chainthru-server",
 ]
 
 [workspace.dependencies]
-chainthru-types = { path = "./chainthru-types" }
+chainthru-primitives = { path = "./chainthru-primitives" }
 chainthru-index = { path = "./chainthru-index" }
 chainthru-server = { path = "./chainthru-server" }
 

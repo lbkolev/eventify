@@ -4,10 +4,9 @@ pub trait ContractFunction {}
 macro_rules! contract_func {
     (contract=$contract_name:ident, $struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {
         #[derive(derive_builder::Builder, Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
-        #[serde(rename_all = "camelCase")]
         pub struct $struct_name {
             #[serde(flatten)]
-            boilerplate: $crate::TXBoilerplate,
+            boilerplate: $crate::TransactionBoilerplate,
 
             $(pub $field_name: $field_type),*
         }
@@ -17,7 +16,7 @@ macro_rules! contract_func {
         impl $struct_name {
             pub fn new($($field_name: $field_type),*) -> Self {
                 Self {
-                    boilerplate: $crate::TXBoilerplate::default(),
+                    boilerplate: $crate::TransactionBoilerplate::default(),
                     $($field_name),*
                 }
             }

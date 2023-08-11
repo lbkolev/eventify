@@ -25,7 +25,6 @@ comment on column public.block.author is 'Address of the miner who created the b
 comment on column public.block.state_root is 'root hash for the global state after applying changes in this block';
 comment on column public.block.transactions_root is 'root hash of the transactions in the payload';
 comment on column public.block.receipts_root is 'hash of the transaction receipts trie';
-comment on column public.block.number is 'Block number';
 comment on column public.block.gas_used is 'Total amount of gas used by all transactions in this block';
 comment on column public.block.gas_limit is 'Maximum amount of gas that can be used by all transactions in this block';
 comment on column public.block.base_fee_per_gas is 'The base fee value';
