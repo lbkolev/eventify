@@ -13,26 +13,22 @@ use crate::{Insertable, Result};
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexedTransaction {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub hash: Option<H256>,
+    pub hash: H256,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<H160>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<H160>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub input: Option<Bytes>,
+    pub input: Bytes,
 }
 
 impl From<Transaction> for IndexedTransaction {
     fn from(transaction: Transaction) -> Self {
         Self {
-            hash: Some(transaction.hash),
+            hash: transaction.hash,
             from: transaction.from,
             to: transaction.to,
-            input: Some(transaction.input),
+            input: transaction.input,
         }
     }
 }
@@ -40,27 +36,41 @@ impl From<Transaction> for IndexedTransaction {
 #[async_trait]
 impl Insertable for IndexedTransaction {
     async fn insert(&self, dbconn: &PgPool) -> Result<()> {
-        if let Some(s) = &self.input {
-            if s.0.len() < 4 {
-                return Ok(());
-            }
-
-            match &s.0[0..4] {
-                ERC20_APPROVE_SIGNATURE => {
-                    Approve::from(self.clone()).insert(dbconn).await?;
-                }
-                ERC20_TRANSFER_FROM_SIGNATURE => {
-                    TransferFrom::from(self.clone()).insert(dbconn).await?;
-                }
-                ERC20_TRANSFER_SIGNATURE => {
-                    Transfer::from(self.clone()).insert(dbconn).await?;
-                }
-
-                _ => {}
-            }
+        if self.input.0.len() < 4 {
+            return Ok(());
         }
+
+        match &self.input.0[0..4] {
+            ERC20_APPROVE_SIGNATURE => {
+                Approve::from(self.clone()).insert(dbconn).await?;
+            }
+            ERC20_TRANSFER_FROM_SIGNATURE => {
+                TransferFrom::from(self.clone()).insert(dbconn).await?;
+            }
+            ERC20_TRANSFER_SIGNATURE => {
+                Transfer::from(self.clone()).insert(dbconn).await?;
+            }
+
+            _ => {}
+        }
+
         Ok(())
     }
+}
+
+impl IndexedTransaction {
+    pub fn contract_creation(&self) -> bool {
+        self.to.is_none()
+    }
+
+    pub fn erc20(&self) -> bool {
+        self.input.0.len() >= 4
+            && (&self.input.0[0..4] == ERC20_APPROVE_SIGNATURE
+                || &self.input.0[0..4] == ERC20_TRANSFER_FROM_SIGNATURE
+                || &self.input.0[0..4] == ERC20_TRANSFER_SIGNATURE)
+    }
+
+
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]

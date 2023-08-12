@@ -1,5 +1,5 @@
 -- Add migration script here
-CREATE TABLE erc20.transfer_from (
+CREATE TABLE public.transfer_from (
     contract_addr bytea NOT NULL,
     transaction_hash bytea,
     transaction_sender bytea NOT NULL,
@@ -14,4 +14,6 @@ CREATE TABLE erc20.transfer_from (
             REFERENCES public.contract(contract_addr)
 );
 
-comment on column erc20.transfer_from._from is 'The address which owns the funds';
+comment on COLUMN public.transfer_from._from is 'The address which owns the funds';
+comment on COLUMN public.transfer_from._to is 'The address which will receive the funds';
+comment on COLUMN public.transfer_from._value is 'Since we are targeting mainly ERC20 & ERC721, this would be either the amount of funds or the amount of the transferred token';

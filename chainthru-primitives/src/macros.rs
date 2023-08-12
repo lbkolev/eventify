@@ -2,7 +2,7 @@ pub trait ContractFunction {}
 
 #[macro_export]
 macro_rules! contract_func {
-    (contract=$contract_name:ident, $struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {
+    ($struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {
         #[derive(derive_builder::Builder, Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
         pub struct $struct_name {
             #[serde(flatten)]

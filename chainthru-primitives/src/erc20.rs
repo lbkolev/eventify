@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 use ethereum_types::{H160, H256, U256};
 
-use crate::{contract_func, transaction::IndexedTransaction, Insertable, Result, TransactionBoilerplate};
+use crate::{
+    contract_func, transaction::IndexedTransaction, Insertable, Result, TransactionBoilerplate,
+};
 
 /// The signature of the ERC20 approve method
 pub const ERC20_APPROVE_SIGNATURE: &[u8] = &[0x09, 0xb6, 0x7f, 0x8e];
@@ -13,7 +15,6 @@ pub const ERC20_TRANSFER_SIGNATURE: &[u8] = &[0xa9, 0x05, 0x9c, 0xbb];
 pub const ERC20_TRANSFER_FROM_SIGNATURE: &[u8] = &[0x23, 0xb8, 0x72, 0xdd];
 
 contract_func!(
-    contract=erc20,
     Transfer[
         _to: H160,
         _value: U256
@@ -21,7 +22,6 @@ contract_func!(
 );
 
 contract_func!(
-    contract=erc20,
     TransferFrom[
         _from: H160,
         _to: H160,
@@ -30,7 +30,6 @@ contract_func!(
 );
 
 contract_func!(
-    contract=erc20,
     Approve[
         _spender: H160,
         _value: U256
@@ -39,11 +38,11 @@ contract_func!(
 
 impl From<IndexedTransaction> for Transfer {
     fn from(transaction: IndexedTransaction) -> Self {
-        let input = transaction.input.expect("Empty transaction input");
+        let input = transaction.input;
         Self {
             boilerplate: TransactionBoilerplate {
                 contract_addr: transaction.to.unwrap_or(H160::default()),
-                transaction_hash: transaction.hash.unwrap_or(H256::default()),
+                transaction_hash: transaction.hash,
                 transaction_sender: transaction.from.unwrap_or(H160::default()),
             },
 
@@ -80,11 +79,11 @@ impl Insertable for Transfer {
 
 impl From<IndexedTransaction> for TransferFrom {
     fn from(transaction: IndexedTransaction) -> Self {
-        let input = transaction.input.expect("Empty transaction input");
+        let input = transaction.input;
         Self {
             boilerplate: TransactionBoilerplate {
                 contract_addr: transaction.to.unwrap_or(H160::default()),
-                transaction_hash: transaction.hash.unwrap_or(H256::default()),
+                transaction_hash: transaction.hash,
                 transaction_sender: transaction.from.unwrap_or(H160::default()),
             },
 
@@ -123,11 +122,11 @@ impl Insertable for TransferFrom {
 
 impl From<IndexedTransaction> for Approve {
     fn from(value: IndexedTransaction) -> Self {
-        let input = value.input.expect("Empty transaction input");
+        let input = value.input;
         Self {
             boilerplate: TransactionBoilerplate {
                 contract_addr: value.to.unwrap_or(H160::default()),
-                transaction_hash: value.hash.unwrap_or(H256::default()),
+                transaction_hash: value.hash,
                 transaction_sender: value.from.unwrap_or(H160::default()),
             },
             _spender: H160::from_slice(&input.0[16..36]),

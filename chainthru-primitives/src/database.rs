@@ -50,3 +50,16 @@ impl From<String> for Settings {
         }
     }
 }
+
+impl From<Settings> for String {
+    fn from(settings: Settings) -> Self {
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            settings.username,
+            settings.password.expose_secret(),
+            settings.host,
+            settings.port,
+            settings.database_name
+        )
+    }
+}

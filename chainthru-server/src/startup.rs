@@ -3,7 +3,8 @@ use std::net::TcpListener;
 use actix_web::dev::Server;
 use actix_web::{web, App, HttpResponse, HttpServer};
 
-use sqlx::migrate;
+use sqlx::Connection;
+use sqlx::{migrate, PgConnection};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::api::transaction;
@@ -18,11 +19,43 @@ pub struct Application {
     server: Server,
 }
 
+pub async fn startup_migration(conn: &PgPool) -> Result<()> {
+    migrate!("../migrations").run(conn).await?;
+
+    Ok(())
+}
+
 impl Application {
     pub async fn build(settings: crate::Settings) -> Result<Self> {
         let connection_pool = get_connection_pool(&settings.database);
+        log::warn!("Starting migration");
         migrate!("../migrations").run(&connection_pool).await?;
 
+        log::warn!("After migration");
+        let file = tokio::fs::File::open("./migrations/data/function_signatures.csv").await?;
+
+        log::warn!("Importing function signatures");
+        let dbconn: String = settings.database.into();
+        let mut conn: PgConnection = PgConnection::connect(dbconn.as_str()).await?;
+        log::warn!("Connected to database");
+        let mut copy_in = conn
+            .copy_in_raw("COPY function_signature FROM STDIN (FORMAT CSV)")
+            .await?;
+        log::warn!("Copy in started");
+        copy_in.read_from(file).await?;
+        log::warn!("Copy in read from file");
+
+        match copy_in.finish().await {
+            Ok(_) => log::warn!("Successfully imported function signatures"),
+            Err(e) => log::warn!("Error importing function signatures: {}", e),
+        }
+
+        /*
+                match sqlx::query("\\COPY function_signature FROM '/Users/lkolev/foss/chainthru/migrations/data/function_signatures.csv' DELIMITER ',' CSV HEADER").execute(&connection_pool.clone()).await {
+                            Ok(_) => log::warn!("Successfully imported function signatures"),
+                            Err(e) => log::warn!("Error importing function signatures: {}", e),
+                        }
+        */
         let listener = TcpListener::bind(format!(
             "{}:{}",
             settings.application.host, settings.application.port

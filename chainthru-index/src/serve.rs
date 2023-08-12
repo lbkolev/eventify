@@ -19,16 +19,14 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
         block.insert(&db_handler).await;
         for transaction in transactions {
             if transaction.to.is_none() {
-                let a = app
-                    .fetch_transaction_receipt(transaction.hash.unwrap())
-                    .await;
+                let a = app.fetch_transaction_receipt(transaction.hash).await;
 
                 if let Some(receipt) = a {
                     let contract = chainthru_primitives::transaction::Contract {
                         address: receipt.contract_address.unwrap(),
                         transaction_hash: receipt.transaction_hash,
                         from: transaction.from.unwrap(),
-                        input: transaction.input.clone().unwrap(),
+                        input: transaction.input.clone(),
                     };
                     contract.insert(&db_handler).await;
                 }

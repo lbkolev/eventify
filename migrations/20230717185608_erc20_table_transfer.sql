@@ -1,5 +1,5 @@
 -- Add migration script here
-CREATE TABLE erc20.transfer (
+CREATE TABLE public.transfer (
     contract_addr bytea NOT NULL,
     transaction_hash bytea,
     transaction_sender bytea NOT NULL,
@@ -13,5 +13,5 @@ CREATE TABLE erc20.transfer (
             REFERENCES public.contract(contract_addr)
 );
 
-comment on column erc20.transfer._to is 'The recipient of the ERC20 transfer';
-comment on column erc20.transfer._value is 'The amount of ERC20 tokens transferred';
+comment on column public.transfer._to is 'The recipient of the ERC20 transfer';
+comment on column public.transfer._value is 'The amount of ERC20 tokens transferred';

@@ -1,5 +1,5 @@
 -- Add migration script here
-CREATE TABLE erc20.approve (
+CREATE TABLE public.approve (
     contract_addr bytea NOT NULL,
     transaction_hash bytea,
     transaction_sender bytea NOT NULL,
@@ -13,5 +13,3 @@ CREATE TABLE erc20.approve (
             REFERENCES public.contract(contract_addr)
 );
 
-comment on column erc20.approve._spender is 'The address which will spend the funds';
-comment on column erc20.approve._value is 'The amount of ERC20 tokens to allow spending';
