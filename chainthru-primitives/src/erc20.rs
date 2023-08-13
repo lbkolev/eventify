@@ -56,7 +56,7 @@ impl From<IndexedTransaction> for Transfer {
 impl Insertable for Transfer {
     async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()> {
         let sql = "
-            INSERT INTO erc20.transfer (contract_addr, transaction_hash, transaction_sender, _to, _value)
+            INSERT INTO contract_fn.transfer (contract_addr, transaction_hash, transaction_sender, _to, _value)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT DO NOTHING
             ";
@@ -98,7 +98,7 @@ impl From<IndexedTransaction> for TransferFrom {
 impl Insertable for TransferFrom {
     async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()> {
         let sql = "
-            INSERT INTO erc20.transfer_from (contract_addr, transaction_hash, transaction_sender, _from, _to, _value)
+            INSERT INTO contract_fn.transfer_from (contract_addr, transaction_hash, transaction_sender, _from, _to, _value)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT DO NOTHING
             ";
@@ -139,7 +139,7 @@ impl From<IndexedTransaction> for Approve {
 impl Insertable for Approve {
     async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()> {
         let sql = "
-            INSERT INTO erc20.approve (contract_addr, transaction_hash, transaction_sender, _spender, _value)
+            INSERT INTO contract_fn.approve (contract_addr, transaction_hash, transaction_sender, _spender, _value)
             VALUES ($1, $2, $3, $4, $5::numeric)
             ON CONFLICT DO NOTHING
             ";

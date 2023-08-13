@@ -26,9 +26,9 @@ pub struct ERC20 {
 
 pub async fn count(conn: web::Data<PgPool>) -> impl Responder {
     let sql = "SELECT
-        (SELECT COUNT(*) FROM erc20.approve) as erc20_approve,
-        (SELECT COUNT(*) FROM erc20.transfer) as erc20_transfer,
-        (SELECT COUNT(*) FROM erc20.transfer_from) as erc20_transfer_from;
+        (SELECT COUNT(*) FROM contract_fn.approve) as erc20_approve,
+        (SELECT COUNT(*) FROM contract_fn.transfer) as erc20_transfer,
+        (SELECT COUNT(*) FROM contract_fn.transfer_from) as erc20_transfer_from;
     ";
 
     let result: Result<TXCount, sqlx::Error> = sqlx::query_as(sql).fetch_one(conn.as_ref()).await;

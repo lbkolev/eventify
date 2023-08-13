@@ -29,7 +29,7 @@ serde = "1.0.171"
 serde-aux = "4.2.0"
 serde_derive = "1.0.171"
 serde_json = "1.0.104"
-sqlx = "0.7.0"
+sqlx = { git = "https://github.com/launchbadge/sqlx", branch = "main"}
 tokio = "1.29.1"
 thiserror = "1.0.44"
 futures = "0.3.28"

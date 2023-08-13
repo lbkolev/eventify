@@ -40,8 +40,8 @@ erDiagram
     TIMESTAMP created_at "The TS of the table entry"
 }
 
-"erc20.transfer" ||--o{ "public.contract": "depends on"
-"erc20.transfer" {
+"contract_fn.transfer" ||--o{ "public.contract": "depends on"
+"contract_fn.transfer" {
     bytea contract_addr "FK"
     bytea transaction_hash "PK"
     bytea transaction_sender
@@ -50,8 +50,8 @@ erDiagram
     TIMESTAMP created_at "The TS of the table entry"
 }
 
-"erc20.transfer_from" ||--o{ "public.contract": "depends on"
-"erc20.transfer_from" {
+"contract_fn.transfer_from" ||--o{ "public.contract": "depends on"
+"contract_fn.transfer_from" {
     bytea contract_addr "FK"
     bytea transaction_hash "PK"
     bytea transaction_sender
@@ -61,8 +61,8 @@ erDiagram
     TIMESTAMP created_at "The TS of the table entry"
 }
 
-"erc20.approve" ||--o{ "public.contract": "depends on"
-"erc20.approve" {
+"contract_fn.approve" ||--o{ "public.contract": "depends on"
+"contract_fn.approve" {
     bytea contract_addr "FK"
     bytea transaction_hash "PK"
     bytea transaction_sender
@@ -71,34 +71,13 @@ erDiagram
     TIMESTAMP created_at "The TS of the table entry"
 }
 
-"erc721.transfer_from" ||--o{ "public.contract": "depends on"
-"erc721.transfer_from" {
+"contract_fn.safe_transfer_from" ||--o{ "public.contract": "depends on"
+"contract_fn.safe_transfer_from" {
     bytea contract_addr "FK"
     bytea transaction_hash "PK"
     bytea transaction_sender
     bytea _from
     bytea _to
-    bytea _token_id
-    TIMESTAMP created_at "The TS of the table entry"
-}
-
-"erc721.safe_transfer_from" ||--o{ "public.contract": "depends on"
-"erc721.safe_transfer_from" {
-    bytea contract_addr "FK"
-    bytea transaction_hash "PK"
-    bytea transaction_sender
-    bytea _from
-    bytea _to
-    bytea _token_id
-    TIMESTAMP created_at "The TS of the table entry"
-}
-
-"erc721.approve" ||--o{ "public.contract": "depends on"
-"erc721.approve" {
-    bytea contract_addr "FK"
-    bytea transaction_hash "PK"
-    bytea transaction_sender
-    bytea _approved
     bytea _token_id
     TIMESTAMP created_at "The TS of the table entry"
 }
@@ -107,8 +86,6 @@ erDiagram
 ## Crates
 
 ## Documentation
-Documentation is segregated in two:
-- one part is 
 
 ### Indexer
 - [Introductory & Architectural](./docs/chainthru-index.md)

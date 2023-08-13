@@ -19,43 +19,41 @@ pub struct Application {
     server: Server,
 }
 
-pub async fn startup_migration(conn: &PgPool) -> Result<()> {
+pub async fn startup_migration(settings: DatabaseSettings) -> Result<()> {
+    /*
+    let tmp: String = settings.into();
+    let mut conn = PgConnection::connect(tmp.as_str()).await?;
     migrate!("../migrations").run(conn).await?;
-
+    */
     Ok(())
 }
 
 impl Application {
     pub async fn build(settings: crate::Settings) -> Result<Self> {
         let connection_pool = get_connection_pool(&settings.database);
-        log::warn!("Starting migration");
         migrate!("../migrations").run(&connection_pool).await?;
 
-        log::warn!("After migration");
         let file = tokio::fs::File::open("./migrations/data/function_signatures.csv").await?;
-
-        log::warn!("Importing function signatures");
         let dbconn: String = settings.database.into();
-        let mut conn: PgConnection = PgConnection::connect(dbconn.as_str()).await?;
-        log::warn!("Connected to database");
-        let mut copy_in = conn
-            .copy_in_raw("COPY function_signature FROM STDIN (FORMAT CSV)")
-            .await?;
-        log::warn!("Copy in started");
-        copy_in.read_from(file).await?;
-        log::warn!("Copy in read from file");
+        let mut conn: PgConnection = PgConnection::connect(&dbconn).await?;
 
+        let res = sqlx::query("SELECT * FROM function_signature")
+            .execute(&mut conn)
+            .await;
+        match res {
+            Ok(r) => log::warn!("{:?}", r),
+            Err(e) => log::warn!("Error checking function signatures: {}", e),
+        }
+
+        let mut copy_in = conn
+            .copy_in_raw(r#"COPY function_signature (hex_sig, text_sig) FROM STDIN (FORMAT CSV)"#)
+            .await?;
+        copy_in.read_from(file).await?;
         match copy_in.finish().await {
             Ok(_) => log::warn!("Successfully imported function signatures"),
             Err(e) => log::warn!("Error importing function signatures: {}", e),
         }
 
-        /*
-                match sqlx::query("\\COPY function_signature FROM '/Users/lkolev/foss/chainthru/migrations/data/function_signatures.csv' DELIMITER ',' CSV HEADER").execute(&connection_pool.clone()).await {
-                            Ok(_) => log::warn!("Successfully imported function signatures"),
-                            Err(e) => log::warn!("Error importing function signatures: {}", e),
-                        }
-        */
         let listener = TcpListener::bind(format!(
             "{}:{}",
             settings.application.host, settings.application.port
