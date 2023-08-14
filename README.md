@@ -1,11 +1,29 @@
-## Chainthru
+# <p align="center">chainthru</p>
 
-- [Chainthru](#chainthru)
-- [Database schema](#database-schema)
-- [Crates](#crates)
-- [Documentation](#documentation)
-  - [Indexer](#indexer)
-  - [Server](#server)
+<p align="center">
+    <a href="https://github.com/lbkolev/chainthru/blob/master/LICENSE">
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg">
+    </a>
+    <a href="https://crates.io/crates/chainthru">
+        <img src="https://img.shields.io/crates/v/chainthru.svg">
+    </a>
+    <a href="https://github.com/lbkolev/chainthru/actions?query=workflow%3ACI+branch%3Amaster">
+        <img src="https://github.com/lbkolev/chainthru/actions/workflows/ci.yml/badge.svg">
+    </a>
+    <a href="https://docs.rs/chainthru">
+        <img src="https://img.shields.io/docsrs/chainthru/latest">
+    </a>
+</p>
+
+- [chainthru](#chainthru)
+  - [Database schema](#database-schema)
+  - [Crates](#crates)
+  - [Documentation](#documentation)
+    - [Index](#index)
+    - [Server](#server)
+    - [Primitive Types](#primitive-types)
+    - [Tracing](#tracing)
+    - [Core](#core)
 
 
 ## Database schema
@@ -84,14 +102,31 @@ erDiagram
 ```
 
 ## Crates
+Include the following
+- [chainthru (binary)](./chainthru/)
+- [chainthru-index](./chainthru-index)
+- [chainthru-server](./chainthru-server)
+- [chainthru-primitives](./chainthru-primitives)
+- [chainthru-tracing](./chainthru-tracing)
 
 ## Documentation
 
-### Indexer
+### Index
 - [Introductory & Architectural](./docs/chainthru-index.md)
-- [Crate level/functionality](...)
+- [Crate & functionality](...)
 
 ### Server
 - [Introductory & Architectural](./docs/chainthru-api.md)
-- [Crate level/functionality](...)
+- [Crate & functionality](...)
 
+### Primitive Types
+- [Introductory & Architectural](./docs/chainthru-primitives.md)
+- [Crate & functionality](...)
+  
+### Tracing
+- [Introductory & Architectural](./docs/chainthru-tracing.md)
+- [Crate & functionality](...)
+
+### Core
+- [Introductory & Architectural](./docs/chainthru.md)
+- [Crate & functionality](...)

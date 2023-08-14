@@ -1,5 +1,5 @@
 ## Function signatures
-It takes around ~130 minutes to fetch all the publicly available ethereum function signtures (thanks https://4byte.directory) and insert them into a csv, that we later copy into the `function_signature` table.
+It takes around ~130 minutes to fetch all the publicly available ethereum function signtures (thanks https://4byte.directory) and insert them into a csv, that's later copied into table `function_signature`.
 
 ### Benchmark for ~10400 pages (100 signatures per page)
 ```
