@@ -19,7 +19,7 @@ pub struct Application {
     server: Server,
 }
 
-pub async fn startup_migration(settings: DatabaseSettings) -> Result<()> {
+pub async fn startup_migration(_settings: DatabaseSettings) -> Result<()> {
     /*
     let tmp: String = settings.into();
     let mut conn = PgConnection::connect(tmp.as_str()).await?;

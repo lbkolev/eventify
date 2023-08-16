@@ -1,5 +1,14 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("Invalid transaction input length {0}")]
+    InvalidTransactionInputLength(usize),
+
+    #[error("Invalid transaction function signature {0}")]
+    InvalidTransactionFunctionSignature(String),
+
+    #[error("Unindexed transaction")]
+    UnindexedTransaction,
+
     #[error("SQL error: {0}")]
     Sql(#[from] sqlx::Error),
 

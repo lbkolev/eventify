@@ -1,12 +1,13 @@
 use chainthru_primitives::transaction::IndexedTransaction;
+use chainthru_primitives::Insertable;
 use ethereum_types::H256;
 use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
-use web3::types::{Block, BlockId, BlockNumber, Transaction, H160};
+use web3::types::{Block, BlockId, BlockNumber, Transaction};
 use web3::{Transport, Web3};
 
 use crate::Result;
-use chainthru_primitives::block::IndexedBlock;
+use chainthru_primitives::{block::IndexedBlock, contract::Contract};
 
 #[derive(Debug)]
 pub struct App<T: Transport> {
@@ -130,13 +131,31 @@ impl<T: Transport> App<T> {
         Ok(block.as_u64())
     }
 
-    pub async fn dbconn(&self) -> Result<PgPool> {
-        Ok(self
-            .inner
+    pub async fn process_contract(&self, transaction: IndexedTransaction) -> Result<()> {
+        if let Some(receipt) = self.fetch_transaction_receipt(transaction.hash).await {
+            let contract = Contract {
+                address: receipt
+                    .contract_address
+                    .expect("Unable to get contract address"),
+                transaction_hash: receipt.transaction_hash,
+                from: transaction.from.expect("Unable to get transaction sender"),
+                input: transaction.input,
+            };
+
+            match contract.insert(self.dbconn()).await {
+                Ok(_) => log::info!("Contract inserted"),
+                Err(e) => log::warn!("Error inserting contract: {:?}", e),
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn dbconn(&self) -> &PgPool {
+        self.inner
             .transport_db
             .as_ref()
             .expect("Unable to get transport db")
-            .clone())
     }
 
     pub async fn src_block(&self) -> u64 {

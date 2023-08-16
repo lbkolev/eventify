@@ -1,12 +1,12 @@
 pub mod erc20;
 
-use std::result;
+
 
 use actix_web::{web, HttpResponse, Responder};
 use serde_derive::{Deserialize, Serialize};
-use serde_json::json;
+
 use sqlx::{FromRow, PgPool, Row};
-use web3::types::U256;
+
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TXCount {

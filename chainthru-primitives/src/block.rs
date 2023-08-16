@@ -6,7 +6,6 @@ use web3::types::{H160, H256, H64, U256};
 
 use crate::{Insertable, Result};
 
-/// Minimum block representation
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexedBlock {
