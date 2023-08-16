@@ -44,9 +44,9 @@ impl From<Transaction> for IndexedTransaction {
 #[async_trait]
 impl Insertable for IndexedTransaction {
     async fn insert(&self, dbconn: &PgPool) -> Result<()> {
-        let sql = "INSERT INTO public.transaction 
-            (transaction_hash, _from, _to, input) 
-            VALUES ($1, $2, $3, $4) 
+        let sql = "INSERT INTO public.transaction
+            (transaction_hash, _from, _to, input)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT DO NOTHING";
 
         let tmp = &self.input.0;

@@ -2,12 +2,12 @@
 #![allow(clippy::option_map_unit_fn)]
 
 pub mod block;
+pub mod contract;
 pub mod database;
-pub mod func;
 pub mod error;
+pub mod func;
 pub mod macros;
 pub mod transaction;
-pub mod contract;
 
 pub use block::IndexedBlock;
 pub use database::Settings as DatabaseSettings;

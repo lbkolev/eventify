@@ -17,9 +17,9 @@ pub struct Contract {
 #[async_trait]
 impl Insertable for Contract {
     async fn insert(&self, dbconn: &PgPool) -> Result<()> {
-        let sql = "INSERT INTO public.contract 
-            (contract_addr, transaction_hash, _from, input) 
-            VALUES ($1, $2, $3, $4) 
+        let sql = "INSERT INTO public.contract
+            (contract_addr, transaction_hash, _from, input)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT DO NOTHING";
 
         let tmp = &self.input.0;
