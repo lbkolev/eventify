@@ -13,6 +13,7 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
             .fetch_indexed_data(BlockId::Number(target.into()))
             .await
             .unwrap();
+
         let db_transaction = app.dbconn().begin().await?;
 
         match block.insert(app.dbconn()).await {

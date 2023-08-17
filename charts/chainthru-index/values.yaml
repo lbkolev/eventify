@@ -1,0 +1,76 @@
+# Default values for chainthru-index.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  name: "ghcr.io/lbkolev/chainthru"
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  # @default - AppVersion
+  tag: ""
+
+# -- For Private docker registries, authentication is needed.
+#  Registry secrets are applied to the respective service accounts
+imagePullSecrets: []
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# -- The URL used to connect to the Ethereum Node
+# Accepts HTTP(S)/WS/IPC
+nodeUrl: "https://eth.llamarpc.com"
+
+# -- The Database JDBC connection string
+databaseJDBC: "postgres://postgres:password@localhost:5432/chainthru"
+
+# -- The starting block to begin indexing from
+startBlock: 0
+
+# -- The end block to end indexing at
+endBlock: 999999999
+
+# -- The number of threads to use
+# default - the number of cpu cores allowed for the container/pod
+threads: 1
+
+# -- The log level to use: Trace, Debug, Info, Warn, Error
+# @default - INFO
+logLevel: "INFO"
+
+# -- A list of potential additional arguments.
+# Passed directly to the chainthru-indexer
+# and take precedence over environment variables
+additionalArguments: []
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources:
+  limits:
+    cpu: 10000m
+    memory: 5000Mi
+  requests:
+    cpu: 3000m
+    memory: 2000Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
