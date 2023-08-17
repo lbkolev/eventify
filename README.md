@@ -21,19 +21,19 @@
   - [Documentation](#documentation)
     - [Index](#index)
     - [Server](#server)
-    - [Primitive Types](#primitive-types)
+    - [Primitives](#primitives)
     - [Tracing](#tracing)
     - [Core](#core)
 
 
 ## Database schema
 ```mermaid
-erDiagram 
+erDiagram
 
 "public.block" {
     bytea hash "PK"
     bytea parent_hash "Hash of the parent block"
-    bytea uncles_hash 
+    bytea uncles_hash
     bytea author "Address of the miner who created the block"
     bytea state_root
     bytea transactions_root
@@ -119,10 +119,10 @@ Include the following
 - [Introductory & Architectural](./docs/chainthru-api.md)
 - [Crate & functionality](...)
 
-### Primitive Types
+### Primitives
 - [Introductory & Architectural](./docs/chainthru-primitives.md)
 - [Crate & functionality](...)
-  
+
 ### Tracing
 - [Introductory & Architectural](./docs/chainthru-tracing.md)
 - [Crate & functionality](...)

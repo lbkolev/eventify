@@ -65,6 +65,6 @@ sqlx migrate run
 
 if [[ -z "${SKIP_COPY}" ]]; then
   >&2 echo "Importing function signatures from ${FUNCTION_SIGNATURES_CSV}"
-  PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" -d "${DB_NAME}" -c "\copy function_signature FROM '${FUNCTION_SIGNATURES_CSV}' DELIMITER ',' CSV;"
+  PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" -d "${DB_NAME}" -c "\copy function_signature(hex_sig, text_sig) FROM '${FUNCTION_SIGNATURES_CSV}' DELIMITER ',' CSV;"
   >&2 echo "Function signatures have been imported, ready to go!"
 fi

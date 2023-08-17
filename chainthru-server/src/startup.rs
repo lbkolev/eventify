@@ -3,8 +3,6 @@ use std::net::TcpListener;
 use actix_web::dev::Server;
 use actix_web::{web, App, HttpResponse, HttpServer};
 
-use sqlx::Connection;
-use sqlx::{migrate, PgConnection};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::api::transaction;
@@ -19,41 +17,32 @@ pub struct Application {
     server: Server,
 }
 
-pub async fn startup_migration(_settings: DatabaseSettings) -> Result<()> {
-    /*
-    let tmp: String = settings.into();
-    let mut conn = PgConnection::connect(tmp.as_str()).await?;
-    migrate!("../migrations").run(conn).await?;
-    */
-    Ok(())
-}
-
 impl Application {
     pub async fn build(settings: crate::Settings) -> Result<Self> {
         let connection_pool = get_connection_pool(&settings.database);
+        /*
         migrate!("../migrations").run(&connection_pool).await?;
+                let file = tokio::fs::File::open("./migrations/data/function_signatures.csv").await?;
+                let dbconn: String = settings.database.into();
+                let mut conn: PgConnection = PgConnection::connect(&dbconn).await?;
 
-        let file = tokio::fs::File::open("./migrations/data/function_signatures.csv").await?;
-        let dbconn: String = settings.database.into();
-        let mut conn: PgConnection = PgConnection::connect(&dbconn).await?;
+                let res = sqlx::query("SELECT * FROM function_signature")
+                    .execute(&mut conn)
+                    .await;
+                match res {
+                    Ok(r) => log::warn!("{:?}", r),
+                    Err(e) => log::warn!("Error checking function signatures: {}", e),
+                }
 
-        let res = sqlx::query("SELECT * FROM function_signature")
-            .execute(&mut conn)
-            .await;
-        match res {
-            Ok(r) => log::warn!("{:?}", r),
-            Err(e) => log::warn!("Error checking function signatures: {}", e),
-        }
-
-        let mut copy_in = conn
-            .copy_in_raw(r#"COPY function_signature (hex_sig, text_sig) FROM STDIN (FORMAT CSV)"#)
-            .await?;
-        copy_in.read_from(file).await?;
-        match copy_in.finish().await {
-            Ok(_) => log::warn!("Successfully imported function signatures"),
-            Err(e) => log::warn!("Error importing function signatures: {}", e),
-        }
-
+                let mut copy_in = conn
+                    .copy_in_raw(r#"COPY function_signature (hex_sig, text_sig) FROM STDIN (FORMAT CSV)"#)
+                    .await?;
+                copy_in.read_from(file).await?;
+                match copy_in.finish().await {
+                    Ok(_) => log::warn!("Successfully imported function signatures"),
+                    Err(e) => log::warn!("Error importing function signatures: {}", e),
+                }
+        */
         let listener = TcpListener::bind(format!(
             "{}:{}",
             settings.application.host, settings.application.port
