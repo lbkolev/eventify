@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  name: "lbkolev/chainthru"
+  name: "ghcr.io/lbkolev/chainthru"
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   # @default - AppVersion
