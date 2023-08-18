@@ -1,4 +1,5 @@
 # <p align="center">chainthru</p>
+<p align="center"> Index Ethereum into a postgres database </p>
 
 <p align="center">
     <a href="https://github.com/lbkolev/chainthru/blob/master/LICENSE">
@@ -15,7 +16,10 @@
     </a>
 </p>
 
+# 🚧 work in progress 🚧
+
 - [chainthru](#chainthru)
+- [🚧 work in progress 🚧](#-work-in-progress-)
   - [Database schema](#database-schema)
   - [Crates](#crates)
   - [Documentation](#documentation)
@@ -38,7 +42,7 @@ erDiagram
     bytea state_root
     bytea transactions_root
     bytea receipts_root
-    BIGSERIAL number
+    NUMBER number
     bytea gas_used
     bytea gas_limit
     bytea base_fee_per_gas
@@ -98,6 +102,12 @@ erDiagram
     bytea _to
     bytea _token_id
     TIMESTAMP created_at "The TS of the table entry"
+}
+
+"public.function_signature" {
+    uuid id "PK"
+    bytea hex_sig
+    bytea text_sig
 }
 ```
 

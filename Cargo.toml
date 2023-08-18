@@ -16,6 +16,7 @@ members = [
     "chainthru-primitives",
     "chainthru-index",
     "chainthru-server",
+    "chainthru-tracing",
 ]
 
 [workspace.dependencies]
