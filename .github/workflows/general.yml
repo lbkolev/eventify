@@ -47,7 +47,7 @@ jobs:
           SKIP_DOCKER=true ./tools/init_db.sh
       - name: Check sqlx-data.json is up-to-date
         run: |
-          cargo sqlx prepare --database-url ${{ env.DATABASE_URL }}--check -- --bin chainthru
+          cargo sqlx prepare --database-url ${{ env.DATABASE_URL }} --check -- --bin chainthru
       - name: Run tests
         run: cargo test
 
