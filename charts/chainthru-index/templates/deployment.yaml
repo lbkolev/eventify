@@ -44,7 +44,6 @@ spec:
               value: {{ .Values.threads }}
             - name: RUST_LOG
               value: {{ .Values.logLevel }}
-          # TODO
           command: ["./chainthru", "--server.disabled"]
           args: {{ .Values.additionalArguments }}
           livenessProbe:
