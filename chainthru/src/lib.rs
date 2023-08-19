@@ -1,6 +1,4 @@
-//! # Chainthru
-//! Chainthru is a blockchain indexer and API server for Ethereum.
-//! The package consolidates the indexer and the API server into a single binary.
+#![doc = include_str!("../README.md")]
 
 /// Re-export of the Chainthru Ethereum Indexer.
 /// ...

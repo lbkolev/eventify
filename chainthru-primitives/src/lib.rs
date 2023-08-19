@@ -1,4 +1,4 @@
-//! Primitive types used throughout the chainthru application crates.
+#![doc = include_str!("../README.md")]
 #![allow(clippy::option_map_unit_fn)]
 
 pub mod block;
