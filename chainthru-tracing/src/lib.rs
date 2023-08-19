@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use tracing::subscriber::set_global_default;
 use tracing::Subscriber;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};

@@ -16,10 +16,10 @@
     </a>
 </p>
 
-# 🚧 work in progress 🚧
+# <p align="center"> 🚧 work in progress 🚧<p>
 
 - [chainthru](#chainthru)
-- [🚧 work in progress 🚧](#-work-in-progress-)
+- [ 🚧 work in progress 🚧](#--work-in-progress-)
   - [Database schema](#database-schema)
   - [Crates](#crates)
   - [Documentation](#documentation)
