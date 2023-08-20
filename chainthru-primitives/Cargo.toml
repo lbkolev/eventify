@@ -24,6 +24,7 @@ serde-aux.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 secrecy.workspace = true
+log.workspace = true
 
 async-trait = "0.1.72"
 convert_case = "0.6.0"

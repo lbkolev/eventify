@@ -14,9 +14,10 @@ path = "src/main.rs"
 name = "chainthru"
 
 [dependencies]
+chainthru-index = { workspace = true, features = ["parallelism"]}
 chainthru-server.workspace = true
 chainthru-primitives.workspace = true
-chainthru-index = { workspace = true, features = ["parallelism"]}
+chainthru-tracing.workspace = true
 
 ethereum-types.workspace = true
 web3.workspace = true

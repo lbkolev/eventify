@@ -5,7 +5,7 @@ use crate::{App, Result};
 use chainthru_primitives::Insertable;
 
 pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
-    let from = app.src_block().await;
+    let from = app.src_block();
     let to = app.dst_block().await?;
 
     for target in from..=to {

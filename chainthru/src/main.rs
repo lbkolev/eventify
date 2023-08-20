@@ -1,5 +1,4 @@
 use clap::Parser;
-use env_logger::Builder;
 use secrecy::{ExposeSecret, Secret};
 use url::Url;
 use web3::{
@@ -35,19 +34,19 @@ pub struct ChainthruSettings {
 
     #[arg(
         long,
-        env = "CHAINTHRU_FROM_BLOCK",
+        env = "CHAINTHRU_SRC_BLOCK",
         help = "The block to begin the indexing from. Defaults to 0",
         default_value_t = 0
     )]
-    pub from_block: u64,
+    pub src_block: u64,
 
     #[arg(
         long,
-        env = "CHAINTHRU_TO_BLOCK",
+        env = "CHAINTHRU_DST_BLOCK",
         help = "The block to end the indexing at. Defaults to the latest block",
         default_value = None
     )]
-    pub to_block: Option<u64>,
+    pub dst_block: Option<u64>,
 
     #[arg(
         long = "indexer.disabled",
@@ -124,10 +123,12 @@ impl From<ChainthruSettings> for server::Settings {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = ChainthruSettings::parse();
-    Builder::new()
-        .parse_filters(settings.log_level.as_str())
-        .init();
-    log::info!("{:#?}", settings);
+    let subscriber = chainthru_tracing::get_subscriber(
+        "chainthru-server".into(),
+        settings.log_level.as_str().into(),
+        std::io::stdout,
+    );
+    chainthru_tracing::init_subscriber(subscriber);
 
     let server_settings = server::Settings::from(settings.clone());
     let mut handles = vec![];
@@ -141,25 +142,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "http" | "https" => {
                 tokio::spawn(indexer::run::<Http>(
                     App::default()
-                        .with_from_block(BlockId::Number(BlockNumber::Number(
-                            settings.from_block.into(),
+                        .with_src_block(BlockId::Number(BlockNumber::Number(
+                            settings.src_block.into(),
                         )))
-                        .with_to_block(BlockId::Number(BlockNumber::Number(
-                            settings.to_block.unwrap().into(),
+                        .with_dst_block(BlockId::Number(BlockNumber::Number(
+                            settings.dst_block.unwrap().into(),
                         )))
                         .with_database_url(settings.database_url.expose_secret())
                         .await
                         .with_http(&settings.node_url),
                 ));
             }
-            "ws" => {
+            "ws" | "wss" => {
                 tokio::spawn(indexer::run::<WebSocket>(
                     App::default()
-                        .with_from_block(BlockId::Number(BlockNumber::Number(
-                            settings.from_block.into(),
+                        .with_src_block(BlockId::Number(BlockNumber::Number(
+                            settings.src_block.into(),
                         )))
-                        .with_to_block(BlockId::Number(BlockNumber::Number(
-                            settings.to_block.unwrap().into(),
+                        .with_dst_block(BlockId::Number(BlockNumber::Number(
+                            settings.dst_block.unwrap().into(),
                         )))
                         .with_database_url(settings.database_url.expose_secret())
                         .await
@@ -170,11 +171,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "ipc" => {
                 tokio::spawn(indexer::run::<Ipc>(
                     App::default()
-                        .with_from_block(BlockId::Number(BlockNumber::Number(
-                            settings.from_block.into(),
+                        .with_src_block(BlockId::Number(BlockNumber::Number(
+                            settings.src_block.into(),
                         )))
-                        .with_to_block(BlockId::Number(BlockNumber::Number(
-                            settings.to_block.unwrap().into(),
+                        .with_dst_block(BlockId::Number(BlockNumber::Number(
+                            settings.dst_block.unwrap().into(),
                         )))
                         .with_database_url(settings.database_url.expose_secret())
                         .await
