@@ -45,7 +45,7 @@ impl From<Transaction> for IndexedTransaction {
 impl Insertable for IndexedTransaction {
     async fn insert(&self, dbconn: &PgPool) -> Result<()> {
         let sql = "INSERT INTO public.transaction
-            (transaction_hash, _from, _to, input)
+            (hash, _from, _to, input)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT DO NOTHING";
 
@@ -80,6 +80,9 @@ impl IndexedTransaction {
     }
 
     /// Determines if the transaction is indexed at all.
+    // function_signatures are ~1mil so this check is extremely costly
+    // as this one gets checked for each and every tx
+    // TODO: make it as an optional opt-in
     async fn tracked(&self, conn: &PgPool) -> Result<bool> {
         if self.input.0.len() < 4 {
             return Ok(false);
@@ -101,7 +104,7 @@ impl IndexedTransaction {
     /// If the transaction is considered special, it's indexed into its own table.
     /// If the transaction is not considered special, but we've got a function signature that matches the transaction's input, it is indexed into the `transaction` table.
     pub async fn process(&self, conn: &PgPool) -> Result<()> {
-        if self.tracked(conn).await? && self.special() {
+        if self.special() {
             match &self.input.0[0..4] {
                 ERC20_APPROVE_SIGNATURE => Approve::try_from(self.clone())?.insert(conn).await,
                 ERC20_TRANSFER_FROM_SIGNATURE => {
@@ -109,7 +112,8 @@ impl IndexedTransaction {
                 }
                 ERC20_TRANSFER_SIGNATURE => Transfer::try_from(self.clone())?.insert(conn).await,
                 ERC721_SAFE_TRANSFER_FROM_SIGNATURE => {
-                    unimplemented!("ERC721 safe transfer from")
+                    log::warn!("ERC721 safe transfer from");
+                    Ok(())
                 }
                 _ => Err(Error::InvalidTransactionFunctionSignature(
                     String::from_utf8_lossy(&self.input.0[0..4]).to_string(),
