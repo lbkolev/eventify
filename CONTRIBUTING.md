@@ -17,7 +17,7 @@ This project adheres to the Rust Code of Conduct. By participating, you are expe
 
 ## Getting Started
 - Fork the repository on GitHub.
-- Clone your forked repository: git clone https://github.com/lbkoleb/chainthru.git
+- Clone your forked repository: git clone https://github.com/<you>/chainthru.git
 - Create a new branch for your feature or bug fix: `git checkout -b new-feature`
 - Make your changes and test them thoroughly.
 - Commit your changes with a descriptive commit message: `git commit -am 'Add new feature'`
