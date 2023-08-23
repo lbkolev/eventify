@@ -6,7 +6,7 @@ macro_rules! contract_func {
         #[derive(derive_builder::Builder, Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
         pub struct $struct_name {
             #[serde(flatten)]
-            boilerplate: $crate::TransactionBoilerplate,
+            pub boilerplate: $crate::TransactionBoilerplate,
 
             $(pub $field_name: $field_type),*
         }

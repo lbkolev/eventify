@@ -1,5 +1,3 @@
-pub mod erc20;
-
 use actix_web::{web, HttpResponse, Responder};
 use serde_derive::{Deserialize, Serialize};
 

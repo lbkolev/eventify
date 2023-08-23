@@ -7,6 +7,7 @@ pub mod database;
 pub mod error;
 pub mod func;
 pub mod macros;
+pub mod storage;
 pub mod transaction;
 
 pub use block::IndexedBlock;
