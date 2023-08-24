@@ -1,146 +1,34 @@
 #![allow(unused)]
+#![allow(clippy::option_map_unit_fn)]
 
 use std::fmt::Display;
+use std::ops::Deref;
 
 use ethereum_types::H64;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
+use sqlx::postgres::PgConnectOptions;
+use sqlx::Database;
 use sqlx::Pool;
 use url::Url;
 
-use crate::storage::Operations;
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct Settings {
-    pub database_name: String,
-    pub host: String,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
-    pub port: u16,
-    pub username: String,
-    pub password: Secret<String>,
-    pub require_ssl: bool,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            database_name: "chainthru".to_owned(),
-            host: "localhost".to_owned(),
-            port: 5432,
-            username: "postgres".to_owned(),
-            password: Secret::new("password".to_owned()),
-            require_ssl: false,
-        }
-    }
-}
-
-impl Settings {
-    pub fn without_db(&self) -> sqlx::postgres::PgConnectOptions {
-        let require_ssl = if self.require_ssl {
-            sqlx::postgres::PgSslMode::Require
-        } else {
-            sqlx::postgres::PgSslMode::Prefer
-        };
-
-        sqlx::postgres::PgConnectOptions::new()
-            .host(&self.host)
-            .username(&self.username)
-            .password(self.password.expose_secret())
-            .port(self.port)
-            .ssl_mode(require_ssl)
-    }
-
-    pub fn with_db(&self) -> sqlx::postgres::PgConnectOptions {
-        self.without_db().database(&self.database_name)
-    }
-}
-
-impl From<String> for Settings {
-    fn from(s: String) -> Self {
-        let url = Url::parse(&s).expect("Invalid database URL");
-
-        Self {
-            database_name: url.path().trim_start_matches('/').to_owned(),
-            host: url.host_str().unwrap_or("localhost").to_owned(),
-            port: url.port().unwrap_or(5432),
-            username: url.username().to_owned(),
-            password: Secret::new(url.password().unwrap_or("").to_owned()),
-            require_ssl: false,
-        }
-    }
-}
-
-impl From<Settings> for String {
-    fn from(settings: Settings) -> Self {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            settings.username,
-            settings.password.expose_secret(),
-            settings.host,
-            settings.port,
-            settings.database_name
-        )
-    }
-}
-
-impl From<&str> for Settings {
-    fn from(s: &str) -> Self {
-        Self::from(s.to_owned())
-    }
-}
-
-impl Display for Settings {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "postgres://{}:{}@{}:{}/{}",
-            self.username,
-            self.password.expose_secret(),
-            self.host,
-            self.port,
-            self.database_name
-        )
-    }
-}
+use crate::{storage::Auth, storage::Storage, Error, Result};
 
 #[derive(Debug)]
 pub struct Postgres {
-    inner: Pool<sqlx::postgres::Postgres>,
-    settings: Settings,
+    pub inner: Pool<sqlx::postgres::Postgres>,
 }
 
-impl Default for Postgres {
-    fn default() -> Self {
-        let settings = Settings::default();
-
-        Self {
-            inner: Pool::connect_lazy(&String::from(settings.clone()))
-                .expect("Failed to connect to postgres DB"),
-            settings,
-        }
-    }
-}
-
-impl Postgres {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_settings(settings: Settings) -> Self {
-        Self {
-            inner: Pool::connect_lazy(&String::from(settings.clone())).unwrap(),
-            settings,
-        }
+impl Auth<PgConnectOptions> for Postgres {
+    fn authenticate(&self, dbc: impl Into<String>) -> Result<PgConnectOptions> {
+        dbc.into().parse::<PgConnectOptions>()
     }
 }
 
 #[async_trait::async_trait]
-impl Operations for Postgres {
-    async fn insert_block(
-        &self,
-        block: &crate::IndexedBlock,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+impl Storage for Postgres {
+    async fn insert_block(&self, block: &crate::IndexedBlock) -> Result<()> {
         let sql = "INSERT INTO public.block
             (hash, parent_hash, uncles_hash, author, state_root, transactions_root, receipts_root, number, gas_used, gas_limit, base_fee_per_gas, difficulty, total_difficulty, transactions, size, nonce)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
@@ -198,10 +86,7 @@ impl Operations for Postgres {
         Ok(())
     }
 
-    async fn insert_contract(
-        &self,
-        contract: &crate::contract::Contract,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    async fn insert_contract(&self, contract: &crate::contract::Contract) -> Result<()> {
         let sql = "INSERT INTO public.contract
             (contract_addr, transaction_hash, _from, input)
             VALUES ($1, $2, $3, $4)
@@ -222,7 +107,7 @@ impl Operations for Postgres {
     async fn insert_transaction(
         &self,
         transaction: &crate::transaction::IndexedTransaction,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<()> {
         let sql = "INSERT INTO public.transaction
             (hash, _from, _to, input)
             VALUES ($1, $2, $3, $4)
@@ -240,10 +125,7 @@ impl Operations for Postgres {
         Ok(())
     }
 
-    async fn insert_transfer(
-        &self,
-        transfer: &crate::func::Transfer,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    async fn insert_transfer(&self, transfer: &crate::func::Transfer) -> Result<()> {
         let sql = "
             INSERT INTO contract_fn.transfer (contract_addr, transaction_hash, transaction_sender, _to, _value)
             VALUES ($1, $2, $3, $4, $5)
@@ -265,10 +147,7 @@ impl Operations for Postgres {
         Ok(())
     }
 
-    async fn insert_transfer_from(
-        &self,
-        transfer_from: &crate::func::TransferFrom,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    async fn insert_transfer_from(&self, transfer_from: &crate::func::TransferFrom) -> Result<()> {
         let sql = "
             INSERT INTO contract_fn.transfer_from (contract_addr, transaction_hash, transaction_sender, _from, _to, _value)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -291,10 +170,7 @@ impl Operations for Postgres {
         Ok(())
     }
 
-    async fn insert_approve(
-        &self,
-        approve: &crate::func::Approve,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    async fn insert_approve(&self, approve: &crate::func::Approve) -> Result<()> {
         let sql = "
             INSERT INTO contract_fn.approve (contract_addr, transaction_hash, transaction_sender, _spender, _value)
             VALUES ($1, $2, $3, $4, $5)

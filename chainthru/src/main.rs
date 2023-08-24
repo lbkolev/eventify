@@ -13,10 +13,22 @@ use indexer::app::App;
 
 #[derive(Clone, Debug, Parser)]
 #[command(name = "Chainthru")]
-#[command(author = "Lachezar Kolev <lachezarkolevgg@gmail.com>")]
-#[command(version = "0.1")]
 #[command(about = "Index Ethereum into a Postgresql database & serve it via an API server.")]
 pub struct ChainthruSettings {
+    #[arg(
+        long,
+        env = "CHAINTHRU_STORAGE_TYPE",
+        help = "The storage type to index into"
+    )]
+    pub storage_type: String, // TODO: parse directly into types::storage::StorageType
+
+    #[arg(
+        long,
+        env = "CHAINTHRU_STORAGE_URL",
+        help = "The database URL to connect to"
+    )]
+    pub storage_url: Secret<String>,
+
     #[arg(
         long,
         env = "CHAINTHRU_NODE_URL",
@@ -24,13 +36,6 @@ pub struct ChainthruSettings {
         default_value = "http://localhost:8545"
     )]
     pub node_url: String,
-
-    #[arg(
-        long,
-        env = "CHAINTHRU_DATABASE_URL",
-        help = "The database URL to connect to"
-    )]
-    pub database_url: Secret<String>,
 
     #[arg(
         long,
@@ -110,7 +115,7 @@ pub struct ChainthruSettings {
 impl From<ChainthruSettings> for server::Settings {
     fn from(settings: ChainthruSettings) -> Self {
         Self {
-            database: types::DatabaseSettings::from(settings.database_url.expose_secret().clone()),
+            database: types::DatabaseSettings::from(settings.storage_url.expose_secret().clone()),
             application: server::ApplicationSettings {
                 host: settings.server_host,
                 port: settings.server_port,
@@ -148,7 +153,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_dst_block(BlockId::Number(BlockNumber::Number(
                             settings.dst_block.unwrap().into(),
                         )))
-                        .with_database_url(settings.database_url.expose_secret())
+                        .with_storage_url(settings.storage_url.expose_secret())
                         .await
                         .with_http(&settings.node_url),
                 ));
@@ -162,7 +167,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_dst_block(BlockId::Number(BlockNumber::Number(
                             settings.dst_block.unwrap().into(),
                         )))
-                        .with_database_url(settings.database_url.expose_secret())
+                        .with_storage_url(settings.storage_url.expose_secret())
                         .await
                         .with_websocket(&settings.node_url)
                         .await,
@@ -177,7 +182,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_dst_block(BlockId::Number(BlockNumber::Number(
                             settings.dst_block.unwrap().into(),
                         )))
-                        .with_database_url(settings.database_url.expose_secret())
+                        .with_storage_url(settings.storage_url.expose_secret())
                         .await
                         .with_ipc(&settings.node_url)
                         .await,

@@ -1,5 +1,4 @@
-use chainthru_primitives::transaction::IndexedTransaction;
-use chainthru_primitives::Insertable;
+use chainthru_primitives::IndexedTransaction;
 use ethereum_types::H256;
 use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
@@ -7,36 +6,40 @@ use web3::types::{Block, BlockId, BlockNumber, Transaction};
 use web3::{Transport, Web3};
 
 use crate::Result;
-use chainthru_primitives::{block::IndexedBlock, contract::Contract};
+use chainthru_primitives::{
+    block::IndexedBlock,
+    contract::Contract,
+    storage::{rdms::Postgres, Storage},
+};
 
 #[derive(Clone, Debug)]
-pub struct App<T: Transport> {
-    inner: Inner<T>,
+pub struct App<T: Transport, U: Storage> {
+    inner: Providers<T, U>,
 
     pub src_block: BlockId,
     pub dst_block: BlockId,
 }
 
-impl<T: Transport> Default for App<T> {
+impl<T: Transport, U: Storage> Default for App<T, U> {
     fn default() -> Self {
         Self {
-            inner: Inner::default(),
+            inner: Providers::default(),
             src_block: BlockId::Number(BlockNumber::Earliest),
             dst_block: BlockId::Number(BlockNumber::Latest),
         }
     }
 }
 
-impl<T: Transport> App<T> {
+impl<T: Transport, U: Storage> App<T, U> {
     /// Create a new instance of the indexer
     pub fn new(
         transport_node: Option<Web3<T>>,
-        transport_db: Option<PgPool>,
+        transport_storage: Option<U>,
         src_block: BlockId,
         dst_block: BlockId,
     ) -> Self {
         Self {
-            inner: Inner::new(transport_node, transport_db),
+            inner: Providers::new(transport_node, transport_storage),
             src_block,
             dst_block,
         }
@@ -52,21 +55,22 @@ impl<T: Transport> App<T> {
 
     pub fn with_node_conn(self, transport: Web3<T>) -> Self {
         Self {
-            inner: Inner::new(Some(transport), self.inner.transport_db),
+            inner: Providers::new(Some(transport), self.inner.transport_storage),
             ..self
         }
     }
 
+    /*
     pub fn with_database_conn(self, database_conn: PgPool) -> Self {
         Self {
-            inner: Inner::new(self.inner.transport_node, Some(database_conn)),
+            inner: Providers::new(self.inner.transport_node, Some(database_conn)),
             ..self
         }
     }
 
     pub async fn with_database_url(self, database_url: &str) -> Self {
         Self {
-            inner: Inner::new(
+            inner: Providers::new(
                 self.inner.transport_node,
                 Some(
                     PgPool::connect(database_url)
@@ -77,6 +81,7 @@ impl<T: Transport> App<T> {
             ..self
         }
     }
+    */
 
     /// Get block details with full transaction objects
     async fn fetch_block(&self, block: BlockId) -> Option<Block<Transaction>> {
@@ -145,7 +150,7 @@ impl<T: Transport> App<T> {
                 input: transaction.input,
             };
 
-            match contract.insert(self.dbconn()).await {
+            match self.storage_conn().insert_contract(&contract).await {
                 Ok(_) => log::info!("Contract inserted"),
                 Err(e) => log::warn!("Error inserting contract: {:?}", e),
             }
@@ -154,9 +159,9 @@ impl<T: Transport> App<T> {
         Ok(())
     }
 
-    pub fn dbconn(&self) -> &PgPool {
+    pub fn storage_conn(&self) -> &U {
         self.inner
-            .transport_db
+            .transport_storage
             .as_ref()
             .expect("Unable to get transport db")
     }
@@ -184,49 +189,49 @@ impl<T: Transport> App<T> {
     }
 }
 
-impl App<Http> {
+impl<U: Storage> App<Http, U> {
     /// Creates a new instance of the App with the HTTP transport
     pub fn with_http(self, node_url: &str) -> Self {
         Self {
-            inner: Inner::new(
+            inner: Providers::new(
                 Some(Web3::new(
                     Http::new(node_url).expect("Failed to create HTTP transport"),
                 )),
-                self.inner.transport_db,
+                self.inner.transport_storage,
             ),
             ..self
         }
     }
 }
 
-impl App<Ipc> {
+impl<U: Storage> App<Ipc, U> {
     /// Creates a new instance of the App with the IPC transport
     pub async fn with_ipc(self, node_url: &str) -> Self {
         Self {
-            inner: Inner::new(
+            inner: Providers::new(
                 Some(Web3::new(
                     Ipc::new(node_url)
                         .await
                         .expect("Failed to create HTTP transport"),
                 )),
-                self.inner.transport_db,
+                self.inner.transport_storage,
             ),
             ..self
         }
     }
 }
 
-impl App<WebSocket> {
+impl<U: Storage> App<WebSocket, U> {
     /// Creates a new instance of the App with the WebSocket transport
     pub async fn with_websocket(self, node_url: &str) -> Self {
         Self {
-            inner: Inner::new(
+            inner: Providers::new(
                 Some(Web3::new(
                     WebSocket::new(node_url)
                         .await
                         .expect("Failed to create HTTP transport"),
                 )),
-                self.inner.transport_db,
+                self.inner.transport_storage,
             ),
             ..self
         }
@@ -241,25 +246,25 @@ impl App<WebSocket> {
 }
 
 #[derive(Clone, Debug)]
-struct Inner<T: Transport> {
+struct Providers<T: Transport, U: Storage> {
     transport_node: Option<Web3<T>>,
-    transport_db: Option<PgPool>,
+    transport_storage: Option<U>,
 }
 
-impl<T: Transport> Default for Inner<T> {
+impl<T: Transport, U: Storage> Default for Providers<T, U> {
     fn default() -> Self {
         Self {
             transport_node: None,
-            transport_db: None,
+            transport_storage: None,
         }
     }
 }
 
-impl<T: Transport> Inner<T> {
-    pub fn new(node: Option<Web3<T>>, db: Option<PgPool>) -> Self {
+impl<T: Transport, U: Storage> Providers<T, U> {
+    pub fn new(node: Option<Web3<T>>, db: Option<U>) -> Self {
         Self {
             transport_node: node,
-            transport_db: db,
+            transport_storage: db,
         }
     }
 }
@@ -274,7 +279,7 @@ mod tests {
         let app: App<web3::transports::Http> = crate::App::default();
 
         assert!(app.inner.transport_node.is_none());
-        assert!(app.inner.transport_db.is_none());
+        assert!(app.inner.transport_storage.is_none());
         assert_eq!(app.src_block, BlockId::Number(BlockNumber::Earliest));
         assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
     }
@@ -288,7 +293,7 @@ mod tests {
         );
 
         assert!(app.inner.transport_node.is_some());
-        assert!(app.inner.transport_db.is_none());
+        assert!(app.inner.transport_storage.is_none());
         assert_eq!(app.src_block, BlockId::Number(BlockNumber::Earliest));
         assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
     }
@@ -304,7 +309,7 @@ mod tests {
             .await;
 
         assert!(app.inner.transport_node.is_some());
-        assert!(app.inner.transport_db.is_none());
+        assert!(app.inner.transport_storage.is_none());
         assert_eq!(app.src_block, BlockId::Number(BlockNumber::Earliest));
         assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
     }

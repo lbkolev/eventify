@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![allow(clippy::option_map_unit_fn)]
 
 pub mod block;
 pub mod contract;
@@ -13,9 +12,8 @@ pub mod transaction;
 pub use block::IndexedBlock;
 pub use database::Settings as DatabaseSettings;
 pub use error::Error;
+pub use storage::Storage;
 pub use transaction::{IndexedTransaction, TransactionBoilerplate};
-
-use sqlx::PgPool;
 
 /// The result type used through the application code.
 type Result<T> = std::result::Result<T, error::Error>;
@@ -31,8 +29,3 @@ pub const ERC20_TRANSFER_SIGNATURE: &[u8] = &[0xa9, 0x05, 0x9c, 0xbb];
 
 /// The signature of the ERC20 transferFrom method
 pub const ERC20_TRANSFER_FROM_SIGNATURE: &[u8] = &[0x23, 0xb8, 0x72, 0xdd];
-
-#[async_trait::async_trait]
-pub trait Insertable: Sized {
-    async fn insert(&self, conn: &PgPool) -> Result<()>;
-}

@@ -2,9 +2,9 @@ use web3::types::BlockId;
 use web3::Transport;
 
 use crate::{App, Result};
-use chainthru_primitives::Insertable;
+use chainthru_primitives::Storage;
 
-pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
+pub async fn run<T: Transport, U: Storage>(app: App<T, U>) -> Result<()> {
     let from = app.src_block();
     let to = app.dst_block().await?;
 
@@ -14,9 +14,9 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
             .await
             .unwrap();
 
-        let db_transaction = app.dbconn().begin().await?;
+        //let db_transaction = app.storage_conn().begin().await?;
 
-        match block.insert(app.dbconn()).await {
+        match app.storage_conn().insert_block(&block).await {
             Ok(_) => {
                 log::info!("Processed block: {:?}", block);
             }
@@ -25,7 +25,7 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
             }
         }
         for transaction in transactions {
-            match transaction.process(app.dbconn()).await {
+            match transaction.process(app.storage_conn()).await {
                 Ok(_) => {
                     log::info!("Processed transaction: {:?}", transaction);
                 }
@@ -34,8 +34,7 @@ pub async fn run<T: Transport>(app: App<T>) -> Result<()> {
                 }
             }
         }
-
-        db_transaction.commit().await?;
+        //db_transaction.commit().await?;
     }
     Ok(())
 }

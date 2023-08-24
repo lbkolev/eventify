@@ -59,7 +59,7 @@ done
 
 export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 sqlx database create
-sqlx migrate run
+sqlx migrate run --source="$(dirname "$0")/../migrations/rdms/postgres"
 
 >&2 echo "Postgres has been migrated"
 
