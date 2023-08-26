@@ -1,9 +1,7 @@
-use async_trait::async_trait;
-use ethereum_types::{H160, U256};
+use web3::types::{H160, U256};
 
 use crate::{
-    contract_func, error::Error, transaction::IndexedTransaction, Insertable, Result,
-    TransactionBoilerplate,
+    contract_func, error::Error, transaction::IndexedTransaction, Result, TransactionBoilerplate,
 };
 
 contract_func!(
@@ -47,31 +45,6 @@ impl TryFrom<IndexedTransaction> for Transfer {
     }
 }
 
-#[async_trait]
-impl Insertable for Transfer {
-    async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()> {
-        let sql = "
-            INSERT INTO contract_fn.transfer (contract_addr, transaction_hash, transaction_sender, _to, _value)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT DO NOTHING
-            ";
-
-        let mut value_slice = [0u8; 32];
-        self._value.to_big_endian(&mut value_slice);
-
-        sqlx::query(sql)
-            .bind(self.boilerplate.contract_addr.as_bytes())
-            .bind(self.boilerplate.transaction_hash.as_bytes())
-            .bind(self.boilerplate.transaction_sender.as_bytes())
-            .bind(self._to.as_bytes())
-            .bind(value_slice)
-            .execute(db_conn)
-            .await?;
-
-        Ok(())
-    }
-}
-
 impl TryFrom<IndexedTransaction> for TransferFrom {
     type Error = Error;
 
@@ -92,32 +65,6 @@ impl TryFrom<IndexedTransaction> for TransferFrom {
     }
 }
 
-#[async_trait]
-impl Insertable for TransferFrom {
-    async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()> {
-        let sql = "
-            INSERT INTO contract_fn.transfer_from (contract_addr, transaction_hash, transaction_sender, _from, _to, _value)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT DO NOTHING
-            ";
-
-        let mut value_slice = [0u8; 32];
-        self._value.to_big_endian(&mut value_slice);
-
-        sqlx::query(sql)
-            .bind(self.boilerplate.contract_addr.as_bytes())
-            .bind(self.boilerplate.transaction_hash.as_bytes())
-            .bind(self.boilerplate.transaction_sender.as_bytes())
-            .bind(self._from.as_bytes())
-            .bind(self._to.as_bytes())
-            .bind(value_slice)
-            .execute(db_conn)
-            .await?;
-
-        Ok(())
-    }
-}
-
 impl TryFrom<IndexedTransaction> for Approve {
     type Error = Error;
 
@@ -133,31 +80,6 @@ impl TryFrom<IndexedTransaction> for Approve {
             _spender: H160::from_slice(&input.0[16..36]),
             _value: U256::from(&input.0[36..68]),
         })
-    }
-}
-
-#[async_trait]
-impl Insertable for Approve {
-    async fn insert(&self, db_conn: &sqlx::PgPool) -> Result<()> {
-        let sql = "
-            INSERT INTO contract_fn.approve (contract_addr, transaction_hash, transaction_sender, _spender, _value)
-            VALUES ($1, $2, $3, $4, $5::numeric)
-            ON CONFLICT DO NOTHING
-            ";
-
-        let mut value_slice = [0u8; 32];
-        self._value.to_big_endian(&mut value_slice);
-
-        sqlx::query(sql)
-            .bind(self.boilerplate.contract_addr.as_bytes())
-            .bind(self.boilerplate.transaction_hash.as_bytes())
-            .bind(self.boilerplate.transaction_sender.as_bytes())
-            .bind(self._spender.as_bytes())
-            .bind(value_slice)
-            .execute(db_conn)
-            .await?;
-
-        Ok(())
     }
 }
 

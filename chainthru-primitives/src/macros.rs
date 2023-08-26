@@ -6,7 +6,7 @@ macro_rules! contract_func {
         #[derive(derive_builder::Builder, Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
         pub struct $struct_name {
             #[serde(flatten)]
-            boilerplate: $crate::TransactionBoilerplate,
+            pub boilerplate: $crate::TransactionBoilerplate,
 
             $(pub $field_name: $field_type),*
         }
@@ -34,40 +34,6 @@ macro_rules! contract_func {
                 write!(f, "{}: {:?}", stringify!($struct_name), self)
             }
         }
-
-
-/*
-        #[$crate::async_trait]
-        impl $crate::Insertable for $struct_name {
-            async fn insert(&self, conn: &sqlx::PgPool) -> Result<(), sqlx::Error> {
-                let sql = format!("
-                    INSERT INTO {}.{} ({})
-                    VALUES ({})
-                    ON CONFLICT DO NOTHING
-                    ",
-                    $contract_name.to_lowercase(),
-                    stringify!($struct_name).to_case($crate::Case::Snake).to_lowercase(),
-                    stringify!($($field_name),*).to_lowercase(),
-                    stringify!($($field_name),*).split(',').map(|_| "$").collect::<Vec<&str>>().join(", ")
-                );
-
-                sqlx::query(&sql)
-                    $(if stringify!($field_type).starts_with("H") {
-                        .bind(self.$field_name.as_bytes())
-                    } else {
-                        .bind(self.$field_name)
-                    })*
-                    .execute(conn)
-                    .await?;
-
-                sqlx::query(&sql)
-                    $(.bind(self.$field_name.as_bytes()))*
-                    .execute(conn)
-                    .await?;
-
-            }
-        }
-*/
     };
 }
 

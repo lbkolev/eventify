@@ -1,9 +1,5 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use web3::types::{Bytes, H160, H256};
-
-use crate::{Insertable, Result};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -12,27 +8,6 @@ pub struct Contract {
     pub transaction_hash: H256,
     pub from: H160,
     pub input: Bytes,
-}
-
-#[async_trait]
-impl Insertable for Contract {
-    async fn insert(&self, dbconn: &PgPool) -> Result<()> {
-        let sql = "INSERT INTO public.contract
-            (contract_addr, transaction_hash, _from, input)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT DO NOTHING";
-
-        let tmp = &self.input.0;
-        sqlx::query(sql)
-            .bind(self.address.as_bytes())
-            .bind(self.transaction_hash.as_bytes())
-            .bind(self.from.as_bytes())
-            .bind(tmp)
-            .execute(dbconn)
-            .await?;
-
-        Ok(())
-    }
 }
 
 #[cfg(test)]

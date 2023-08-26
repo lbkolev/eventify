@@ -1,5 +1,6 @@
 use clap::Parser;
 use secrecy::{ExposeSecret, Secret};
+use types::storage::Postgres;
 use url::Url;
 use web3::{
     transports::{Http, Ipc, WebSocket},
@@ -13,10 +14,15 @@ use indexer::app::App;
 
 #[derive(Clone, Debug, Parser)]
 #[command(name = "Chainthru")]
-#[command(author = "Lachezar Kolev <lachezarkolevgg@gmail.com>")]
-#[command(version = "0.1")]
 #[command(about = "Index Ethereum into a Postgresql database & serve it via an API server.")]
 pub struct ChainthruSettings {
+    #[arg(
+        long,
+        env = "CHAINTHRU_STORAGE_URL",
+        help = "The database URL to connect to"
+    )]
+    pub storage_url: Secret<String>,
+
     #[arg(
         long,
         env = "CHAINTHRU_NODE_URL",
@@ -24,13 +30,6 @@ pub struct ChainthruSettings {
         default_value = "http://localhost:8545"
     )]
     pub node_url: String,
-
-    #[arg(
-        long,
-        env = "CHAINTHRU_DATABASE_URL",
-        help = "The database URL to connect to"
-    )]
-    pub database_url: Secret<String>,
 
     #[arg(
         long,
@@ -110,7 +109,7 @@ pub struct ChainthruSettings {
 impl From<ChainthruSettings> for server::Settings {
     fn from(settings: ChainthruSettings) -> Self {
         Self {
-            database: types::DatabaseSettings::from(settings.database_url.expose_secret().clone()),
+            database: types::DatabaseSettings::from(settings.storage_url.expose_secret().clone()),
             application: server::ApplicationSettings {
                 host: settings.server_host,
                 port: settings.server_port,
@@ -140,7 +139,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !settings.indexer_disabled {
         match Url::parse(&settings.node_url)?.scheme() {
             "http" | "https" => {
-                tokio::spawn(indexer::run::<Http>(
+                tokio::spawn(indexer::run::<Http, Postgres>(
                     App::default()
                         .with_src_block(BlockId::Number(BlockNumber::Number(
                             settings.src_block.into(),
@@ -148,13 +147,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_dst_block(BlockId::Number(BlockNumber::Number(
                             settings.dst_block.unwrap().into(),
                         )))
-                        .with_database_url(settings.database_url.expose_secret())
-                        .await
+                        .with_storage(settings.storage_url.expose_secret())
                         .with_http(&settings.node_url),
                 ));
             }
             "ws" | "wss" => {
-                tokio::spawn(indexer::run::<WebSocket>(
+                tokio::spawn(indexer::run::<WebSocket, Postgres>(
                     App::default()
                         .with_src_block(BlockId::Number(BlockNumber::Number(
                             settings.src_block.into(),
@@ -162,14 +160,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_dst_block(BlockId::Number(BlockNumber::Number(
                             settings.dst_block.unwrap().into(),
                         )))
-                        .with_database_url(settings.database_url.expose_secret())
-                        .await
+                        .with_storage(settings.storage_url.expose_secret())
                         .with_websocket(&settings.node_url)
                         .await,
                 ));
             }
             "ipc" => {
-                tokio::spawn(indexer::run::<Ipc>(
+                tokio::spawn(indexer::run::<Ipc, Postgres>(
                     App::default()
                         .with_src_block(BlockId::Number(BlockNumber::Number(
                             settings.src_block.into(),
@@ -177,8 +174,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_dst_block(BlockId::Number(BlockNumber::Number(
                             settings.dst_block.unwrap().into(),
                         )))
-                        .with_database_url(settings.database_url.expose_secret())
-                        .await
+                        .with_storage(settings.storage_url.expose_secret())
                         .with_ipc(&settings.node_url)
                         .await,
                 ));

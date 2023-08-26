@@ -1,15 +1,12 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
-use sqlx::Row;
 use web3::types::{Bytes, Transaction, H160, H256};
 
 use crate::{
     func::{Approve, Transfer, TransferFrom},
-    ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE, ERC20_TRANSFER_SIGNATURE,
+    storage::Storage,
+    Result, ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE, ERC20_TRANSFER_SIGNATURE,
     ERC721_SAFE_TRANSFER_FROM_SIGNATURE,
 };
-use crate::{Error, Insertable, Result};
 
 /// There are four types of transactions in the context of the program:
 ///
@@ -41,27 +38,6 @@ impl From<Transaction> for IndexedTransaction {
     }
 }
 
-#[async_trait]
-impl Insertable for IndexedTransaction {
-    async fn insert(&self, dbconn: &PgPool) -> Result<()> {
-        let sql = "INSERT INTO public.transaction
-            (hash, _from, _to, input)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT DO NOTHING";
-
-        let tmp = &self.input.0;
-        sqlx::query(sql)
-            .bind(self.hash.as_bytes())
-            .bind(self.from.as_ref().map(|x| x.as_bytes()))
-            .bind(self.to.as_ref().map(|x| x.as_bytes()))
-            .bind(tmp)
-            .execute(dbconn)
-            .await?;
-
-        Ok(())
-    }
-}
-
 impl IndexedTransaction {
     /// Determines if the transaction is a contract creation one.
     pub fn contract_creation(&self) -> bool {
@@ -79,49 +55,32 @@ impl IndexedTransaction {
                 || &self.input.0[0..4] == ERC721_SAFE_TRANSFER_FROM_SIGNATURE)
     }
 
-    /// Determines if the transaction is indexed at all.
-    // function_signatures are ~1mil so this check is extremely costly
-    // as this one gets checked for each and every tx
-    // TODO: make it as an optional opt-in
-    async fn tracked(&self, conn: &PgPool) -> Result<bool> {
-        if self.input.0.len() < 4 {
-            return Ok(false);
-        }
-
-        let sql = "SELECT EXISTS(SELECT 1 FROM public.function_signature WHERE hex_sig = $1)";
-        match sqlx::query(sql)
-            .bind(&self.input.0[0..4])
-            .fetch_one(conn)
-            .await
-        {
-            Ok(row) => Ok(row.get(0)),
-            Err(e) => Err(Error::from(e)),
-        }
-    }
-
     /// Processes the transaction.
     ///
     /// If the transaction is considered special, it's indexed into its own table.
     /// If the transaction is not considered special, but we've got a function signature that matches the transaction's input, it is indexed into the `transaction` table.
-    pub async fn process(&self, conn: &PgPool) -> Result<()> {
+    pub async fn process<T: Storage>(&self, conn: &T) -> Result<()> {
         if self.special() {
             match &self.input.0[0..4] {
-                ERC20_APPROVE_SIGNATURE => Approve::try_from(self.clone())?.insert(conn).await,
-                ERC20_TRANSFER_FROM_SIGNATURE => {
-                    TransferFrom::try_from(self.clone())?.insert(conn).await
+                ERC20_APPROVE_SIGNATURE => {
+                    conn.insert_approve(&Approve::try_from(self.clone())?).await
                 }
-                ERC20_TRANSFER_SIGNATURE => Transfer::try_from(self.clone())?.insert(conn).await,
+                ERC20_TRANSFER_FROM_SIGNATURE => {
+                    conn.insert_transfer_from(&TransferFrom::try_from(self.clone())?)
+                        .await
+                }
+                ERC20_TRANSFER_SIGNATURE => {
+                    conn.insert_transfer(&Transfer::try_from(self.clone())?)
+                        .await
+                }
                 ERC721_SAFE_TRANSFER_FROM_SIGNATURE => {
-                    log::warn!("ERC721 safe transfer from");
+                    log::warn!("ERC721 safe transfer from is not implemented yet");
                     Ok(())
                 }
-                _ => Err(Error::InvalidTransactionFunctionSignature(
-                    String::from_utf8_lossy(&self.input.0[0..4]).to_string(),
-                )),
+                _ => unreachable!(),
             }
-        } else if self.tracked(conn).await? {
-            self.insert(conn).await
         } else {
+            log::debug!("Transaction {:?} is not considered special", self.hash);
             Ok(())
         }
     }

@@ -70,7 +70,7 @@ async fn configure_database(config: &chainthru_primitives::DatabaseSettings) -> 
     let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to connect to Postgres.");
-    sqlx::migrate!("../migrations")
+    sqlx::migrate!("../migrations/rdms/postgres/")
         .run(&connection_pool)
         .await
         .expect("Failed to migrate the database");

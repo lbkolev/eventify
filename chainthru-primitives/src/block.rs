@@ -1,10 +1,6 @@
-use async_trait::async_trait;
-use ethereum_types::U64;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool, Row};
-use web3::types::{H160, H256, H64, U256};
-
-use crate::{Insertable, Result};
+use sqlx::{FromRow, Row};
+use web3::types::{H160, H256, H64, U256, U64};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -108,64 +104,6 @@ impl From<web3::types::Block<web3::types::Transaction>> for IndexedBlock {
             size: block.size,
             nonce: block.nonce,
         }
-    }
-}
-
-#[async_trait]
-impl Insertable for IndexedBlock {
-    async fn insert(&self, conn: &PgPool) -> Result<()> {
-        let mut number_slice = [0u8; 8];
-        self.number.map(|v| v.to_big_endian(&mut number_slice));
-
-        let mut gas_slice = [0u8; 32];
-        self.gas_used.map(|v| v.to_big_endian(&mut gas_slice));
-
-        let mut gas_limit_slice = [0u8; 32];
-        self.gas_limit
-            .map(|v| v.to_big_endian(&mut gas_limit_slice));
-
-        let mut base_fee_per_gas_slice = [0u8; 32];
-        self.base_fee_per_gas
-            .map(|v| v.to_big_endian(&mut base_fee_per_gas_slice));
-
-        let mut difficulty_slice = [0u8; 32];
-        self.difficulty
-            .map(|v| v.to_big_endian(&mut difficulty_slice));
-
-        let mut total_difficulty_slice = [0u8; 32];
-        self.total_difficulty
-            .map(|v| v.to_big_endian(&mut total_difficulty_slice));
-
-        let mut size_slice = [0u8; 32];
-        self.size.map(|v| v.to_big_endian(&mut size_slice));
-
-        sqlx::query(
-            "INSERT INTO block
-            (hash, parent_hash, uncles_hash, author, state_root, transactions_root, receipts_root, number, gas_used, gas_limit, base_fee_per_gas, difficulty, total_difficulty, transactions, size, nonce)
-            VALUES
-            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-            ON CONFLICT DO NOTHING
-            ",
-        )
-            .bind(self.hash.unwrap_or(H256::zero()).as_bytes())
-            .bind(self.parent_hash.map(|v| v.as_bytes().to_owned()))
-            .bind(self.uncles_hash.map(|v| v.as_bytes().to_owned()))
-            .bind(self.author.map(|v| v.as_bytes().to_owned()))
-            .bind(self.state_root.map(|v| v.as_bytes().to_owned()))
-            .bind(self.transactions_root.map(|v| v.as_bytes().to_owned()))
-            .bind(self.receipts_root.map(|v| v.as_bytes().to_owned()))
-            .bind(self.number.unwrap_or(U64::zero()).as_u64() as i32)
-            .bind(gas_slice)
-            .bind(gas_limit_slice)
-            .bind(base_fee_per_gas_slice)
-            .bind(difficulty_slice)
-            .bind(total_difficulty_slice)
-            .bind(self.transactions.unwrap_or(0) as i32)
-            .bind(size_slice)
-            .bind(self.nonce.unwrap_or(H64::zero()).as_bytes())
-            .execute(conn).await?;
-
-        Ok(())
     }
 }
 

@@ -15,7 +15,6 @@ parallelism = ["dep:rayon"]
 [dependencies]
 chainthru-primitives.workspace = true
 
-ethereum-types.workspace = true
 web3.workspace = true
 serde-aux.workspace = true
 serde_derive.workspace = true
