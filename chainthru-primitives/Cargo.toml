@@ -12,7 +12,6 @@ readme.workspace = true
 repository.workspace = true
 
 [dependencies]
-ethereum-types.workspace = true
 derive_builder.workspace = true
 web3.workspace = true
 sqlx.workspace = true

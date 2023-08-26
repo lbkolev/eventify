@@ -1,8 +1,7 @@
 use chainthru_primitives::IndexedTransaction;
-use ethereum_types::H256;
 use web3::{
     transports::{ipc::Ipc, ws::WebSocket, Http},
-    types::{Block, BlockId, BlockNumber, Transaction},
+    types::{Block, BlockId, BlockNumber, Transaction, H256},
     Transport, Web3,
 };
 
@@ -261,7 +260,8 @@ mod tests {
 
     #[test]
     fn test_default_app() {
-        let app: App<web3::transports::Http> = crate::App::default();
+        let app: App<web3::transports::Http, chainthru_primitives::storage::Postgres> =
+            crate::App::default();
 
         assert!(app.inner.transport_node.is_none());
         assert!(app.inner.transport_storage.is_none());
@@ -269,32 +269,47 @@ mod tests {
         assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
     }
 
-    #[test]
-    fn test_transport_https() {
-        let app = crate::App::default().with_http(
-            env::var("CHAINTHRU_TEST_HTTPS_PROVIDER")
-                .unwrap_or(format!("https://eth.llamarpc.com"))
-                .as_str(),
-        );
+    #[tokio::test]
+    async fn test_transport_https() {
+        let app: App<Http, chainthru_primitives::storage::Postgres> = crate::App::default()
+            .with_http(
+                env::var("CHAINTHRU_TEST_HTTPS_PROVIDER")
+                    .unwrap_or(format!("https://eth.llamarpc.com"))
+                    .as_str(),
+            )
+            .with_storage(
+                env::var("CHAINTHRU_TEST_DATABASE_URL")
+                    .unwrap_or(format!(
+                        "postgres://postgres:password@localhost:5432/chainthru"
+                    ))
+                    .as_str(),
+            );
 
         assert!(app.inner.transport_node.is_some());
-        assert!(app.inner.transport_storage.is_none());
+        assert!(app.inner.transport_storage.is_some());
         assert_eq!(app.src_block, BlockId::Number(BlockNumber::Earliest));
         assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
     }
 
     #[tokio::test]
     async fn test_transport_wss() {
-        let app = crate::App::default()
+        let app: App<WebSocket, chainthru_primitives::storage::Postgres> = crate::App::default()
             .with_ws(
                 env::var("CHAINTHRU_TEST_WSS_PROVIDER")
                     .unwrap_or(format!("wss://eth.llamarpc.com"))
                     .as_str(),
             )
-            .await;
+            .await
+            .with_storage(
+                env::var("CHAINTHRU_TEST_DATABASE_URL")
+                    .unwrap_or(format!(
+                        "postgres://postgres:password@localhost:5432/chainthru"
+                    ))
+                    .as_str(),
+            );
 
         assert!(app.inner.transport_node.is_some());
-        assert!(app.inner.transport_storage.is_none());
+        assert!(app.inner.transport_storage.is_some());
         assert_eq!(app.src_block, BlockId::Number(BlockNumber::Earliest));
         assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
     }

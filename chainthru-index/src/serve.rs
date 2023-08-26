@@ -1,5 +1,4 @@
-use web3::types::BlockId;
-use web3::Transport;
+use web3::{types::BlockId, Transport};
 
 use crate::{App, Result};
 use chainthru_primitives::{Auth, Storage};

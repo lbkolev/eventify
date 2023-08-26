@@ -4,13 +4,13 @@
 use std::fmt::Display;
 use std::ops::Deref;
 
-use ethereum_types::H64;
 use log::trace;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{postgres::PgConnectOptions, ConnectOptions, Database, PgPool, Pool};
 use url::Url;
+use web3::types::H64;
 
 use crate::{storage::Auth, storage::Storage, Error, Result};
 

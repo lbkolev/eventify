@@ -1,7 +1,6 @@
-use ethereum_types::U64;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row};
-use web3::types::{H160, H256, H64, U256};
+use web3::types::{H160, H256, H64, U256, U64};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]

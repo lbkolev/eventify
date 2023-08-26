@@ -1,4 +1,4 @@
-use ethereum_types::{H160, U256};
+use web3::types::{H160, U256};
 
 use crate::{
     contract_func, error::Error, transaction::IndexedTransaction, Result, TransactionBoilerplate,
