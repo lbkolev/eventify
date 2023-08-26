@@ -1,14 +1,16 @@
 use chainthru_primitives::IndexedTransaction;
 use ethereum_types::H256;
-use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
-use web3::types::{Block, BlockId, BlockNumber, Transaction};
-use web3::{Transport, Web3};
+use web3::{
+    transports::{ipc::Ipc, ws::WebSocket, Http},
+    types::{Block, BlockId, BlockNumber, Transaction},
+    Transport, Web3,
+};
 
 use crate::Result;
 use chainthru_primitives::{
     block::IndexedBlock,
     contract::Contract,
-    storage::{rdms::Postgres, Auth, Storage},
+    storage::{Auth, Storage},
 };
 
 #[derive(Clone, Debug)]

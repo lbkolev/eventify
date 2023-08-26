@@ -9,11 +9,7 @@ use log::trace;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::PgConnectOptions;
-use sqlx::ConnectOptions;
-use sqlx::Database;
-use sqlx::PgPool;
-use sqlx::Pool;
+use sqlx::{postgres::PgConnectOptions, ConnectOptions, Database, PgPool, Pool};
 use url::Url;
 
 use crate::{storage::Auth, storage::Storage, Error, Result};

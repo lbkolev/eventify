@@ -18,13 +18,6 @@ use indexer::app::App;
 pub struct ChainthruSettings {
     #[arg(
         long,
-        env = "CHAINTHRU_STORAGE_TYPE",
-        help = "The storage type to index into"
-    )]
-    pub storage_type: String, // TODO: parse directly into types::storage::StorageType
-
-    #[arg(
-        long,
         env = "CHAINTHRU_STORAGE_URL",
         help = "The database URL to connect to"
     )]

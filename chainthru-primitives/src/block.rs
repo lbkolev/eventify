@@ -1,10 +1,7 @@
-use async_trait::async_trait;
 use ethereum_types::U64;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool, Row};
+use sqlx::{FromRow, Row};
 use web3::types::{H160, H256, H64, U256};
-
-use crate::Result;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]

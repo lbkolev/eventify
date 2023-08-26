@@ -1,16 +1,12 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
-use sqlx::Row;
 use web3::types::{Bytes, Transaction, H160, H256};
 
-use crate::storage::Storage;
 use crate::{
     func::{Approve, Transfer, TransferFrom},
-    ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE, ERC20_TRANSFER_SIGNATURE,
+    storage::Storage,
+    Result, ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE, ERC20_TRANSFER_SIGNATURE,
     ERC721_SAFE_TRANSFER_FROM_SIGNATURE,
 };
-use crate::{Error, Result};
 
 /// There are four types of transactions in the context of the program:
 ///
