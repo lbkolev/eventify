@@ -5,11 +5,14 @@ use std::fmt::Display;
 use std::ops::Deref;
 
 use ethereum_types::H64;
+use log::trace;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::PgConnectOptions;
+use sqlx::ConnectOptions;
 use sqlx::Database;
+use sqlx::PgPool;
 use sqlx::Pool;
 use url::Url;
 
@@ -20,9 +23,23 @@ pub struct Postgres {
     pub inner: Pool<sqlx::postgres::Postgres>,
 }
 
-impl Auth<PgConnectOptions> for Postgres {
-    fn authenticate(&self, dbc: impl Into<String>) -> Result<PgConnectOptions> {
-        dbc.into().parse::<PgConnectOptions>()
+#[async_trait::async_trait]
+impl Auth for Postgres {
+    async fn connect(url: &str) -> Self {
+        Self {
+            inner: PgPool::connect(url)
+                .await
+                .map_err(Error::from)
+                .expect("Failed to connect to Postgres"),
+        }
+    }
+
+    fn connect_lazy(url: &str) -> Self {
+        Self {
+            inner: PgPool::connect_lazy(url)
+                .map_err(Error::from)
+                .expect("Failed to connect to Postgres"),
+        }
     }
 }
 

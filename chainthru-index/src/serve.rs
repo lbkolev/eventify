@@ -2,9 +2,9 @@ use web3::types::BlockId;
 use web3::Transport;
 
 use crate::{App, Result};
-use chainthru_primitives::Storage;
+use chainthru_primitives::{Auth, Storage};
 
-pub async fn run<T: Transport, U: Storage>(app: App<T, U>) -> Result<()> {
+pub async fn run<T: Transport, U: Storage + Auth>(app: App<T, U>) -> Result<()> {
     let from = app.src_block();
     let to = app.dst_block().await?;
 

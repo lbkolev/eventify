@@ -1,6 +1,5 @@
 use chainthru_primitives::IndexedTransaction;
 use ethereum_types::H256;
-use sqlx::postgres::PgPool;
 use web3::transports::{ipc::Ipc, ws::WebSocket, Http};
 use web3::types::{Block, BlockId, BlockNumber, Transaction};
 use web3::{Transport, Web3};
@@ -9,18 +8,18 @@ use crate::Result;
 use chainthru_primitives::{
     block::IndexedBlock,
     contract::Contract,
-    storage::{rdms::Postgres, Storage},
+    storage::{rdms::Postgres, Auth, Storage},
 };
 
 #[derive(Clone, Debug)]
-pub struct App<T: Transport, U: Storage> {
+pub struct App<T: Transport, U: Storage + Auth> {
     inner: Providers<T, U>,
 
     pub src_block: BlockId,
     pub dst_block: BlockId,
 }
 
-impl<T: Transport, U: Storage> Default for App<T, U> {
+impl<T: Transport, U: Storage + Auth> Default for App<T, U> {
     fn default() -> Self {
         Self {
             inner: Providers::default(),
@@ -30,7 +29,7 @@ impl<T: Transport, U: Storage> Default for App<T, U> {
     }
 }
 
-impl<T: Transport, U: Storage> App<T, U> {
+impl<T: Transport, U: Storage + Auth> App<T, U> {
     /// Create a new instance of the indexer
     pub fn new(
         transport_node: Option<Web3<T>>,
@@ -60,28 +59,12 @@ impl<T: Transport, U: Storage> App<T, U> {
         }
     }
 
-    /*
-    pub fn with_database_conn(self, database_conn: PgPool) -> Self {
+    pub fn with_storage(self, url: &str) -> Self {
         Self {
-            inner: Providers::new(self.inner.transport_node, Some(database_conn)),
+            inner: Providers::new(self.inner.transport_node, Some(U::connect_lazy(url))),
             ..self
         }
     }
-
-    pub async fn with_database_url(self, database_url: &str) -> Self {
-        Self {
-            inner: Providers::new(
-                self.inner.transport_node,
-                Some(
-                    PgPool::connect(database_url)
-                        .await
-                        .expect("Failed to connect to the database with the provided URL"),
-                ),
-            ),
-            ..self
-        }
-    }
-    */
 
     /// Get block details with full transaction objects
     async fn fetch_block(&self, block: BlockId) -> Option<Block<Transaction>> {
@@ -189,7 +172,7 @@ impl<T: Transport, U: Storage> App<T, U> {
     }
 }
 
-impl<U: Storage> App<Http, U> {
+impl<U: Storage + Auth> App<Http, U> {
     /// Creates a new instance of the App with the HTTP transport
     pub fn with_http(self, node_url: &str) -> Self {
         Self {
@@ -204,7 +187,7 @@ impl<U: Storage> App<Http, U> {
     }
 }
 
-impl<U: Storage> App<Ipc, U> {
+impl<U: Storage + Auth> App<Ipc, U> {
     /// Creates a new instance of the App with the IPC transport
     pub async fn with_ipc(self, node_url: &str) -> Self {
         Self {
@@ -221,7 +204,7 @@ impl<U: Storage> App<Ipc, U> {
     }
 }
 
-impl<U: Storage> App<WebSocket, U> {
+impl<U: Storage + Auth> App<WebSocket, U> {
     /// Creates a new instance of the App with the WebSocket transport
     pub async fn with_websocket(self, node_url: &str) -> Self {
         Self {
@@ -246,12 +229,12 @@ impl<U: Storage> App<WebSocket, U> {
 }
 
 #[derive(Clone, Debug)]
-struct Providers<T: Transport, U: Storage> {
+struct Providers<T: Transport, U: Storage + Auth> {
     transport_node: Option<Web3<T>>,
     transport_storage: Option<U>,
 }
 
-impl<T: Transport, U: Storage> Default for Providers<T, U> {
+impl<T: Transport, U: Storage + Auth> Default for Providers<T, U> {
     fn default() -> Self {
         Self {
             transport_node: None,
@@ -260,7 +243,7 @@ impl<T: Transport, U: Storage> Default for Providers<T, U> {
     }
 }
 
-impl<T: Transport, U: Storage> Providers<T, U> {
+impl<T: Transport, U: Storage + Auth> Providers<T, U> {
     pub fn new(node: Option<Web3<T>>, db: Option<U>) -> Self {
         Self {
             transport_node: node,

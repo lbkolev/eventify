@@ -12,7 +12,7 @@ pub mod transaction;
 pub use block::IndexedBlock;
 pub use database::Settings as DatabaseSettings;
 pub use error::Error;
-pub use storage::Storage;
+pub use storage::{Auth, Storage};
 pub use transaction::{IndexedTransaction, TransactionBoilerplate};
 
 /// The result type used through the application code.
