@@ -1,15 +1,8 @@
-#![allow(unused)]
 #![allow(clippy::option_map_unit_fn)]
 
-use std::fmt::Display;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
-use log::trace;
-use secrecy::{ExposeSecret, Secret};
-use serde::Deserialize;
-use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::{postgres::PgConnectOptions, ConnectOptions, Database, PgPool, Pool};
-use url::Url;
+use sqlx::{pool::PoolOptions, Pool};
 use web3::types::H64;
 
 use crate::{storage::Auth, storage::Storage, Error, Result};
@@ -19,12 +12,27 @@ pub struct Postgres {
     pub inner: Pool<sqlx::postgres::Postgres>,
 }
 
+impl Deref for Postgres {
+    type Target = Pool<sqlx::postgres::Postgres>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl DerefMut for Postgres {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 #[async_trait::async_trait]
 impl Auth for Postgres {
     async fn connect(url: &str) -> Self {
         Self {
-            inner: PgPool::connect(url)
-                .await
+            inner: PoolOptions::new()
+                .acquire_timeout(std::time::Duration::from_secs(2))
+                .connect_lazy(url)
                 .map_err(Error::from)
                 .expect("Failed to connect to Postgres"),
         }
@@ -32,7 +40,8 @@ impl Auth for Postgres {
 
     fn connect_lazy(url: &str) -> Self {
         Self {
-            inner: PgPool::connect_lazy(url)
+            inner: PoolOptions::new()
+                .connect_lazy(url)
                 .map_err(Error::from)
                 .expect("Failed to connect to Postgres"),
         }
@@ -105,12 +114,11 @@ impl Storage for Postgres {
             VALUES ($1, $2, $3, $4)
             ON CONFLICT DO NOTHING";
 
-        let tmp = &contract.input.0;
         sqlx::query(sql)
             .bind(contract.address.as_bytes())
             .bind(contract.transaction_hash.as_bytes())
             .bind(contract.from.as_bytes())
-            .bind(tmp)
+            .bind(&contract.input.0)
             .execute(&self.inner)
             .await?;
 
@@ -126,12 +134,11 @@ impl Storage for Postgres {
             VALUES ($1, $2, $3, $4)
             ON CONFLICT DO NOTHING";
 
-        let tmp = &transaction.input.0;
         sqlx::query(sql)
             .bind(transaction.hash.as_bytes())
             .bind(transaction.from.as_ref().map(|x| x.as_bytes()))
             .bind(transaction.to.as_ref().map(|x| x.as_bytes()))
-            .bind(tmp)
+            .bind(&transaction.input.0)
             .execute(&self.inner)
             .await?;
 
@@ -149,9 +156,9 @@ impl Storage for Postgres {
         transfer._value.to_big_endian(&mut value_slice);
 
         sqlx::query(sql)
-            .bind(transfer.boilerplate.contract_addr.as_bytes())
-            .bind(transfer.boilerplate.transaction_hash.as_bytes())
-            .bind(transfer.boilerplate.transaction_sender.as_bytes())
+            .bind(transfer.contract_addr().as_bytes())
+            .bind(transfer.transaction_hash().as_bytes())
+            .bind(transfer.transaction_sender().as_bytes())
             .bind(transfer._to.as_bytes())
             .bind(value_slice)
             .execute(&self.inner)
@@ -171,9 +178,9 @@ impl Storage for Postgres {
         transfer_from._value.to_big_endian(&mut value_slice);
 
         sqlx::query(sql)
-            .bind(transfer_from.boilerplate.contract_addr.as_bytes())
-            .bind(transfer_from.boilerplate.transaction_hash.as_bytes())
-            .bind(transfer_from.boilerplate.transaction_sender.as_bytes())
+            .bind(transfer_from.contract_addr().as_bytes())
+            .bind(transfer_from.transaction_hash().as_bytes())
+            .bind(transfer_from.transaction_sender().as_bytes())
             .bind(transfer_from._from.as_bytes())
             .bind(transfer_from._to.as_bytes())
             .bind(value_slice)
@@ -194,9 +201,9 @@ impl Storage for Postgres {
         approve._value.to_big_endian(&mut value_slice);
 
         sqlx::query(sql)
-            .bind(approve.boilerplate.contract_addr.as_bytes())
-            .bind(approve.boilerplate.transaction_hash.as_bytes())
-            .bind(approve.boilerplate.transaction_sender.as_bytes())
+            .bind(approve.contract_addr().as_bytes())
+            .bind(approve.transaction_hash().as_bytes())
+            .bind(approve.transaction_sender().as_bytes())
             .bind(approve._spender.as_bytes())
             .bind(value_slice)
             .execute(&self.inner)

@@ -90,7 +90,7 @@ impl IndexedTransaction {
     derive_builder::Builder, Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq,
 )]
 #[serde(rename_all = "camelCase")]
-pub struct TransactionBoilerplate {
+pub(super) struct TransactionBoilerplate {
     pub contract_addr: H160,
     pub transaction_hash: H256,
     pub transaction_sender: H160,

@@ -13,8 +13,6 @@ pub async fn run<T: Transport, U: Storage + Auth>(app: App<T, U>) -> Result<()> 
             .await
             .unwrap();
 
-        //let db_transaction = app.storage_conn().begin().await?;
-
         match app.storage_conn().insert_block(&block).await {
             Ok(_) => {
                 log::info!("Processed block: {:?}", block);
@@ -33,7 +31,6 @@ pub async fn run<T: Transport, U: Storage + Auth>(app: App<T, U>) -> Result<()> 
                 }
             }
         }
-        //db_transaction.commit().await?;
     }
     Ok(())
 }
