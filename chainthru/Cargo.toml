@@ -14,12 +14,11 @@ path = "src/main.rs"
 name = "chainthru"
 
 [dependencies]
-chainthru-index = { workspace = true, features = ["parallelism"]}
+chainthru-index.workspace = true
 chainthru-server.workspace = true
 chainthru-primitives.workspace = true
 chainthru-tracing.workspace = true
 
-ethereum-types.workspace = true
 web3.workspace = true
 futures.workspace = true
 log.workspace = true
@@ -29,6 +28,4 @@ secrecy.workspace = true
 sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
 
 clap = { version = "4.3.12", features = ["derive", "env"] }
-config = "0.13.3"
 tokio = { version = "1.29.1", features = ["macros", "full"] }
-env_logger = "0.10.0"

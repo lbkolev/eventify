@@ -1,7 +1,8 @@
 use web3::types::{H160, U256};
 
 use crate::{
-    contract_func, error::Error, transaction::IndexedTransaction, Result, TransactionBoilerplate,
+    contract_func, error::Error, transaction::IndexedTransaction,
+    transaction::TransactionBoilerplate, Result,
 };
 
 contract_func!(

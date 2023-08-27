@@ -13,7 +13,7 @@ pub use block::IndexedBlock;
 pub use database::Settings as DatabaseSettings;
 pub use error::Error;
 pub use storage::{Auth, Storage};
-pub use transaction::{IndexedTransaction, TransactionBoilerplate};
+pub use transaction::IndexedTransaction;
 
 /// The result type used through the application code.
 type Result<T> = std::result::Result<T, error::Error>;

@@ -3,10 +3,10 @@ pub trait ContractFunction {}
 #[macro_export]
 macro_rules! contract_func {
     ($struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {
-        #[derive(derive_builder::Builder, Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+        #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
         pub struct $struct_name {
             #[serde(flatten)]
-            pub boilerplate: $crate::TransactionBoilerplate,
+            boilerplate: $crate::transaction::TransactionBoilerplate,
 
             $(pub $field_name: $field_type),*
         }
@@ -16,7 +16,7 @@ macro_rules! contract_func {
         impl $struct_name {
             pub fn new($($field_name: $field_type),*) -> Self {
                 Self {
-                    boilerplate: $crate::TransactionBoilerplate::default(),
+                    boilerplate: $crate::transaction::TransactionBoilerplate::default(),
                     $($field_name),*
                 }
             }
@@ -27,6 +27,19 @@ macro_rules! contract_func {
                     self
                 }
             )*
+
+            /// Returns the contract address associated with the struct function call
+            pub fn contract_addr(&self) -> web3::types::H160 {
+                self.boilerplate.contract_addr
+            }
+
+            pub fn transaction_hash(&self) -> web3::types::H256 {
+                self.boilerplate.transaction_hash
+            }
+
+            pub fn transaction_sender(&self) -> web3::types::H160 {
+                self.boilerplate.transaction_sender
+            }
         }
 
         impl std::fmt::Display for $struct_name {
@@ -36,5 +49,3 @@ macro_rules! contract_func {
         }
     };
 }
-
-mod tests {}

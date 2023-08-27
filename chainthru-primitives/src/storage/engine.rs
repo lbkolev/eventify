@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use std::fmt::Debug;
+use std::ops::{Deref, DerefMut};
 
 use crate::{contract, func, Error};
 
 #[async_trait]
-pub trait Storage: 'static + Sized + Send + Debug {
+pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
     fn insert_block<'life0, 'life1, 'async_trait>(
         &'life0 self,
         block: &'life1 crate::IndexedBlock,

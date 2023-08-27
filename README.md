@@ -1,5 +1,5 @@
 # <p align="center">chainthru</p>
-<p align="center"> Index Ethereum into a postgres database </p>
+<p align="center"> Index Ethereum into a storage backend</p>
 
 <p align="center">
     <a href="https://github.com/lbkolev/chainthru/blob/master/LICENSE">
@@ -16,10 +16,9 @@
     </a>
 </p>
 
-# <p align="center"> 🚧 work in progress 🚧<p>
+> <p align="center"> 🚧 work in progress 🚧<p>
 
 - [chainthru](#chainthru)
-- [ 🚧 work in progress 🚧](#--work-in-progress-)
   - [Database schema](#database-schema)
   - [Crates](#crates)
   - [Documentation](#documentation)

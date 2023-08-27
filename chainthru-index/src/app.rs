@@ -16,8 +16,8 @@ use chainthru_primitives::{
 pub struct App<T: Transport, U: Storage + Auth> {
     inner: Providers<T, U>,
 
-    pub src_block: BlockId,
-    pub dst_block: BlockId,
+    pub(crate) src_block: BlockId,
+    pub(crate) dst_block: BlockId,
 }
 
 impl<T: Transport, U: Storage + Auth> Default for App<T, U> {
