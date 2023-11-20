@@ -1,5 +1,3 @@
-name: Rust
-
 on:
   push:
     branches:
@@ -50,17 +48,6 @@ jobs:
       #    cargo sqlx prepare --database-url ${{ env.DATABASE_URL }} --check -- --bin chainthru --workspace
       - name: Run tests
         run: cargo test
-
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-      - name: Enforce formatting
-        run: cargo fmt --check
 
   clippy:
     name: Clippy

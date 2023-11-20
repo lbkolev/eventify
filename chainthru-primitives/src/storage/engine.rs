@@ -51,7 +51,6 @@ pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
         'life1: 'async_trait,
         Self: 'async_trait;
 
-    //async fn insert_transfer(&self, transfer: &func::Transfer) -> Result<(), Error>;
     fn insert_transfer<'life0, 'life1, 'async_trait>(
         &'life0 self,
         transfer: &'life1 func::Transfer,

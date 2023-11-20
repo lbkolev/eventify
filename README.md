@@ -25,7 +25,6 @@
     - [Index](#index)
     - [Server](#server)
     - [Primitives](#primitives)
-    - [Tracing](#tracing)
     - [Core](#core)
 
 
@@ -116,7 +115,6 @@ Include the following
 - [chainthru-index](./chainthru-index)
 - [chainthru-server](./chainthru-server)
 - [chainthru-primitives](./chainthru-primitives)
-- [chainthru-tracing](./chainthru-tracing)
 
 ## Documentation
 
@@ -130,10 +128,6 @@ Include the following
 
 ### Primitives
 - [Introductory & Architectural](./docs/chainthru-primitives.md)
-- [Crate & functionality](...)
-
-### Tracing
-- [Introductory & Architectural](./docs/chainthru-tracing.md)
 - [Crate & functionality](...)
 
 ### Core

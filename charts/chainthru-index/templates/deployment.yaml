@@ -40,8 +40,6 @@ spec:
               value: {{ .Values.startBlock }}
             - name: CHAINTHRU_TO_BLOCK
               value: {{ .Values.endBlock }}
-            - name: CHAINTHRU_INDEXER_THREADS
-              value: {{ .Values.threads }}
             - name: RUST_LOG
               value: {{ .Values.logLevel }}
           command: ["./chainthru", "--server.disabled"]

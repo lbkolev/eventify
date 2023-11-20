@@ -11,7 +11,7 @@ pub async fn run<T: Transport, U: Storage + Auth>(app: App<T, U>) -> Result<()> 
         let (block, transactions) = app
             .fetch_indexed_data(BlockId::Number(target.into()))
             .await
-            .unwrap();
+            .expect("Failed to fetch indexed data");
 
         match app.storage_conn().insert_block(&block).await {
             Ok(_) => {
