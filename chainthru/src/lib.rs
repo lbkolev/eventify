@@ -7,3 +7,5 @@ pub use chainthru_index;
 /// Re-Export of the Chainthru API server.
 /// ...
 pub use chainthru_server;
+
+pub mod settings;

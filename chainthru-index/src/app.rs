@@ -196,7 +196,7 @@ impl<U: Storage + Auth> App<Ipc, U> {
                 Some(Web3::new(
                     Ipc::new(node_url)
                         .await
-                        .expect("Failed to create HTTP transport"),
+                        .expect("Failed to create IPC transport"),
                 )),
                 self.inner.transport_storage,
             ),
@@ -213,7 +213,7 @@ impl<U: Storage + Auth> App<WebSocket, U> {
                 Some(Web3::new(
                     WebSocket::new(node_url)
                         .await
-                        .expect("Failed to create HTTP transport"),
+                        .expect("Failed to create WS transport"),
                 )),
                 self.inner.transport_storage,
             ),

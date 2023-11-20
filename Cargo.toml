@@ -1,29 +1,27 @@
 [workspace.package]
-authors = [ "Lachezar Kolev <lachezarkolevgg@gmail.com>" ]
+authors = ["Lachezar Kolev <lachezarkolevgg@gmail.com>"]
 description = "Ethereum indexer"
 documentation = "https://docs.rs/chainthru"
 edition = "2021"
 homepage = "https://github.com/lbkolev/chainthru"
 license = "MIT"
 version = "0.1.0"
-rust-version = "1.70.0"
+rust-version = "1.73.0"
 readme = "README.md"
 repository = "https://github.com/lbkolev/chainthru"
 
 [workspace]
 members = [
     "chainthru",
-    "chainthru-primitives",
     "chainthru-index",
+    "chainthru-primitives",
     "chainthru-server",
-    "chainthru-tracing",
 ]
 
 [workspace.dependencies]
 chainthru-primitives = { path = "./chainthru-primitives" }
 chainthru-index = { path = "./chainthru-index" }
 chainthru-server = { path = "./chainthru-server" }
-chainthru-tracing = { path = "./chainthru-tracing" }
 
 ethereum-types = "0.14.1"
 web3 = "0.19.0"
@@ -31,7 +29,7 @@ serde = "1.0.171"
 serde-aux = "4.2.0"
 serde_derive = "1.0.171"
 serde_json = "1.0.104"
-sqlx = { git = "https://github.com/launchbadge/sqlx", branch = "main"}
+sqlx = { git = "https://github.com/launchbadge/sqlx", branch = "main" }
 tokio = "1.29.1"
 thiserror = "1.0.44"
 futures = "0.3.28"
