@@ -1,12 +1,15 @@
 [package]
 name = "chainthru-server"
-authors = [ "Lachezar Kolev <lachezarkolevgg@gmail.com>" ]
 
-version.workspace = true
+authors.workspace = true
+description.workspace = true
 edition.workspace = true
+homepage.workspace = true
 license.workspace = true
-repository.workspace = true
+version.workspace = true
 rust-version.workspace = true
+readme.workspace = true
+repository.workspace = true
 
 [dependencies]
 chainthru-primitives.workspace = true

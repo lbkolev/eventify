@@ -1,11 +1,11 @@
 [workspace.package]
 authors = ["Lachezar Kolev <lachezarkolevgg@gmail.com>"]
-description = "Ethereum indexer"
+description = "EVM ETL indexer"
 documentation = "https://docs.rs/chainthru"
 edition = "2021"
 homepage = "https://github.com/lbkolev/chainthru"
 license = "MIT"
-version = "0.1.0"
+version = "0.0.1"
 rust-version = "1.73.0"
 readme = "README.md"
 repository = "https://github.com/lbkolev/chainthru"
@@ -17,11 +17,12 @@ members = [
     "chainthru-primitives",
     "chainthru-server",
 ]
+resolver = "2"
 
 [workspace.dependencies]
-chainthru-primitives = { path = "./chainthru-primitives" }
-chainthru-index = { path = "./chainthru-index" }
-chainthru-server = { path = "./chainthru-server" }
+chainthru-primitives = { path = "./chainthru-primitives", version = "0.0.1" }
+chainthru-index = { path = "./chainthru-index", version = "0.0.1" }
+chainthru-server = { path = "./chainthru-server", version = "0.0.1" }
 
 ethereum-types = "0.14.1"
 web3 = "0.19.0"
@@ -29,7 +30,7 @@ serde = "1.0.171"
 serde-aux = "4.2.0"
 serde_derive = "1.0.171"
 serde_json = "1.0.104"
-sqlx = { git = "https://github.com/launchbadge/sqlx", branch = "main" }
+sqlx = "0.7.2"
 tokio = "1.29.1"
 thiserror = "1.0.44"
 futures = "0.3.28"

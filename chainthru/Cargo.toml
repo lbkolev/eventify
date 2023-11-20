@@ -1,13 +1,15 @@
 [package]
 name = "chainthru"
-authors = [ "Lachezar Kolev <lachezarkolevgg@gmail.com>" ]
-description = "A complete Ethereum Rust indexer"
 
-version.workspace = true
+authors.workspace = true
+description.workspace = true
 edition.workspace = true
+homepage.workspace = true
 license.workspace = true
-repository.workspace = true
+version.workspace = true
 rust-version.workspace = true
+readme.workspace = true
+repository.workspace = true
 
 [[bin]]
 path = "src/main.rs"

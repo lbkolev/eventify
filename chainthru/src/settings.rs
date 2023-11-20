@@ -73,6 +73,12 @@ pub struct ServerSettings {
 #[command(name = "Chainthru")]
 #[command(about = "Index Ethereum into a Postgresql database & serve it via an API server.")]
 pub struct Settings {
+    #[clap(flatten)]
+    pub indexer: IndexerSettings,
+
+    #[clap(flatten)]
+    pub server: ServerSettings,
+
     #[arg(
         long,
         env = "CHAINTHRU_STORAGE_URL",
@@ -88,12 +94,6 @@ pub struct Settings {
         default_value = "http://localhost:8545"
     )]
     pub node_url: String,
-
-    #[clap(flatten)]
-    pub indexer: IndexerSettings,
-
-    #[clap(flatten)]
-    pub server: ServerSettings,
 
     #[arg(
         long = "log.level",

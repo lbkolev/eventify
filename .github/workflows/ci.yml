@@ -41,7 +41,7 @@ jobs:
         toolchain:
           - stable
           - beta
-          - nightly§
+          - nightly
     services:
       postgres:
         image: postgres:14
