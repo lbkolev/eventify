@@ -4,6 +4,8 @@ pub mod api;
 pub mod error;
 pub mod startup;
 
+pub use error::Error;
+
 /// The result type used through the server application code.
 type Result<T> = std::result::Result<T, crate::error::Error>;
 

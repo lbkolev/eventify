@@ -1,5 +1,8 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("Fetching block {0} failed")]
+    FetchBlock(String),
+
     #[error("executing query {0}")]
     Sql(#[from] sqlx::Error),
 

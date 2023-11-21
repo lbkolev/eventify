@@ -25,9 +25,10 @@ futures.workspace = true
 log.workspace = true
 url.workspace = true
 derive_builder.workspace = true
+async-trait.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+alloy-primitives.workspace = true
 
 serde = { workspace = true, features = ["derive"]}
-sqlx = { workspace = true, features = ["postgres", "runtime-tokio"] }
-tokio = { workspace = true, features = ["full"] }
-async-trait = "0.1.72"
 rayon = { version = "1.7.0", optional = true }

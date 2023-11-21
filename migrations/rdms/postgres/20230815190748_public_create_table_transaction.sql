@@ -2,7 +2,7 @@
 CREATE TABLE public.transaction (
     hash bytea,
     _from bytea NOT NULL,
-    _to bytea NOT NULL,
+    _to bytea,
     input bytea,
 
     PRIMARY KEY(hash)

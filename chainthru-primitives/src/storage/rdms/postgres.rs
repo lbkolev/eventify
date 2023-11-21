@@ -3,7 +3,7 @@
 use std::ops::{Deref, DerefMut};
 
 use sqlx::{pool::PoolOptions, Pool};
-use web3::types::H64;
+use web3::types::{H64, U64};
 
 use crate::{storage::Auth, storage::Storage, Error, Result};
 
@@ -56,9 +56,6 @@ impl Storage for Postgres {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             ON CONFLICT DO NOTHING";
 
-        let mut number_slice = [0u8; 8];
-        block.number.map(|v| v.to_big_endian(&mut number_slice));
-
         let mut gas_used_slice = [0u8; 32];
         block.gas_used.map(|v| v.to_big_endian(&mut gas_used_slice));
 
@@ -93,7 +90,7 @@ impl Storage for Postgres {
             .bind(block.state_root.as_ref().map(|h| h.as_bytes()))
             .bind(block.transactions_root.as_ref().map(|h| h.as_bytes()))
             .bind(block.receipts_root.as_ref().map(|h| h.as_bytes()))
-            .bind(number_slice)
+            .bind(block.number.unwrap_or(U64::zero()).as_u64() as i32)
             .bind(gas_used_slice)
             .bind(gas_limit_slice)
             .bind(base_fee_per_gas_slice)

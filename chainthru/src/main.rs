@@ -1,4 +1,5 @@
 use clap::Parser;
+use futures::TryFutureExt;
 use secrecy::ExposeSecret;
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
@@ -6,10 +7,7 @@ use tracing_log::LogTracer;
 use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
 use types::storage::Postgres;
 use url::Url;
-use web3::{
-    transports::{Http, Ipc, WebSocket},
-    types::{BlockId, BlockNumber},
-};
+use web3::transports::{Http, Ipc, WebSocket};
 
 use chainthru::settings::Settings;
 use chainthru_index as indexer;
@@ -38,7 +36,7 @@ pub fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> chainthru::Result<()> {
     let settings = Settings::parse();
     let subscriber = get_subscriber(
         "chainthru".into(),
@@ -46,59 +44,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::io::stdout,
     );
     init_subscriber(subscriber);
+    log::info!("{:#?}", settings);
 
     let server_settings = server::Settings::from(settings.clone());
     let mut handles = vec![];
 
-    if !settings.server.server_enabled {
-        handles.push(tokio::spawn(server::run(server_settings)));
+    if settings.server.server_enabled {
+        handles.push(tokio::spawn(
+            server::run(server_settings).map_err(chainthru::Error::from),
+        ));
     }
 
-    if !settings.indexer.indexer_enabled {
+    if settings.indexer.indexer_enabled {
         match Url::parse(&settings.node_url)?.scheme() {
             "http" | "https" => {
-                tokio::spawn(indexer::run::<Http, Postgres>(
-                    App::default()
-                        .with_src_block(BlockId::Number(BlockNumber::Number(
-                            settings.indexer.src_block.into(),
-                        )))
-                        .with_dst_block(BlockId::Number(BlockNumber::Number(
-                            settings.indexer.dst_block.unwrap_or(u64::MAX).into(),
-                        )))
-                        .with_storage(settings.storage_url.expose_secret())
-                        .with_http(&settings.node_url),
+                handles.push(tokio::spawn(
+                    indexer::run::<Http, Postgres>(
+                        App::default()
+                            .with_src_block(settings.indexer.src_block)
+                            .with_dst_block(settings.indexer.dst_block)
+                            .with_storage(settings.storage_url.expose_secret())
+                            .with_http(&settings.node_url),
+                    )
+                    .map_err(chainthru::Error::from),
                 ));
             }
             "ws" | "wss" => {
-                tokio::spawn(indexer::run::<WebSocket, Postgres>(
-                    App::default()
-                        .with_src_block(BlockId::Number(BlockNumber::Number(
-                            settings.indexer.src_block.into(),
-                        )))
-                        .with_dst_block(BlockId::Number(BlockNumber::Number(
-                            settings.indexer.dst_block.unwrap_or(u64::MAX).into(),
-                        )))
-                        .with_storage(settings.storage_url.expose_secret())
-                        .with_websocket(&settings.node_url)
-                        .await,
+                handles.push(tokio::spawn(
+                    indexer::run::<WebSocket, Postgres>(
+                        App::default()
+                            .with_src_block(settings.indexer.src_block)
+                            .with_dst_block(settings.indexer.dst_block)
+                            .with_storage(settings.storage_url.expose_secret())
+                            .with_websocket(&settings.node_url)
+                            .await,
+                    )
+                    .map_err(chainthru::Error::from),
                 ));
             }
             "ipc" => {
-                tokio::spawn(indexer::run::<Ipc, Postgres>(
-                    App::default()
-                        .with_src_block(BlockId::Number(BlockNumber::Number(
-                            settings.indexer.src_block.into(),
-                        )))
-                        .with_dst_block(BlockId::Number(BlockNumber::Number(
-                            settings.indexer.dst_block.unwrap_or(u64::MAX).into(),
-                        )))
-                        .with_storage(settings.storage_url.expose_secret())
-                        .with_ipc(&settings.node_url)
-                        .await,
+                handles.push(tokio::spawn(
+                    indexer::run::<Ipc, Postgres>(
+                        App::default()
+                            .with_src_block(settings.indexer.src_block)
+                            .with_dst_block(settings.indexer.dst_block)
+                            .with_storage(settings.storage_url.expose_secret())
+                            .with_ipc(&settings.node_url)
+                            .await,
+                    )
+                    .map_err(chainthru::Error::from),
                 ));
             }
             _ => {
-                return Err("Invalid node URL scheme".into());
+                return Err(chainthru::Error::NodeURLScheme(settings.node_url));
             }
         };
     }

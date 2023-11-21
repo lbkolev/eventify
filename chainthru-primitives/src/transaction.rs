@@ -1,13 +1,6 @@
 use serde::{Deserialize, Serialize};
 use web3::types::{Bytes, Transaction, H160, H256};
 
-use crate::{
-    func::{Approve, Transfer, TransferFrom},
-    storage::Storage,
-    Result, ERC20_APPROVE_SIGNATURE, ERC20_TRANSFER_FROM_SIGNATURE, ERC20_TRANSFER_SIGNATURE,
-    ERC721_SAFE_TRANSFER_FROM_SIGNATURE,
-};
-
 /// There are four types of transactions in the context of the program:
 ///
 /// 1. Contract creation ones
@@ -44,46 +37,46 @@ impl IndexedTransaction {
         self.to.is_none()
     }
 
-    /// Determines if the transaction is considered special.
-    ///
-    /// Special transactions are the ones that are indexed into their own tables.
-    fn special(&self) -> bool {
-        self.input.0.len() >= 4
-            && (&self.input.0[0..4] == ERC20_APPROVE_SIGNATURE
-                || &self.input.0[0..4] == ERC20_TRANSFER_FROM_SIGNATURE
-                || &self.input.0[0..4] == ERC20_TRANSFER_SIGNATURE
-                || &self.input.0[0..4] == ERC721_SAFE_TRANSFER_FROM_SIGNATURE)
-    }
+    ///// Determines if the transaction is considered special.
+    /////
+    ///// Special transactions are the ones that are indexed into their own tables.
+    //fn special(&self) -> bool {
+    //    self.input.0.len() >= 4
+    //        && (&self.input.0[0..4] == ERC20_APPROVE_SIGNATURE
+    //            || &self.input.0[0..4] == ERC20_TRANSFER_FROM_SIGNATURE
+    //            || &self.input.0[0..4] == ERC20_TRANSFER_SIGNATURE
+    //            || &self.input.0[0..4] == ERC721_SAFE_TRANSFER_FROM_SIGNATURE)
+    //}
 
-    /// Processes the transaction.
-    ///
-    /// If the transaction is considered special, it's indexed into its own table.
-    /// If the transaction is not considered special, but we've got a function signature that matches the transaction's input, it is indexed into the `transaction` table.
-    pub async fn process<T: Storage>(&self, conn: &T) -> Result<()> {
-        if self.special() {
-            match &self.input.0[0..4] {
-                ERC20_APPROVE_SIGNATURE => {
-                    conn.insert_approve(&Approve::try_from(self.clone())?).await
-                }
-                ERC20_TRANSFER_FROM_SIGNATURE => {
-                    conn.insert_transfer_from(&TransferFrom::try_from(self.clone())?)
-                        .await
-                }
-                ERC20_TRANSFER_SIGNATURE => {
-                    conn.insert_transfer(&Transfer::try_from(self.clone())?)
-                        .await
-                }
-                ERC721_SAFE_TRANSFER_FROM_SIGNATURE => {
-                    log::warn!("ERC721 safe transfer from is not implemented yet");
-                    Ok(())
-                }
-                _ => unreachable!(),
-            }
-        } else {
-            log::debug!("Transaction {:?} is not considered special", self.hash);
-            Ok(())
-        }
-    }
+    ///// Processes the transaction.
+    /////
+    ///// If the transaction is considered special, it's indexed into its own table.
+    ///// If the transaction is not considered special, but we've got a function signature that matches the transaction's input, it is indexed into the `transaction` table.
+    ////pub async fn process<T: Storage>(&self, conn: &T) -> Result<()> {
+    //    if self.special() {
+    //        match &self.input.0[0..4] {
+    //            ERC20_APPROVE_SIGNATURE => {
+    //                conn.insert_approve(&Approve::try_from(self.clone())?).await
+    //            }
+    //            ERC20_TRANSFER_FROM_SIGNATURE => {
+    //                conn.insert_transfer_from(&TransferFrom::try_from(self.clone())?)
+    //                    .await
+    //            }
+    //            ERC20_TRANSFER_SIGNATURE => {
+    //                conn.insert_transfer(&Transfer::try_from(self.clone())?)
+    //                    .await
+    //            }
+    //            ERC721_SAFE_TRANSFER_FROM_SIGNATURE => {
+    //                log::warn!("ERC721 safe transfer from is not implemented yet");
+    //                Ok(())
+    //            }
+    //            _ => unreachable!(),
+    //        }
+    //    } else {
+    //        log::debug!("Transaction {:?} is not considered special", self.hash);
+    //        Ok(())
+    //    }
+    //}
 }
 
 #[derive(

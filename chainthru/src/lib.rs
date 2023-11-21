@@ -8,4 +8,11 @@ pub use chainthru_index;
 /// ...
 pub use chainthru_server;
 
+/// Re-export of the possible Errs.
+/// ...
+pub use error::Error;
+
+pub mod error;
 pub mod settings;
+
+pub type Result<T> = std::result::Result<T, Error>;

@@ -1,3 +1,4 @@
+use alloy_primitives::BlockNumber;
 use clap::Parser;
 use secrecy::{ExposeSecret, Secret};
 
@@ -21,15 +22,15 @@ pub struct IndexerSettings {
         help = "The block to begin the indexing from. Defaults to 0",
         default_value_t = 0
     )]
-    pub src_block: u64,
+    pub src_block: BlockNumber,
 
     #[arg(
         long,
         env = "CHAINTHRU_DST_BLOCK",
         help = "The block to end the indexing at. Defaults to the latest block",
-        default_value = None
+        default_value_t = BlockNumber::MAX
     )]
-    pub dst_block: Option<u64>,
+    pub dst_block: BlockNumber,
 }
 
 #[derive(Debug, clap::Args, Clone)]
@@ -91,7 +92,7 @@ pub struct Settings {
         long,
         env = "CHAINTHRU_NODE_URL",
         help = "The Ethereum node URL to connect to",
-        default_value = "http://localhost:8545"
+        default_value = "wss://eth.llamarpc.com"
     )]
     pub node_url: String,
 
@@ -136,10 +137,10 @@ mod tests {
     #[test]
     #[serial]
     fn test_indexer_settings_default_values() {
-        let args = CommandParser::<IndexerSettings>::parse_from(&["chainthru"]).args;
-        assert_eq!(args.indexer_enabled, false);
+        let args = CommandParser::<IndexerSettings>::parse_from(["chainthru"]).args;
+        assert!(!args.indexer_enabled);
         assert_eq!(args.src_block, 0);
-        assert_eq!(args.dst_block, None);
+        assert_eq!(args.dst_block, BlockNumber::MAX);
     }
 
     #[test]
@@ -149,10 +150,10 @@ mod tests {
         std::env::set_var("CHAINTHRU_SRC_BLOCK", "1");
         std::env::set_var("CHAINTHRU_DST_BLOCK", "2");
 
-        let args = CommandParser::<IndexerSettings>::parse_from(&["chainthru"]).args;
-        assert_eq!(args.indexer_enabled, true);
+        let args = CommandParser::<IndexerSettings>::parse_from(["chainthru"]).args;
+        assert!(args.indexer_enabled);
         assert_eq!(args.src_block, 1);
-        assert_eq!(args.dst_block, Some(2));
+        assert_eq!(args.dst_block, 2);
 
         std::env::remove_var("CHAINTHRU_INDEXER_ENABLED");
         std::env::remove_var("CHAINTHRU_SRC_BLOCK");
@@ -165,7 +166,7 @@ mod tests {
         std::env::set_var("CHAINTHRU_SRC_BLOCK", "1");
         std::env::set_var("CHAINTHRU_DST_BLOCK", "2");
 
-        let args = CommandParser::<IndexerSettings>::parse_from(&[
+        let args = CommandParser::<IndexerSettings>::parse_from([
             "chainthru",
             "--indexer.enabled",
             "--src-block",
@@ -174,9 +175,9 @@ mod tests {
             "4",
         ])
         .args;
-        assert_eq!(args.indexer_enabled, true);
+        assert!(args.indexer_enabled);
         assert_eq!(args.src_block, 3);
-        assert_eq!(args.dst_block, Some(4));
+        assert_eq!(args.dst_block, 4);
 
         std::env::remove_var("CHAINTHRU_INDEXER_ENABLED");
         std::env::remove_var("CHAINTHRU_SRC_BLOCK");
@@ -186,8 +187,8 @@ mod tests {
     #[test]
     #[serial]
     fn test_server_settings_default_values() {
-        let args = CommandParser::<ServerSettings>::parse_from(&["chainthru"]).args;
-        assert_eq!(args.server_enabled, false);
+        let args = CommandParser::<ServerSettings>::parse_from(["chainthru"]).args;
+        assert!(!args.server_enabled);
         assert_eq!(args.server_threads, num_cpus::get());
         assert_eq!(args.host, "");
         assert_eq!(args.port, 6969);
@@ -201,8 +202,8 @@ mod tests {
         std::env::set_var("CHAINTHRU_SERVER_HOST", "localhost");
         std::env::set_var("CHAINTHRU_SERVER_PORT", "1234");
 
-        let args = CommandParser::<ServerSettings>::parse_from(&["chainthru"]).args;
-        assert_eq!(args.server_enabled, true);
+        let args = CommandParser::<ServerSettings>::parse_from(["chainthru"]).args;
+        assert!(args.server_enabled);
         assert_eq!(args.server_threads, 1);
         assert_eq!(args.host, "localhost");
         assert_eq!(args.port, 1234);
@@ -220,7 +221,7 @@ mod tests {
         std::env::set_var("CHAINTHRU_SERVER_HOST", "localhost");
         std::env::set_var("CHAINTHRU_SERVER_PORT", "1234");
 
-        let args = CommandParser::<ServerSettings>::parse_from(&[
+        let args = CommandParser::<ServerSettings>::parse_from([
             "chainthru",
             "--server.enabled",
             "--server.threads",
@@ -232,7 +233,7 @@ mod tests {
         ])
         .args;
 
-        assert_eq!(args.server_enabled, true);
+        assert!(args.server_enabled);
         assert_eq!(args.server_threads, 2);
         assert_eq!(args.host, "1.2.3.4");
 

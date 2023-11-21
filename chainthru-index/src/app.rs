@@ -1,7 +1,8 @@
+use alloy_primitives::BlockNumber;
 use chainthru_primitives::IndexedTransaction;
 use web3::{
     transports::{ipc::Ipc, ws::WebSocket, Http},
-    types::{Block, BlockId, BlockNumber, Transaction, H256},
+    types::{Block, BlockId, Transaction, H256},
     Transport, Web3,
 };
 
@@ -16,16 +17,16 @@ use chainthru_primitives::{
 pub struct App<T: Transport, U: Storage + Auth> {
     inner: Providers<T, U>,
 
-    pub(crate) src_block: BlockId,
-    pub(crate) dst_block: BlockId,
+    pub(crate) src_block: BlockNumber,
+    pub(crate) dst_block: BlockNumber,
 }
 
 impl<T: Transport, U: Storage + Auth> Default for App<T, U> {
     fn default() -> Self {
         Self {
             inner: Providers::default(),
-            src_block: BlockId::Number(BlockNumber::Earliest),
-            dst_block: BlockId::Number(BlockNumber::Latest),
+            src_block: 0,
+            dst_block: BlockNumber::MAX,
         }
     }
 }
@@ -35,8 +36,8 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
     pub fn new(
         transport_node: Option<Web3<T>>,
         transport_storage: Option<U>,
-        src_block: BlockId,
-        dst_block: BlockId,
+        src_block: BlockNumber,
+        dst_block: BlockNumber,
     ) -> Self {
         Self {
             inner: Providers::new(transport_node, transport_storage),
@@ -45,11 +46,11 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
         }
     }
 
-    pub fn with_src_block(self, src_block: BlockId) -> Self {
+    pub fn with_src_block(self, src_block: BlockNumber) -> Self {
         Self { src_block, ..self }
     }
 
-    pub fn with_dst_block(self, dst_block: BlockId) -> Self {
+    pub fn with_dst_block(self, dst_block: BlockNumber) -> Self {
         Self { dst_block, ..self }
     }
 
@@ -68,23 +69,31 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
     }
 
     /// Get block details with full transaction objects
-    async fn fetch_block(&self, block: BlockId) -> Option<Block<Transaction>> {
+    async fn fetch_block(&self, block: BlockId) -> Result<Block<Transaction>> {
         self.inner
             .transport_node
             .as_ref()
             .expect("Unable to get transport node")
             .eth()
             .block_with_txs(block)
-            .await
-            .unwrap_or(None)
+            .await?
+            .ok_or(crate::Error::FetchBlock(format!(
+                "Unable to fetch block {:?}",
+                block
+            )))
     }
 
     /// Get indexed block & transaction objects from a given block number
     pub async fn fetch_indexed_data(
         &self,
-        block: BlockId,
-    ) -> Option<(IndexedBlock, Vec<IndexedTransaction>)> {
-        let block = self.fetch_block(block).await?;
+        block: BlockNumber,
+    ) -> Result<(IndexedBlock, Vec<IndexedTransaction>)> {
+        let block = self
+            .fetch_block(BlockId::Number(web3::types::BlockNumber::Number(
+                block.into(),
+            )))
+            .await?;
+
         let transactions = block
             .clone()
             .transactions
@@ -92,7 +101,7 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
             .map(IndexedTransaction::from)
             .collect();
 
-        Some((IndexedBlock::from(block), transactions))
+        Ok((IndexedBlock::from(block), transactions))
     }
 
     /// Get the transaction receipt for a given transaction hash
@@ -151,25 +160,11 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
     }
 
     pub fn src_block(&self) -> u64 {
-        match self.src_block {
-            BlockId::Number(block) => match block {
-                BlockNumber::Number(block) => block.as_u64(),
-                BlockNumber::Earliest => 0,
-                _ => unimplemented!("Unsupported block type: {:?}", block),
-            },
-            _ => unimplemented!("Block hash as a src block is not supported yet"),
-        }
+        self.src_block
     }
 
-    pub async fn dst_block(&self) -> Result<u64> {
-        match self.dst_block {
-            BlockId::Number(block) => match block {
-                BlockNumber::Number(block) => Ok(block.as_u64()),
-                BlockNumber::Latest => self.latest_block().await,
-                _ => unimplemented!("Unsupported block type: {:?}", block),
-            },
-            _ => unimplemented!("Block hash as a dst block is not supported yet"),
-        }
+    pub fn dst_block(&self) -> u64 {
+        self.dst_block
     }
 }
 
@@ -265,8 +260,8 @@ mod tests {
 
         assert!(app.inner.transport_node.is_none());
         assert!(app.inner.transport_storage.is_none());
-        assert_eq!(app.src_block, BlockId::Number(BlockNumber::Earliest));
-        assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
+        assert_eq!(app.src_block, 0);
+        assert_eq!(app.dst_block, BlockNumber::MAX);
     }
 
     #[tokio::test]
@@ -274,21 +269,19 @@ mod tests {
         let app: App<Http, chainthru_primitives::storage::Postgres> = crate::App::default()
             .with_http(
                 env::var("CHAINTHRU_TEST_HTTPS_PROVIDER")
-                    .unwrap_or(format!("https://eth.llamarpc.com"))
+                    .unwrap_or("https://eth.llamarpc.com".to_string())
                     .as_str(),
             )
             .with_storage(
                 env::var("CHAINTHRU_TEST_DATABASE_URL")
-                    .unwrap_or(format!(
-                        "postgres://postgres:password@localhost:5432/chainthru"
-                    ))
+                    .unwrap_or("postgres://postgres:password@localhost:5432/chainthru".to_string())
                     .as_str(),
             );
 
         assert!(app.inner.transport_node.is_some());
         assert!(app.inner.transport_storage.is_some());
-        assert_eq!(app.src_block, BlockId::Number(BlockNumber::Earliest));
-        assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
+        assert_eq!(app.src_block, 0);
+        assert_eq!(app.dst_block, BlockNumber::MAX);
     }
 
     #[tokio::test]
@@ -296,21 +289,19 @@ mod tests {
         let app: App<WebSocket, chainthru_primitives::storage::Postgres> = crate::App::default()
             .with_ws(
                 env::var("CHAINTHRU_TEST_WSS_PROVIDER")
-                    .unwrap_or(format!("wss://eth.llamarpc.com"))
+                    .unwrap_or("wss://eth.llamarpc.com".to_string())
                     .as_str(),
             )
             .await
             .with_storage(
                 env::var("CHAINTHRU_TEST_DATABASE_URL")
-                    .unwrap_or(format!(
-                        "postgres://postgres:password@localhost:5432/chainthru"
-                    ))
+                    .unwrap_or("postgres://postgres:password@localhost:5432/chainthru".to_string())
                     .as_str(),
             );
 
         assert!(app.inner.transport_node.is_some());
         assert!(app.inner.transport_storage.is_some());
-        assert_eq!(app.src_block, BlockId::Number(BlockNumber::Earliest));
-        assert_eq!(app.dst_block, BlockId::Number(BlockNumber::Latest));
+        assert_eq!(app.src_block, 0);
+        assert_eq!(app.dst_block, BlockNumber::MAX);
     }
 }

@@ -22,5 +22,5 @@ serde_json.workspace = true
 thiserror.workspace = true
 secrecy.workspace = true
 log.workspace = true
-
-async-trait = "0.1.72"
+async-trait.workspace = true
+alloy-primitives.workspace = true
