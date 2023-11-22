@@ -1,6 +1,16 @@
 use serde::{Deserialize, Serialize};
 use web3::types::{Bytes, Transaction, H160, H256};
 
+use crate::{
+    //func::{Approve, Transfer, TransferFrom},
+    storage::Storage,
+    Result,
+    ERC20_APPROVE_SIGNATURE,
+    ERC20_TRANSFER_FROM_SIGNATURE,
+    ERC20_TRANSFER_SIGNATURE,
+    ERC721_SAFE_TRANSFER_FROM_SIGNATURE,
+};
+
 /// There are four types of transactions in the context of the program:
 ///
 /// 1. Contract creation ones
@@ -8,6 +18,17 @@ use web3::types::{Bytes, Transaction, H160, H256};
 /// 3. Transactions that are not considered special but are nonetheless indexed
 /// 4. Transactions that are not considered special and are not indexed
 ///
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexedTransaction(Transaction);
+
+impl From<Transaction> for IndexedTransaction {
+    fn from(tx: Transaction) -> Self {
+        Self(tx)
+    }
+}
+
+/*
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexedTransaction {
@@ -30,16 +51,33 @@ impl From<Transaction> for IndexedTransaction {
         }
     }
 }
+*/
 
 impl IndexedTransaction {
-    /// Determines if the transaction is a contract creation one.
-    pub fn contract_creation(&self) -> bool {
-        self.to.is_none()
+    pub fn hash(&self) -> H256 {
+        self.0.hash
     }
 
-    ///// Determines if the transaction is considered special.
-    /////
-    ///// Special transactions are the ones that are indexed into their own tables.
+    pub fn _from(&self) -> Option<H160> {
+        self.0.from
+    }
+
+    pub fn to(&self) -> Option<H160> {
+        self.0.to
+    }
+
+    pub fn input(&self) -> &Bytes {
+        &self.0.input
+    }
+
+    /// Determines if the transaction is a contract creation one.
+    pub fn contract_creation(&self) -> bool {
+        self.0.to.is_none()
+    }
+
+    // Determines if the transaction is considered special.
+    //
+    // Special transactions are the ones that are indexed into their own tables.
     //fn special(&self) -> bool {
     //    self.input.0.len() >= 4
     //        && (&self.input.0[0..4] == ERC20_APPROVE_SIGNATURE

@@ -1,5 +1,5 @@
 CREATE TABLE public.block (
-    hash BYTEA PRIMARY KEY,
+    hash BYTEA,
     parent_hash BYTEA NOT NULL,
     uncles_hash BYTEA NOT NULL,
     author BYTEA NOT NULL,
@@ -15,7 +15,9 @@ CREATE TABLE public.block (
     total_difficulty BYTEA,
     transactions INTEGER,
     size BYTEA,
-    nonce BYTEA
+    nonce BYTEA,
+
+    PRIMARY KEY(hash)
 );
 
 comment on column public.block.hash is 'Hash of execution block';

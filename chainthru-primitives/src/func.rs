@@ -5,6 +5,7 @@ use crate::{
     transaction::TransactionBoilerplate, Result,
 };
 
+/*
 contract_func!(
     Transfer[
         _to: H160,
@@ -128,3 +129,4 @@ mod tests {
         serde_json::from_value::<Approve>(json).unwrap();
     }
 }
+*/

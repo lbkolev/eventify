@@ -105,23 +105,24 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn insert_contract(&self, contract: &crate::contract::Contract) -> Result<()> {
-        let sql = "INSERT INTO public.contract
-            (contract_addr, transaction_hash, _from, input)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT DO NOTHING";
+    /*
+        async fn insert_contract(&self, contract: &crate::contract::Contract) -> Result<()> {
+            let sql = "INSERT INTO public.contract
+                (contract_addr, transaction_hash, _from, input)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT DO NOTHING";
 
-        sqlx::query(sql)
-            .bind(contract.address.as_bytes())
-            .bind(contract.transaction_hash.as_bytes())
-            .bind(contract.from.as_bytes())
-            .bind(&contract.input.0)
-            .execute(&self.inner)
-            .await?;
+            sqlx::query(sql)
+                .bind(contract.address.as_bytes())
+                .bind(contract.transaction_hash.as_bytes())
+                .bind(contract.from.as_bytes())
+                .bind(&contract.input.0)
+                .execute(&self.inner)
+                .await?;
 
-        Ok(())
-    }
-
+            Ok(())
+        }
+    */
     async fn insert_transaction(
         &self,
         transaction: &crate::transaction::IndexedTransaction,
@@ -132,16 +133,16 @@ impl Storage for Postgres {
             ON CONFLICT DO NOTHING";
 
         sqlx::query(sql)
-            .bind(transaction.hash.as_bytes())
-            .bind(transaction.from.as_ref().map(|x| x.as_bytes()))
-            .bind(transaction.to.as_ref().map(|x| x.as_bytes()))
-            .bind(&transaction.input.0)
+            .bind(transaction.hash().as_bytes())
+            .bind(transaction._from().as_ref().map(|x| x.as_bytes()))
+            .bind(transaction.to().as_ref().map(|x| x.as_bytes()))
+            .bind(&transaction.input().0)
             .execute(&self.inner)
             .await?;
 
         Ok(())
     }
-
+    /*
     async fn insert_transfer(&self, transfer: &crate::func::Transfer) -> Result<()> {
         let sql = "
             INSERT INTO contract_fn.transfer (contract_addr, transaction_hash, transaction_sender, _to, _value)
@@ -208,4 +209,5 @@ impl Storage for Postgres {
 
         Ok(())
     }
+    */
 }

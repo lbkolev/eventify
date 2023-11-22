@@ -133,20 +133,22 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
     }
 
     pub async fn process_contract(&self, transaction: IndexedTransaction) -> Result<()> {
-        if let Some(receipt) = self.fetch_transaction_receipt(transaction.hash).await {
+        if let Some(receipt) = self.fetch_transaction_receipt(transaction.hash()).await {
             let contract = Contract {
                 address: receipt
                     .contract_address
                     .expect("Unable to get contract address"),
                 transaction_hash: receipt.transaction_hash,
-                from: transaction.from.expect("Unable to get transaction sender"),
-                input: transaction.input,
+                from: transaction
+                    ._from()
+                    .expect("Unable to get transaction sender"),
+                input: transaction.input().clone(),
             };
 
-            match self.storage_conn().insert_contract(&contract).await {
-                Ok(_) => log::info!("Contract inserted"),
-                Err(e) => log::warn!("Error inserting contract: {:?}", e),
-            }
+            //match self.storage_conn().insert_contract(&contract).await {
+            //    Ok(_) => log::info!("Contract inserted"),
+            //    Err(e) => log::warn!("Error inserting contract: {:?}", e),
+            //}
         }
 
         Ok(())
