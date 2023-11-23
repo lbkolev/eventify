@@ -42,19 +42,6 @@ pub async fn run<T: Transport, U: Storage + Auth>(app: App<T, U>) -> Result<()> 
                 }
             }
         }
-
-        /*
-        for transaction in transactions {
-            match transaction.process(app.storage_conn()).await {
-                Ok(_) => {
-                    log::info!("Processed transaction: {:?}", transaction);
-                }
-                Err(e) => {
-                    log::error!("Error processing transaction: {:?}", e);
-                }
-            }
-        }
-        */
     }
     Ok(())
 }

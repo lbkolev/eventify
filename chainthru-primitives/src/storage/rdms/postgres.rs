@@ -105,109 +105,61 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    /*
-        async fn insert_contract(&self, contract: &crate::contract::Contract) -> Result<()> {
-            let sql = "INSERT INTO public.contract
-                (contract_addr, transaction_hash, _from, input)
-                VALUES ($1, $2, $3, $4)
-                ON CONFLICT DO NOTHING";
-
-            sqlx::query(sql)
-                .bind(contract.address.as_bytes())
-                .bind(contract.transaction_hash.as_bytes())
-                .bind(contract.from.as_bytes())
-                .bind(&contract.input.0)
-                .execute(&self.inner)
-                .await?;
-
-            Ok(())
-        }
-    */
-    async fn insert_transaction(
-        &self,
-        transaction: &crate::transaction::IndexedTransaction,
-    ) -> Result<()> {
+    async fn insert_transaction(&self, tx: &crate::transaction::IndexedTransaction) -> Result<()> {
         let sql = "INSERT INTO public.transaction
-            (hash, _from, _to, input)
+            (hash, nonce, block_hash, block_number, transaction_index, _from, _to, value, gas_price, gas, input, v, r, s, raw, _type, max_fee_per_gas, max_priority_fee_per_gas)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT DO NOTHING";
 
-        sqlx::query(sql)
-            .bind(transaction.hash().as_bytes())
-            .bind(transaction._from().as_ref().map(|x| x.as_bytes()))
-            .bind(transaction.to().as_ref().map(|x| x.as_bytes()))
-            .bind(&transaction.input().0)
-            .execute(&self.inner)
-            .await?;
-
-        Ok(())
-    }
-    /*
-    async fn insert_transfer(&self, transfer: &crate::func::Transfer) -> Result<()> {
-        let sql = "
-            INSERT INTO contract_fn.transfer (contract_addr, transaction_hash, transaction_sender, _to, _value)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT DO NOTHING
-            ";
+        let mut nonce_slice = [0u8; 32];
+        tx.nonce().to_big_endian(&mut nonce_slice);
 
         let mut value_slice = [0u8; 32];
-        transfer._value.to_big_endian(&mut value_slice);
+        tx.value().to_big_endian(&mut value_slice);
+
+        let mut gas_price_slice = [0u8; 32];
+        tx.gas_price()
+            .map(|v| v.to_big_endian(&mut gas_price_slice));
+
+        let mut gas_slice = [0u8; 32];
+        tx.gas().to_big_endian(&mut gas_slice);
+
+        let mut r_slice = [0u8; 32];
+        tx.r().map(|v| v.to_big_endian(&mut r_slice));
+
+        let mut s_slice = [0u8; 32];
+        tx.s().map(|v| v.to_big_endian(&mut s_slice));
+
+        let mut max_fee_per_gas_slice = [0u8; 32];
+        tx.max_fee_per_gas()
+            .map(|v| v.to_big_endian(&mut max_fee_per_gas_slice));
+
+        let mut max_priority_fee_per_gas_slice = [0u8; 32];
+        tx.max_priority_fee_per_gas()
+            .map(|v| v.to_big_endian(&mut max_priority_fee_per_gas_slice));
 
         sqlx::query(sql)
-            .bind(transfer.contract_addr().as_bytes())
-            .bind(transfer.transaction_hash().as_bytes())
-            .bind(transfer.transaction_sender().as_bytes())
-            .bind(transfer._to.as_bytes())
+            .bind(tx.hash().as_bytes())
+            .bind(nonce_slice)
+            .bind(tx.block_hash().as_ref().map(|h| h.as_bytes()))
+            .bind(tx.block_number().map(|v| v.as_u64() as i32))
+            .bind(tx.transaction_index().map(|v| v.as_u64() as i32))
+            .bind(tx._from().as_ref().map(|x| x.as_bytes()))
+            .bind(tx.to().as_ref().map(|x| x.as_bytes()))
             .bind(value_slice)
+            .bind(gas_price_slice)
+            .bind(gas_slice)
+            .bind(&tx.input().0)
+            .bind(tx.v().map(|v| v.as_u64() as i32))
+            .bind(r_slice)
+            .bind(s_slice)
+            .bind(tx.raw().clone().map(|x| x.0))
+            .bind(tx.transaction_type().map(|v| v.as_u64() as i32))
+            .bind(max_fee_per_gas_slice)
+            .bind(max_priority_fee_per_gas_slice)
             .execute(&self.inner)
             .await?;
 
         Ok(())
     }
-
-    async fn insert_transfer_from(&self, transfer_from: &crate::func::TransferFrom) -> Result<()> {
-        let sql = "
-            INSERT INTO contract_fn.transfer_from (contract_addr, transaction_hash, transaction_sender, _from, _to, _value)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT DO NOTHING
-            ";
-
-        let mut value_slice = [0u8; 32];
-        transfer_from._value.to_big_endian(&mut value_slice);
-
-        sqlx::query(sql)
-            .bind(transfer_from.contract_addr().as_bytes())
-            .bind(transfer_from.transaction_hash().as_bytes())
-            .bind(transfer_from.transaction_sender().as_bytes())
-            .bind(transfer_from._from.as_bytes())
-            .bind(transfer_from._to.as_bytes())
-            .bind(value_slice)
-            .execute(&self.inner)
-            .await?;
-
-        Ok(())
-    }
-
-    async fn insert_approve(&self, approve: &crate::func::Approve) -> Result<()> {
-        let sql = "
-            INSERT INTO contract_fn.approve (contract_addr, transaction_hash, transaction_sender, _spender, _value)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT DO NOTHING
-            ";
-
-        let mut value_slice = [0u8; 32];
-        approve._value.to_big_endian(&mut value_slice);
-
-        sqlx::query(sql)
-            .bind(approve.contract_addr().as_bytes())
-            .bind(approve.transaction_hash().as_bytes())
-            .bind(approve.transaction_sender().as_bytes())
-            .bind(approve._spender.as_bytes())
-            .bind(value_slice)
-            .execute(&self.inner)
-            .await?;
-
-        Ok(())
-    }
-    */
 }

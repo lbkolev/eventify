@@ -1,23 +1,6 @@
 use serde::{Deserialize, Serialize};
-use web3::types::{Bytes, Transaction, H160, H256};
+use web3::types::{Bytes, Transaction, H160, H256, U256, U64};
 
-use crate::{
-    //func::{Approve, Transfer, TransferFrom},
-    storage::Storage,
-    Result,
-    ERC20_APPROVE_SIGNATURE,
-    ERC20_TRANSFER_FROM_SIGNATURE,
-    ERC20_TRANSFER_SIGNATURE,
-    ERC721_SAFE_TRANSFER_FROM_SIGNATURE,
-};
-
-/// There are four types of transactions in the context of the program:
-///
-/// 1. Contract creation ones
-/// 2. Transactions that are considered *special* and have their own tables they're indexed into
-/// 3. Transactions that are not considered special but are nonetheless indexed
-/// 4. Transactions that are not considered special and are not indexed
-///
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexedTransaction(Transaction);
@@ -28,34 +11,25 @@ impl From<Transaction> for IndexedTransaction {
     }
 }
 
-/*
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct IndexedTransaction {
-    pub hash: H256,
-
-    pub from: Option<H160>,
-
-    pub to: Option<H160>,
-
-    pub input: Bytes,
-}
-
-impl From<Transaction> for IndexedTransaction {
-    fn from(transaction: Transaction) -> Self {
-        Self {
-            hash: transaction.hash,
-            from: transaction.from,
-            to: transaction.to,
-            input: transaction.input,
-        }
-    }
-}
-*/
-
 impl IndexedTransaction {
     pub fn hash(&self) -> H256 {
         self.0.hash
+    }
+
+    pub fn nonce(&self) -> U256 {
+        self.0.nonce
+    }
+
+    pub fn block_hash(&self) -> Option<H256> {
+        self.0.block_hash
+    }
+
+    pub fn block_number(&self) -> Option<U64> {
+        self.0.block_number
+    }
+
+    pub fn transaction_index(&self) -> Option<U64> {
+        self.0.transaction_index
     }
 
     pub fn _from(&self) -> Option<H160> {
@@ -66,8 +40,48 @@ impl IndexedTransaction {
         self.0.to
     }
 
+    pub fn value(&self) -> U256 {
+        self.0.value
+    }
+
+    pub fn gas_price(&self) -> Option<U256> {
+        self.0.gas_price
+    }
+
+    pub fn gas(&self) -> U256 {
+        self.0.gas
+    }
+
     pub fn input(&self) -> &Bytes {
         &self.0.input
+    }
+
+    pub fn v(&self) -> Option<U64> {
+        self.0.v
+    }
+
+    pub fn r(&self) -> Option<U256> {
+        self.0.r
+    }
+
+    pub fn s(&self) -> Option<U256> {
+        self.0.s
+    }
+
+    pub fn raw(&self) -> &Option<Bytes> {
+        &self.0.raw
+    }
+
+    pub fn transaction_type(&self) -> Option<U64> {
+        self.0.transaction_type
+    }
+
+    pub fn max_fee_per_gas(&self) -> Option<U256> {
+        self.0.max_fee_per_gas
+    }
+
+    pub fn max_priority_fee_per_gas(&self) -> Option<U256> {
+        self.0.max_priority_fee_per_gas
     }
 
     /// Determines if the transaction is a contract creation one.
