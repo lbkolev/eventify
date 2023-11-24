@@ -1,9 +1,14 @@
 use alloy_primitives::BlockNumber;
 use chainthru_primitives::IndexedTransaction;
 use web3::{
-    transports::{ipc::Ipc, ws::WebSocket, Http},
+    //transports::{ipc::Ipc, ws::WebSocket, Http},
     types::{Block, BlockId, Transaction, H256},
-    Transport, Web3,
+    Transport,
+    Web3,
+};
+
+use ethers_providers::{
+    Http, JsonRpcClient, Middleware, Provider as NodeProvider, SubscriptionStream, Ws,
 };
 
 use crate::Result;
@@ -14,14 +19,14 @@ use chainthru_primitives::{
 };
 
 #[derive(Clone, Debug)]
-pub struct App<T: Transport, U: Storage + Auth> {
+pub struct App<T: JsonRpcClient, U: Storage + Auth> {
     inner: Providers<T, U>,
 
     pub(crate) src_block: BlockNumber,
     pub(crate) dst_block: BlockNumber,
 }
 
-impl<T: Transport, U: Storage + Auth> Default for App<T, U> {
+impl<T: JsonRpcClient, U: Storage + Auth> Default for App<T, U> {
     fn default() -> Self {
         Self {
             inner: Providers::default(),
@@ -31,10 +36,10 @@ impl<T: Transport, U: Storage + Auth> Default for App<T, U> {
     }
 }
 
-impl<T: Transport, U: Storage + Auth> App<T, U> {
+impl<T: JsonRpcClient, U: Storage + Auth> App<T, U> {
     /// Create a new instance of the indexer
     pub fn new(
-        transport_node: Option<Web3<T>>,
+        transport_node: Option<NodeProvider<T>>,
         transport_storage: Option<U>,
         src_block: BlockNumber,
         dst_block: BlockNumber,
@@ -54,7 +59,7 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
         Self { dst_block, ..self }
     }
 
-    pub fn with_node_conn(self, transport: Web3<T>) -> Self {
+    pub fn with_node_conn(self, transport: NodeProvider<T>) -> Self {
         Self {
             inner: Providers::new(Some(transport), self.inner.transport_storage),
             ..self
@@ -74,8 +79,9 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
             .transport_node
             .as_ref()
             .expect("Unable to get transport node")
-            .eth()
-            .block_with_txs(block)
+            .get_block(block)
+            //.eth()
+            //.block_with_txs(block)
             .await?
             .ok_or(crate::Error::FetchBlock(format!(
                 "Unable to fetch block {:?}",
@@ -126,9 +132,9 @@ impl<T: Transport, U: Storage + Auth> App<T, U> {
             .transport_node
             .as_ref()
             .unwrap()
-            .eth()
-            .block_number()
-            .await?
+            .get_block_number()
+            .await
+            .unwrap()
             .as_u64())
     }
 
@@ -175,8 +181,8 @@ impl<U: Storage + Auth> App<Http, U> {
     pub fn with_http(self, node_url: &str) -> Self {
         Self {
             inner: Providers::new(
-                Some(Web3::new(
-                    Http::new(node_url).expect("Failed to create HTTP transport"),
+                Some(NodeProvider::new(
+                    Http::connect(node_url).expect("Failed to create WS transport"),
                 )),
                 self.inner.transport_storage,
             ),
@@ -185,30 +191,30 @@ impl<U: Storage + Auth> App<Http, U> {
     }
 }
 
-impl<U: Storage + Auth> App<Ipc, U> {
-    /// Creates a new instance of the App with the IPC transport
-    pub async fn with_ipc(self, node_url: &str) -> Self {
-        Self {
-            inner: Providers::new(
-                Some(Web3::new(
-                    Ipc::new(node_url)
-                        .await
-                        .expect("Failed to create IPC transport"),
-                )),
-                self.inner.transport_storage,
-            ),
-            ..self
-        }
-    }
-}
+//impl<U: Storage + Auth> App<Ipc, U> {
+//    /// Creates a new instance of the App with the IPC transport
+//    pub async fn with_ipc(self, node_url: &str) -> Self {
+//        Self {
+//            inner: Providers::new(
+//                Some(Web3::new(
+//                    Ipc::new(node_url)
+//                        .await
+//                        .expect("Failed to create IPC transport"),
+//                )),
+//                self.inner.transport_storage,
+//            ),
+//            ..self
+//        }
+//    }
+//}
 
-impl<U: Storage + Auth> App<WebSocket, U> {
+impl<U: Storage + Auth> App<Ws, U> {
     /// Creates a new instance of the App with the WebSocket transport
     pub async fn with_websocket(self, node_url: &str) -> Self {
         Self {
             inner: Providers::new(
-                Some(Web3::new(
-                    WebSocket::new(node_url)
+                Some(NodeProvider::new(
+                    Ws::connect(node_url)
                         .await
                         .expect("Failed to create WS transport"),
                 )),
@@ -227,12 +233,12 @@ impl<U: Storage + Auth> App<WebSocket, U> {
 }
 
 #[derive(Clone, Debug)]
-struct Providers<T: Transport, U: Storage + Auth> {
-    transport_node: Option<Web3<T>>,
+struct Providers<T: JsonRpcClient, U: Storage + Auth> {
+    transport_node: Option<NodeProvider<T>>,
     transport_storage: Option<U>,
 }
 
-impl<T: Transport, U: Storage + Auth> Default for Providers<T, U> {
+impl<T: JsonRpcClient, U: Storage + Auth> Default for Providers<T, U> {
     fn default() -> Self {
         Self {
             transport_node: None,
@@ -241,8 +247,8 @@ impl<T: Transport, U: Storage + Auth> Default for Providers<T, U> {
     }
 }
 
-impl<T: Transport, U: Storage + Auth> Providers<T, U> {
-    pub fn new(node: Option<Web3<T>>, db: Option<U>) -> Self {
+impl<T: JsonRpcClient, U: Storage + Auth> Providers<T, U> {
+    pub fn new(node: Option<NodeProvider<T>>, db: Option<U>) -> Self {
         Self {
             transport_node: node,
             transport_storage: db,

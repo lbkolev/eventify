@@ -108,7 +108,8 @@ impl Storage for Postgres {
     async fn insert_transaction(&self, tx: &crate::transaction::IndexedTransaction) -> Result<()> {
         let sql = "INSERT INTO public.transaction
             (hash, nonce, block_hash, block_number, transaction_index, _from, _to, value, gas_price, gas, input, v, r, s, raw, _type, max_fee_per_gas, max_priority_fee_per_gas)
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                    $11, $12, $13, $14, $15, $16, $17, $18)
             ON CONFLICT DO NOTHING";
 
         let mut nonce_slice = [0u8; 32];

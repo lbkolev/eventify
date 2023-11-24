@@ -41,4 +41,3 @@ secrecy = { version = "0.8.0", features = ["serde"] }
 uuid = { version = "1.4.0", features = ["v4"] }
 async-trait = "0.1.72"
 alloy-primitives = "0.4.2"
-ethers = "2.0.10"

@@ -29,7 +29,11 @@ async-trait.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
 alloy-primitives.workspace = true
-ethers = { workspace = true, features = ["ws"] }
+#ethers = { workspace = true, features = ["ws"] }
+#ethers = { version = "2.0.11", features = ["ws"] }
+ethers-providers = "2.0.11"
 
 serde = { workspace = true, features = ["derive"]}
 rayon = { version = "1.7.0", optional = true }
+ethers-types = "0.0.0-alpha"
+ethers-core = "2.0.11"

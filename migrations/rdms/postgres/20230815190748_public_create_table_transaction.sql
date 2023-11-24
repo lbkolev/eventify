@@ -11,11 +11,11 @@ CREATE TABLE public.transaction (
     gas_price BYTEA,
     gas BYTEA,
     input BYTEA,
-    v BYTEA,
+    v INTEGER,
     r BYTEA,
     s BYTEA,
     raw BYTEA,
-    _type BYTEA,
+    _type INTEGER,
     max_fee_per_gas BYTEA,
     max_priority_fee_per_gas BYTEA,
 
