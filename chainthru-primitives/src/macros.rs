@@ -29,15 +29,15 @@ macro_rules! contract_func {
             )*
 
             /// Returns the contract address associated with the struct function call
-            pub fn contract_addr(&self) -> web3::types::H160 {
+            pub fn contract_addr(&self) -> ethers_core::types::H160 {
                 self.boilerplate.contract_addr
             }
 
-            pub fn transaction_hash(&self) -> web3::types::H256 {
+            pub fn transaction_hash(&self) -> ethers_core::types::H256 {
                 self.boilerplate.transaction_hash
             }
 
-            pub fn transaction_sender(&self) -> web3::types::H160 {
+            pub fn transaction_sender(&self) -> ethers_core::types::H160 {
                 self.boilerplate.transaction_sender
             }
         }

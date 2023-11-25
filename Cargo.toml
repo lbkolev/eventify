@@ -24,7 +24,6 @@ chainthru-primitives = { path = "./chainthru-primitives", version = "0.0.1" }
 chainthru-index = { path = "./chainthru-index", version = "0.0.1" }
 chainthru-server = { path = "./chainthru-server", version = "0.0.1" }
 
-web3 = "0.19.0"
 serde = "1.0.171"
 serde-aux = "4.2.0"
 serde_derive = "1.0.171"
@@ -41,3 +40,5 @@ secrecy = { version = "0.8.0", features = ["serde"] }
 uuid = { version = "1.4.0", features = ["v4"] }
 async-trait = "0.1.72"
 alloy-primitives = "0.4.2"
+ethers-core = "2.0.11"
+ethers-providers = { version = "2.0.11", features = ["ipc", "ws"] }

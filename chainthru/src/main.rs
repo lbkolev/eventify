@@ -7,13 +7,14 @@ use tracing_log::LogTracer;
 use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
 use types::storage::Postgres;
 use url::Url;
-use web3::transports::{Http, Ipc, WebSocket};
 
 use chainthru::settings::Settings;
 use chainthru_index as indexer;
 use chainthru_primitives as types;
 use chainthru_server as server;
 use indexer::app::App;
+
+use ethers_providers::{Http, Ipc, Ws};
 
 pub fn get_subscriber<Sink>(
     name: String,
@@ -71,7 +72,7 @@ async fn main() -> chainthru::Result<()> {
             }
             "ws" | "wss" => {
                 handles.push(tokio::spawn(
-                    indexer::run::<WebSocket, Postgres>(
+                    indexer::run::<Ws, Postgres>(
                         App::default()
                             .with_src_block(settings.indexer.src_block)
                             .with_dst_block(settings.indexer.dst_block)

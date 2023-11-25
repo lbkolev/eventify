@@ -14,8 +14,7 @@ CREATE TABLE public.transaction (
     v INTEGER,
     r BYTEA,
     s BYTEA,
-    raw BYTEA,
-    _type INTEGER,
+    transaction_type INTEGER,
     max_fee_per_gas BYTEA,
     max_priority_fee_per_gas BYTEA,
 

@@ -7,16 +7,14 @@ pub enum Error {
     Sql(#[from] sqlx::Error),
 
     #[error(transparent)]
-    Web3(#[from] web3::Error),
+    EthersCore(#[from] ethers_providers::ProviderError),
 
-    //#[error(transparent)]
-    //EthersCore(#[from] ethers_core::abi::Error),
-    #[error("executing database migrations: {0}")]
+    #[error(transparent)]
     Migrate(#[from] sqlx::migrate::MigrateError),
 
-    #[error("IO error: {0}")]
+    #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error("URL error: {0}")]
+    #[error(transparent)]
     Url(#[from] url::ParseError),
 }

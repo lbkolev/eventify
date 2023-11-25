@@ -13,7 +13,6 @@ repository.workspace = true
 
 [dependencies]
 derive_builder.workspace = true
-web3.workspace = true
 sqlx.workspace = true
 url.workspace = true
 serde.workspace = true
@@ -24,3 +23,5 @@ secrecy.workspace = true
 log.workspace = true
 async-trait.workspace = true
 alloy-primitives.workspace = true
+ethers-providers.workspace = true
+ethers-core.workspace = true
