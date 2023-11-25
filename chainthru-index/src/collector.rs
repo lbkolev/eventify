@@ -63,6 +63,7 @@ impl Collector {
     }
 }
 
+/// Criteria is a set of events and addresses that the collector will subscribe to.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Criteria {
     pub name: String,

@@ -1,6 +1,6 @@
 use clap::Parser;
+use ethers_providers::{Http, Ipc, Ws};
 use futures::TryFutureExt;
-use secrecy::ExposeSecret;
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
@@ -8,13 +8,13 @@ use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Regis
 use types::storage::Postgres;
 use url::Url;
 
-use chainthru::settings::Settings;
 use chainthru_index as indexer;
 use chainthru_primitives as types;
 use chainthru_server as server;
 use indexer::app::App;
 
-use ethers_providers::{Http, Ipc, Ws};
+mod settings;
+use crate::settings::Settings;
 
 pub fn get_subscriber<Sink>(
     name: String,
@@ -47,62 +47,74 @@ async fn main() -> chainthru::Result<()> {
     init_subscriber(subscriber);
     log::info!("{:#?}", settings);
 
-    let server_settings = server::Settings::from(settings.clone());
-    let mut handles = vec![];
+    match settings.cmd {
+        settings::SubCommand::Run(settings) => {
+            let mut handles = vec![];
 
-    if settings.server.server_enabled {
-        handles.push(tokio::spawn(
-            server::run(server_settings).map_err(chainthru::Error::from),
-        ));
+            if settings.server_enabled() {
+                let server_settings = server::Settings::from(settings.clone());
+                handles.push(tokio::spawn(
+                    server::run(server_settings).map_err(chainthru::Error::from),
+                ));
+            }
+
+            if settings.indexer_enabled() {
+                match Url::parse(&settings.node_url)?.scheme() {
+                    "http" | "https" => {
+                        handles.push(tokio::spawn(
+                            indexer::run::<Http, Postgres>(
+                                App::default()
+                                    .with_src_block(settings.src_block())
+                                    .with_dst_block(settings.dst_block())
+                                    .with_storage(settings.storage_url())
+                                    .with_http(settings.node_url()),
+                            )
+                            .map_err(chainthru::Error::from),
+                        ));
+                    }
+                    "ws" | "wss" => {
+                        handles.push(tokio::spawn(
+                            indexer::run::<Ws, Postgres>(
+                                App::default()
+                                    .with_src_block(settings.src_block())
+                                    .with_dst_block(settings.dst_block())
+                                    .with_storage(settings.storage_url())
+                                    .with_websocket(settings.node_url())
+                                    .await,
+                            )
+                            .map_err(chainthru::Error::from),
+                        ));
+                    }
+                    "ipc" => {
+                        handles.push(tokio::spawn(
+                            indexer::run::<Ipc, Postgres>(
+                                App::default()
+                                    .with_src_block(settings.src_block())
+                                    .with_dst_block(settings.dst_block())
+                                    .with_storage(settings.storage_url())
+                                    .with_ipc(settings.node_url())
+                                    .await,
+                            )
+                            .map_err(chainthru::Error::from),
+                        ));
+                    }
+                    _ => {
+                        return Err(chainthru::Error::NodeURLScheme(settings.node_url));
+                    }
+                };
+            }
+
+            futures::future::join_all(handles).await;
+        }
+
+        settings::SubCommand::Db(_) => {
+            unimplemented!("Database management is not implemented yet.")
+        }
+
+        settings::SubCommand::Config(_) => {
+            unimplemented!("Configuration management is not implemented yet.")
+        }
     }
-
-    if settings.indexer.indexer_enabled {
-        match Url::parse(&settings.node_url)?.scheme() {
-            "http" | "https" => {
-                handles.push(tokio::spawn(
-                    indexer::run::<Http, Postgres>(
-                        App::default()
-                            .with_src_block(settings.indexer.src_block)
-                            .with_dst_block(settings.indexer.dst_block)
-                            .with_storage(settings.storage_url.expose_secret())
-                            .with_http(&settings.node_url),
-                    )
-                    .map_err(chainthru::Error::from),
-                ));
-            }
-            "ws" | "wss" => {
-                handles.push(tokio::spawn(
-                    indexer::run::<Ws, Postgres>(
-                        App::default()
-                            .with_src_block(settings.indexer.src_block)
-                            .with_dst_block(settings.indexer.dst_block)
-                            .with_storage(settings.storage_url.expose_secret())
-                            .with_websocket(&settings.node_url)
-                            .await,
-                    )
-                    .map_err(chainthru::Error::from),
-                ));
-            }
-            "ipc" => {
-                handles.push(tokio::spawn(
-                    indexer::run::<Ipc, Postgres>(
-                        App::default()
-                            .with_src_block(settings.indexer.src_block)
-                            .with_dst_block(settings.indexer.dst_block)
-                            .with_storage(settings.storage_url.expose_secret())
-                            .with_ipc(&settings.node_url)
-                            .await,
-                    )
-                    .map_err(chainthru::Error::from),
-                ));
-            }
-            _ => {
-                return Err(chainthru::Error::NodeURLScheme(settings.node_url));
-            }
-        };
-    }
-
-    futures::future::join_all(handles).await;
 
     Ok(())
 }

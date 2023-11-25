@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-/// Re-export of the Chainthru Ethereum Indexer.
+/// Re-export of the Chainthru Indexer.
 /// ...
 pub use chainthru_index;
 
