@@ -46,8 +46,7 @@ pub(crate) struct CriteriasGroup {
     #[arg(
         long,
         env = "CHAINTHRU_CRITERIAS_FILE",
-        help = "file holding the criterias that'll be used to filter events",
-        //default_value = "config/criteria.json"
+        help = "file holding the criterias that'll be used to filter events"
     )]
     pub(crate) criterias_file: Option<String>,
 
