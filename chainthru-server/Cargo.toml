@@ -19,7 +19,6 @@ serde_derive.workspace = true
 thiserror.workspace = true
 futures.workspace = true
 num_cpus.workspace = true
-web3.workspace = true
 secrecy.workspace = true
 uuid.workspace = true
 serde_json.workspace = true

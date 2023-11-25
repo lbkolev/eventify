@@ -1,5 +1,5 @@
+use ethers_core::types::{Bytes, H160, H256};
 use serde::{Deserialize, Serialize};
-use web3::types::{Bytes, H160, H256};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]

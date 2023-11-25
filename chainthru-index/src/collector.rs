@@ -1,10 +1,15 @@
 #![allow(unused)]
-use ethers::{
-    prelude::*,
-    providers::{Provider, Ws},
-    types::{Address, Filter, ValueOrArray, H256},
+//use ethers::{
+//    prelude::*,
+//    providers::{Provider, Ws},
+//    types::{Address, Filter, ValueOrArray, H256},
+//    utils::keccak256,
+//};
+use ethers_core::{
+    types::{Address, BlockNumber, Filter, Log, ValueOrArray, H256},
     utils::keccak256,
 };
+use ethers_providers::{Middleware, Provider, SubscriptionStream, Ws};
 use futures::{stream, stream::SelectAll, Stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

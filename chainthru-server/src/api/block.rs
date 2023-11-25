@@ -1,11 +1,5 @@
-use actix_web::HttpResponse;
-use actix_web::{web, Responder};
-use serde_json::json;
-use sqlx::PgPool;
-
-use chainthru_primitives::IndexedBlock;
-
 /// Returns the number of blocks in the database
+/*
 pub async fn count(conn: web::Data<PgPool>) -> impl Responder {
     let sql = "SELECT COUNT(*) FROM public.block";
     let row: Result<IndexedBlock, sqlx::Error> = sqlx::query_as(sql).fetch_one(conn.as_ref()).await;
@@ -35,6 +29,7 @@ pub async fn number(path: web::Path<u32>, pool: web::Data<PgPool>) -> impl Respo
         }
     }
 }
+*/
 
 #[cfg(test)]
 mod tests {}

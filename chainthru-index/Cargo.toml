@@ -17,7 +17,6 @@ parallelism = ["dep:rayon"]
 [dependencies]
 chainthru-primitives.workspace = true
 
-web3.workspace = true
 serde-aux.workspace = true
 serde_derive.workspace = true
 thiserror.workspace = true
@@ -29,7 +28,8 @@ async-trait.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
 alloy-primitives.workspace = true
-ethers = { workspace = true, features = ["ws"] }
+ethers-providers.workspace = true
+ethers-core.workspace = true
 
 serde = { workspace = true, features = ["derive"]}
 rayon = { version = "1.7.0", optional = true }

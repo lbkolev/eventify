@@ -3,18 +3,18 @@ pub enum Error {
     #[error("Fetching block {0} failed")]
     FetchBlock(String),
 
-    #[error("executing query {0}")]
+    #[error(transparent)]
     Sql(#[from] sqlx::Error),
 
-    #[error("Web3 error: {0}")]
-    Web3(#[from] web3::Error),
+    #[error(transparent)]
+    EthersCore(#[from] ethers_providers::ProviderError),
 
-    #[error("executing database migrations: {0}")]
+    #[error(transparent)]
     Migrate(#[from] sqlx::migrate::MigrateError),
 
-    #[error("IO error: {0}")]
+    #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error("URL error: {0}")]
+    #[error(transparent)]
     Url(#[from] url::ParseError),
 }

@@ -6,21 +6,15 @@ pub enum Error {
     #[error("Invalid transaction function signature {0}")]
     InvalidTransactionFunctionSignature(String),
 
-    #[error("Unindexed transaction")]
-    UnindexedTransaction,
-
-    #[error("SQL error: {0}")]
+    #[error(transparent)]
     Sql(#[from] sqlx::Error),
 
-    #[error("Web3 error: {0}")]
-    Web3(#[from] web3::Error),
-
-    #[error("Migration error: {0}")]
+    #[error(transparent)]
     Migrate(#[from] sqlx::migrate::MigrateError),
 
-    #[error("IO error: {0}")]
+    #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error("URL error: {0}")]
+    #[error(transparent)]
     Url(#[from] url::ParseError),
 }

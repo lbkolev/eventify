@@ -7,7 +7,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::api::transaction;
 use crate::{
-    api::{self, block},
+    api::{self},
     Result,
 };
 use chainthru_primitives::DatabaseSettings;
@@ -65,11 +65,10 @@ pub fn start(
                 web::scope("/api").service(
                     web::scope("/v1")
                         .service(
-                            web::scope("/blocks")
-                                .route("/", web::get().to(block::count))
-                                .route("/count", web::get().to(block::count))
-                                .route("/hash/{hash}", web::get().to(HttpResponse::NotImplemented))
-                                .route("/number/{number}", web::get().to(block::number)),
+                            web::scope("/blocks"), //.route("/", web::get().to(block::count))
+                                                   //.route("/count", web::get().to(block::count))
+                                                   //.route("/hash/{hash}", web::get().to(HttpResponse::NotImplemented))
+                                                   //.route("/number/{number}", web::get().to(block::number)),
                         )
                         .service(
                             web::scope("/transactions")
