@@ -13,7 +13,7 @@ pub(crate) struct Block {
         help = "The block to begin the indexing from.",
         default_value_t = 0
     )]
-    pub(crate) src: BlockNumber,
+    src: BlockNumber,
 
     #[arg(
         long = "dst-block",
@@ -21,14 +21,14 @@ pub(crate) struct Block {
         help = "The block to end the indexing at.",
         default_value_t = BlockNumber::MAX
     )]
-    pub(crate) dst: BlockNumber,
+    dst: BlockNumber,
 }
 
 #[derive(Debug, clap::Args, Clone)]
 #[group(multiple = false)]
 pub(crate) struct BlockGroup {
     #[clap(flatten)]
-    pub(crate) block: Block,
+    block: Block,
 
     #[arg(
         long = "from-latest",
@@ -36,7 +36,7 @@ pub(crate) struct BlockGroup {
         help = "Toggler enabling|disabling the indexer to run from the latest block",
         action
     )]
-    pub(crate) latest: bool,
+    latest: bool,
 }
 
 #[derive(Debug, clap::Args, Clone)]
@@ -160,7 +160,7 @@ impl From<Cmd> for server::Settings {
     }
 }
 
-// clipply complains that the functions aren't used, and that's not true
+// clippy complains that the functions aren't used, and that's not true
 // therefore we're marking them as unused
 impl Cmd {
     #[allow(unused)]
@@ -291,6 +291,17 @@ mod tests {
         std::env::remove_var("CHAINTHRU_SRC_BLOCK");
         std::env::remove_var("CHAINTHRU_DST_BLOCK");
         std::env::remove_var("CHAINTHRU_CRITERIAS_JSON");
+    }
+
+    #[test]
+    #[serial]
+    fn test_run_subcmd_latest() {
+        let args =
+            CommandParser::<Cmd>::parse_from(["chainthru", "--indexer.enabled", "--from-latest"])
+                .args;
+
+        assert_eq!(args.src_block(), BlockNumber::MAX);
+        assert_eq!(args.dst_block(), BlockNumber::MAX);
     }
 
     #[test]
