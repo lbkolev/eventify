@@ -177,7 +177,7 @@ impl<U: Storage + Auth> App<Http, U> {
         Self {
             inner: Providers::new(
                 Some(NodeProvider::new(Http::new(
-                    url::Url::parse(node_url).unwrap(),
+                    url::Url::parse(node_url).expect("Failed to create an HTTP transport"),
                 ))),
                 self.inner.transport_storage,
             ),
