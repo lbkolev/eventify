@@ -13,7 +13,6 @@ CREATE TABLE public.block (
     timestamp BIGSERIAL,
     difficulty BYTEA,
     total_difficulty BYTEA,
-    transactions INTEGER,
     size BYTEA,
     nonce BYTEA,
 
@@ -30,4 +29,3 @@ comment on column public.block.receipts_root is 'hash of the transaction receipt
 comment on column public.block.gas_used is 'Total amount of gas used by all transactions in this block';
 comment on column public.block.gas_limit is 'Maximum amount of gas that can be used by all transactions in this block';
 comment on column public.block.base_fee_per_gas is 'The base fee value';
-comment on column public.block.transactions is 'Number of transactions in this block';

@@ -1,8 +1,11 @@
-.env
+.github/
+.sqlx/
 .dockerignore
-Dockerfile
-Dockerfile.dev
+.gitignore
+.pre-commit-config.yaml
+.yamllint.yaml
+charts/
 target/
-tests/
-scripts/
-migrations/
+tools/
+CONTRIBUTING.md
+Dockerfile

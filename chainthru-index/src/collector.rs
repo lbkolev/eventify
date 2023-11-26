@@ -1,19 +1,11 @@
-#![allow(unused)]
-//use ethers::{
-//    prelude::*,
-//    providers::{Provider, Ws},
-//    types::{Address, Filter, ValueOrArray, H256},
-//    utils::keccak256,
-//};
 use ethers_core::{
     types::{Address, BlockNumber, Filter, Log, ValueOrArray, H256},
     utils::keccak256,
 };
 use ethers_providers::{Middleware, Provider, SubscriptionStream, Ws};
-use futures::{stream, stream::SelectAll, Stream, StreamExt, TryStreamExt};
+use futures::{stream, stream::SelectAll};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::{pin::Pin, vec};
 
 /// Collector is responsible for connecting to a node and subscribing to events
 /// that match a set of criterias.
@@ -55,7 +47,7 @@ impl Collector {
                 ))
                 .address(ValueOrArray::Array(criteria.addresses.clone()));
 
-            let mut stream = self.client.subscribe_logs(&filter).await.unwrap();
+            let stream = self.client.subscribe_logs(&filter).await.unwrap();
             streams.push(stream);
         }
 
