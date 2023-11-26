@@ -1,22 +1,25 @@
+use std::path::Path;
+
 use clap::Parser;
 use ethers_providers::{Http, Ipc, Ws};
 use futures::TryFutureExt;
+use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
 use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
-use types::storage::Postgres;
 use url::Url;
 
 use chainthru_index as indexer;
 use chainthru_primitives as types;
 use chainthru_server as server;
 use indexer::app::App;
+use types::storage::Postgres;
 
 mod settings;
 use crate::settings::Settings;
 
-pub fn get_subscriber<Sink>(
+fn get_subscriber<Sink>(
     name: String,
     env_filter: String,
     sink: Sink,
@@ -31,9 +34,18 @@ where
         .with(BunyanFormattingLayer::new(name, sink))
 }
 
-pub fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
+fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
     LogTracer::init().expect("Failed to set logger");
     set_global_default(subscriber).expect("Failed to set subscriber");
+}
+
+async fn run_migrations(url: &str) -> chainthru::Result<()> {
+    let migrator = Migrator::new(Path::new("./migrations/rdms/postgres")).await?;
+    let pool = PgPoolOptions::new().max_connections(1).connect(url).await?;
+
+    migrator.run(&pool).await?;
+
+    Ok(())
 }
 
 #[tokio::main]
@@ -49,6 +61,11 @@ async fn main() -> chainthru::Result<()> {
 
     match settings.cmd {
         settings::SubCommand::Run(settings) => {
+            run_migrations(settings.storage_url()).await?;
+            if settings.only_migrations {
+                return Ok(());
+            }
+
             let mut handles = vec![];
 
             if settings.server_enabled() {

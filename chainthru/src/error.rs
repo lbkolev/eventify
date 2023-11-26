@@ -7,6 +7,12 @@ pub enum Error {
     NodeURLParser(#[from] url::ParseError),
 
     #[error(transparent)]
+    MigrateError(#[from] sqlx::migrate::MigrateError),
+
+    #[error(transparent)]
+    SqlxError(#[from] sqlx::Error),
+
+    #[error(transparent)]
     IndexerError(#[from] chainthru_index::Error),
 
     #[error(transparent)]

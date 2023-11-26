@@ -131,6 +131,14 @@ pub(crate) struct Cmd {
     pub(crate) server: ServerSettings,
 
     #[arg(
+        long = "only-migrations",
+        env = "CHAINTHRU_DB_MIGRATIONS",
+        help = "Run only the database migrations and exit.",
+        action
+    )]
+    pub(crate) only_migrations: bool,
+
+    #[arg(
         long,
         env = "CHAINTHRU_STORAGE_URL",
         help = "The database URL to connect to",
@@ -226,7 +234,7 @@ mod tests {
     #[test]
     #[serial]
     fn test_indexer_settings_default_values() {
-        let args = CommandParser::<IndexerSettings>::parse_from(["chainthru"]).args;
+        let args = CommandParser::<IndexerSettings>::parse_from(["run"]).args;
         assert!(!args.indexer_enabled);
         assert!(!args.block.latest);
         assert_eq!(args.block.block.src, 0);
@@ -243,7 +251,7 @@ mod tests {
         std::env::set_var("CHAINTHRU_DST_BLOCK", "2");
         std::env::set_var("CHAINTHRU_CRITERIAS_FILE", "tmp/criterias.rnd");
 
-        let args = CommandParser::<IndexerSettings>::parse_from(["chainthru"]).args;
+        let args = CommandParser::<IndexerSettings>::parse_from(["run"]).args;
         assert!(args.indexer_enabled);
         assert_eq!(args.block.block.src, 1);
         assert_eq!(args.block.block.dst, 2);
@@ -267,7 +275,7 @@ mod tests {
         std::env::set_var("CHAINTHRU_CRITERIAS_JSON", "[1,2,3]");
 
         let args = CommandParser::<IndexerSettings>::parse_from([
-            "chainthru",
+            "run",
             "--indexer.enabled",
             "--src-block",
             "3",
@@ -297,8 +305,7 @@ mod tests {
     #[serial]
     fn test_run_subcmd_latest() {
         let args =
-            CommandParser::<Cmd>::parse_from(["chainthru", "--indexer.enabled", "--from-latest"])
-                .args;
+            CommandParser::<Cmd>::parse_from(["run", "--indexer.enabled", "--from-latest"]).args;
 
         assert_eq!(args.src_block(), BlockNumber::MAX);
         assert_eq!(args.dst_block(), BlockNumber::MAX);
@@ -307,7 +314,7 @@ mod tests {
     #[test]
     #[serial]
     fn test_server_settings_default_values() {
-        let args = CommandParser::<ServerSettings>::parse_from(["chainthru"]).args;
+        let args = CommandParser::<ServerSettings>::parse_from(["run"]).args;
         assert!(!args.server_enabled);
         assert_eq!(args.server_threads, num_cpus::get());
         assert_eq!(args.host, "127.0.0.1");
@@ -322,7 +329,7 @@ mod tests {
         std::env::set_var("CHAINTHRU_SERVER_HOST", "localhost");
         std::env::set_var("CHAINTHRU_SERVER_PORT", "1234");
 
-        let args = CommandParser::<ServerSettings>::parse_from(["chainthru"]).args;
+        let args = CommandParser::<ServerSettings>::parse_from(["run"]).args;
         assert!(args.server_enabled);
         assert_eq!(args.server_threads, 1);
         assert_eq!(args.host, "localhost");
@@ -342,7 +349,7 @@ mod tests {
         std::env::set_var("CHAINTHRU_SERVER_PORT", "1234");
 
         let args = CommandParser::<ServerSettings>::parse_from([
-            "chainthru",
+            "run",
             "--server.enabled",
             "--server.threads",
             "2",

@@ -21,7 +21,6 @@ pub(crate) struct Settings {
     pub(crate) log_level: log::Level,
 }
 
-// Define an enum for subcommands
 #[derive(Debug, Clone, clap::Subcommand)]
 pub(crate) enum SubCommand {
     Run(run::Cmd),
