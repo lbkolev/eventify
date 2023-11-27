@@ -1,10 +1,6 @@
-pub(crate) mod config;
-pub(crate) mod db;
-pub(crate) mod run;
+use crate::subcommands::{config, db, run};
 
-use clap::Parser;
-
-#[derive(Clone, Debug, Parser)]
+#[derive(Clone, Debug, clap::Parser)]
 #[command(name = "Chainthru")]
 #[command(about = "Index Ethereum into a Postgres database & serve it through an API.")]
 pub(crate) struct Settings {

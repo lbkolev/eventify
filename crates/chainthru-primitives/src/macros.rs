@@ -1,5 +1,3 @@
-pub trait ContractFunction {}
-
 #[macro_export]
 macro_rules! contract_func {
     ($struct_name:ident [$($field_name:ident: $field_type:ty),* ]) => {

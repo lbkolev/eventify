@@ -133,18 +133,18 @@ pub(crate) struct Cmd {
     #[arg(
         long = "only-migrations",
         env = "CHAINTHRU_DB_MIGRATIONS",
-        help = "Run only the database migrations and exit.",
+        help = "Run only the database migrations and exit immediately after.",
         action
     )]
     pub(crate) only_migrations: bool,
 
     #[arg(
         long,
-        env = "CHAINTHRU_STORAGE_URL",
+        env = "DATABASE_URL",
         help = "The database URL to connect to",
         default_value = "postgres://postgres:password@localhost:5432/chainthru"
     )]
-    pub(crate) storage_url: Secret<String>,
+    pub(crate) database_url: Secret<String>,
 
     #[arg(
         long,
@@ -158,7 +158,7 @@ pub(crate) struct Cmd {
 impl From<Cmd> for server::Settings {
     fn from(settings: Cmd) -> Self {
         Self {
-            database: types::DatabaseSettings::from(settings.storage_url.expose_secret().clone()),
+            database: types::DatabaseSettings::from(settings.database_url()),
             application: server::ApplicationSettings {
                 host: settings.server.host,
                 port: settings.server.port,
@@ -205,8 +205,8 @@ impl Cmd {
     }
 
     #[allow(unused)]
-    pub(crate) fn storage_url(&self) -> &str {
-        self.storage_url.expose_secret()
+    pub(crate) fn database_url(&self) -> &str {
+        self.database_url.expose_secret()
     }
 
     #[allow(unused)]
