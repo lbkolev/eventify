@@ -1,16 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "chainthru-server.fullname" . }}
+  name: {{ include "chainthru.fullname" . }}
   labels:
-    {{- include "chainthru-server.labels" . | nindent 4 }}
+    {{- include "chainthru.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: 1
   selector:
     matchLabels:
-      {{- include "chainthru-server.selectorLabels" . | nindent 6 }}
+      {{- include "chainthru.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,42 +16,46 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "chainthru-server.selectorLabels" . | nindent 8 }}
+        {{- include "chainthru.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "chainthru-server.serviceAccountName" . }}
+      serviceAccountName: {{ include "chainthru.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            - name: CHAINTHRU_NODE_URL
+              value: {{ .Values.nodeUrl }}
             - name: CHAINTHRU_DATABASE_URL
-              value: "{{ .Values.databaseJDBC }}"
-            - name: CHAINTHRU_SERVER_THREADS
-              value: "{{ .Values.threads }}"
+              value: {{ .Values.databaseJDBC }}
+            - name: CHAINTHRU_FROM_BLOCK
+              value: {{ .Values.startBlock }}
+            - name: CHAINTHRU_TO_BLOCK
+              value: {{ .Values.endBlock }}
             - name: RUST_LOG
-              value: "{{ .Values.logLevel }}"
-          command: ["./chainthru", "--indexer.disabled"]
+              value: {{ .Values.logLevel }}
+          command: ["./chainthru", "--server.disabled"]
           args: {{ .Values.additionalArguments }}
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
           livenessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+                - cat
+                - /etc/passwd
+            initialDelaySeconds: 10
+            periodSeconds: 10
           readinessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+                - pgrep
+                - chainthru
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

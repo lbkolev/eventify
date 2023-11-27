@@ -1,6 +1,6 @@
 apiVersion: v2
-name: chainthru-index
-description: A Helm chart for Chainthru Indexer
+name: chainthru
+description: A Helm chart for Chainthru Indexer & Server
 
 # A chart can be either an 'application' or a 'library' chart.
 #

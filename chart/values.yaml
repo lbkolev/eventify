@@ -23,25 +23,33 @@ serviceAccount:
   name: ""
 
 # -- The URL used to connect to the Ethereum Node
-# Accepts HTTP(S)/WS/IPC
+# Accepts HTTP(S) / WS(S) / IPC
 nodeUrl: "https://eth.llamarpc.com"
 
 # -- The Database JDBC connection string
 databaseJDBC: "postgres://postgres:password@localhost:5432/chainthru"
 
-# -- The starting block to begin indexing from
-startBlock: 0
-
-# -- The end block to end indexing at
-endBlock: 999999999
-
-# -- The number of threads to use
-# default - the number of cpu cores allowed for the container/pod
-threads: 1
-
 # -- The log level to use: Trace, Debug, Info, Warn, Error
 # @default - INFO
 logLevel: "INFO"
+
+# -- All around configuration for the HTTP-server part of the service
+server:
+  enabled: false
+
+  # -- The number of threads to use
+  # @default - the number of cpu cores allowed for the HTTP-Server to utilize
+  threads: 1
+
+# -- All around configuration for the Indexing part of the service
+indexer:
+  enabled: true
+
+  # -- The starting block to begin indexing from
+  startBlock: 0
+
+  # -- The end block to end indexing at
+  endBlock: 999999999
 
 # -- A list of potential additional arguments.
 # Passed directly to the chainthru-indexer

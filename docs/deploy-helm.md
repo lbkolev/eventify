@@ -1,21 +1,13 @@
-# Helm charts
+# Helm chart
 
-The functionality is split between two different helm charts.
-One is responsible for the server and its seamless scaling, the other one for the indexer
+The chart is responsible for both:
+- The Indexer
+- The HTTP-Server
 
 > It's advisable to check and adjust the available parameters in `values.yaml` accordingly before proceeding with a deployment
 
-## Manual deployment
+### Installation
 ```
-$ cd ./chainthru/charts/
-```
-
-### Server
-```
-helm install chainthru-server ./chainthru-server
-```
-
-### Indexer
-```
-helm install chainthru-indexer ./chainthru-indexer
+$ helm upgrade --install chainthru chart/ \
+  --namespace `namespace_name` --create-namespace
 ```
