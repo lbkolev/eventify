@@ -1,1 +1,0 @@
-../docs/chainthru-primitives.md

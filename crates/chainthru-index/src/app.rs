@@ -1,7 +1,7 @@
 use alloy_primitives::BlockNumber;
 use chainthru_primitives::IndexedTransaction;
 
-use ethers_core::types::{Block, BlockId, Transaction};
+use ethers_core::types::{Block, BlockId, Filter, Transaction, H256};
 use ethers_providers::{Http, Ipc, JsonRpcClient, Middleware, Provider as NodeProvider, Ws};
 
 use crate::Result;
@@ -11,14 +11,14 @@ use chainthru_primitives::{
 };
 
 #[derive(Clone, Debug)]
-pub struct App<T: JsonRpcClient, U: Storage + Auth> {
+pub struct App<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> {
     inner: Providers<T, U>,
 
     pub(crate) src_block: BlockNumber,
     pub(crate) dst_block: BlockNumber,
 }
 
-impl<T: JsonRpcClient, U: Storage + Auth> Default for App<T, U> {
+impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> Default for App<T, U> {
     fn default() -> Self {
         Self {
             inner: Providers::default(),
@@ -28,7 +28,7 @@ impl<T: JsonRpcClient, U: Storage + Auth> Default for App<T, U> {
     }
 }
 
-impl<T: JsonRpcClient, U: Storage + Auth> App<T, U> {
+impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> App<T, U> {
     /// Create a new instance of the indexer
     pub fn new(
         transport_node: Option<NodeProvider<T>>,
@@ -79,6 +79,17 @@ impl<T: JsonRpcClient, U: Storage + Auth> App<T, U> {
             )))
     }
 
+    #[allow(unused)]
+    async fn fetch_logs(&self, filter: &Filter) -> Result<Vec<ethers_core::types::Log>> {
+        self.inner
+            .transport_node
+            .as_ref()
+            .expect("Unable to get transport node")
+            .get_logs(filter)
+            .await
+            .map_err(|e| crate::Error::FetchEvent(format!("{}", e)))
+    }
+
     /// Get indexed block & transaction objects from a given block number
     pub async fn fetch_indexed_data(
         &self,
@@ -97,6 +108,13 @@ impl<T: JsonRpcClient, U: Storage + Auth> App<T, U> {
             .map(IndexedTransaction::from)
             .collect();
 
+        log::info!(
+            "Fetched block {:#?}",
+            block
+                .hash
+                .map(|h| h.to_string())
+                .unwrap_or(format!("{} (PENDING)", H256::zero()))
+        );
         Ok((IndexedBlock::from(block), transactions))
     }
 
@@ -128,32 +146,9 @@ impl<T: JsonRpcClient, U: Storage + Auth> App<T, U> {
             .as_ref()
             .unwrap()
             .get_block_number()
-            .await
-            .unwrap()
+            .await?
             .as_u64())
     }
-
-    //pub async fn process_contract(&self, transaction: IndexedTransaction) -> Result<()> {
-    //    if let Some(receipt) = self.fetch_transaction_receipt(transaction.hash()).await {
-    //        let contract = Contract {
-    //            address: receipt
-    //                .contract_address
-    //                .expect("Unable to get contract address"),
-    //            transaction_hash: receipt.transaction_hash,
-    //            from: transaction
-    //                ._from()
-    //                .expect("Unable to get transaction sender"),
-    //            input: transaction.input().clone(),
-    //        };
-    //
-    //        //match self.storage_conn().insert_contract(&contract).await {
-    //        //    Ok(_) => log::info!("Contract inserted"),
-    //        //    Err(e) => log::warn!("Error inserting contract: {:?}", e),
-    //        //}
-    //    }
-    //
-    //    Ok(())
-    //}
 
     pub fn storage_conn(&self) -> &U {
         self.inner
@@ -171,7 +166,7 @@ impl<T: JsonRpcClient, U: Storage + Auth> App<T, U> {
     }
 }
 
-impl<U: Storage + Auth> App<Http, U> {
+impl<U: Storage + Auth + Clone> App<Http, U> {
     /// Creates a new instance of the App with the HTTP transport
     pub fn with_http(self, node_url: &str) -> Self {
         Self {
@@ -186,7 +181,7 @@ impl<U: Storage + Auth> App<Http, U> {
     }
 }
 
-impl<U: Storage + Auth> App<Ipc, U> {
+impl<U: Storage + Auth + Clone> App<Ipc, U> {
     /// Creates a new instance of the App with the IPC transport
     pub async fn with_ipc(self, node_url: &str) -> Self {
         Self {
@@ -203,7 +198,7 @@ impl<U: Storage + Auth> App<Ipc, U> {
     }
 }
 
-impl<U: Storage + Auth> App<Ws, U> {
+impl<U: Storage + Auth + Clone> App<Ws, U> {
     /// Creates a new instance of the App with the WebSocket transport
     pub async fn with_websocket(self, node_url: &str) -> Self {
         Self {
@@ -228,12 +223,12 @@ impl<U: Storage + Auth> App<Ws, U> {
 }
 
 #[derive(Clone, Debug)]
-struct Providers<T: JsonRpcClient, U: Storage + Auth> {
+struct Providers<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> {
     transport_node: Option<NodeProvider<T>>,
     transport_storage: Option<U>,
 }
 
-impl<T: JsonRpcClient, U: Storage + Auth> Default for Providers<T, U> {
+impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> Default for Providers<T, U> {
     fn default() -> Self {
         Self {
             transport_node: None,
@@ -242,7 +237,7 @@ impl<T: JsonRpcClient, U: Storage + Auth> Default for Providers<T, U> {
     }
 }
 
-impl<T: JsonRpcClient, U: Storage + Auth> Providers<T, U> {
+impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> Providers<T, U> {
     pub fn new(node: Option<NodeProvider<T>>, db: Option<U>) -> Self {
         Self {
             transport_node: node,

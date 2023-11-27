@@ -35,4 +35,19 @@ pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
         'life0: 'async_trait,
         'life1: 'async_trait,
         Self: 'async_trait;
+
+    fn insert_contract<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        transaction: &'life1 crate::Contract,
+    ) -> ::core::pin::Pin<
+        Box<
+            dyn ::core::future::Future<Output = Result<(), Error>>
+                + ::core::marker::Send
+                + 'async_trait,
+        >,
+    >
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait;
 }

@@ -9,6 +9,7 @@ pub mod storage;
 pub mod transaction;
 
 pub use block::IndexedBlock;
+pub use contract::Contract;
 pub use database::Settings as DatabaseSettings;
 pub use error::Error;
 pub use storage::{Auth, Storage};

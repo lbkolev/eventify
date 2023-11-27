@@ -2,7 +2,7 @@
 FROM lukemathwalker/cargo-chef:latest-rust-1.73.0 as chef
 WORKDIR /app
 
-LABEL org.opencontainers.image.source=https://github.com/lbkolev/chainthru
+LABEL org.opencontainers.image.source="https://github.com/lbkolev/chainthru"
 LABEL org.opencontainers.image.licenses="MIT OR Apache-2.0"
 #----
 

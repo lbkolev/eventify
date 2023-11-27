@@ -12,17 +12,17 @@ repository = "https://github.com/lbkolev/chainthru"
 
 [workspace]
 members = [
-    "chainthru",
-    "chainthru-index",
-    "chainthru-primitives",
-    "chainthru-server",
+    "crates/chainthru",
+    "crates/chainthru-index",
+    "crates/chainthru-primitives",
+    "crates/chainthru-server",
 ]
 resolver = "2"
 
 [workspace.dependencies]
-chainthru-primitives = { path = "./chainthru-primitives", version = "0.0.1" }
-chainthru-index = { path = "./chainthru-index", version = "0.0.1" }
-chainthru-server = { path = "./chainthru-server", version = "0.0.1" }
+chainthru-primitives = { path = "./crates/chainthru-primitives", version = "0.0.1" }
+chainthru-index = { path = "./crates/chainthru-index", version = "0.0.1" }
+chainthru-server = { path = "./crates/chainthru-server", version = "0.0.1" }
 
 serde = "1.0.171"
 serde-aux = "4.2.0"

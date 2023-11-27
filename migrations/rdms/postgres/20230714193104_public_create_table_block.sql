@@ -1,3 +1,4 @@
+-- Add migration script here
 CREATE TABLE public.block (
     hash BYTEA,
     parent_hash BYTEA NOT NULL,
