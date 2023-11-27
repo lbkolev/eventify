@@ -2,8 +2,11 @@
 <p align="center"> Index Ethereum into a Storage backend.</p>
 
 <p align="center">
-    <a href="https://github.com/lbkolev/chainthru/blob/master/LICENSE">
+    <a href="https://github.com/lbkolev/chainthru/blob/master/LICENSE-MIT">
         <img src="https://img.shields.io/badge/license-MIT-blue.svg">
+    </a>
+    <a href="https://github.com/lbkolev/chainthru/blob/master/LICENSE-APACHE">
+        <img src="https://img.shields.io/badge/license-APACHE2.0-blue.svg">
     </a>
     <a href="https://crates.io/crates/chainthru">
         <img src="https://img.shields.io/crates/v/chainthru.svg">
@@ -16,14 +19,13 @@
     </a>
 </p>
 
-<p align="center"> 🚧 work in progress 🚧<p>
+## <p align="center"> 🚧 work in progress 🚧<p>
 Chainthru is an Ethereum ETL Indexer that aims to provide a seamless [and straightforward] way to index Ethereum blocks, transactions, and events.
 
 Implemented storages:
 - [x] Postgres
 
 - [chainthru](#chainthru)
-  - [Database schema](#database-schema)
   - [Crates](#crates)
   - [Documentation](#documentation)
 

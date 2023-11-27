@@ -1,3 +1,22 @@
+#![doc = include_str!("../README.md")]
+
+//----
+pub mod error;
+pub mod settings;
+pub mod subcommands;
+
+use chainthru_index as indexer;
+use chainthru_primitives as types;
+use chainthru_server as server;
+use error::Error;
+
+use crate::settings::Settings;
+use indexer::app::App;
+use types::storage::Postgres;
+
+pub type Result<T> = std::result::Result<T, Error>;
+//----
+
 use std::path::Path;
 
 use clap::Parser;
@@ -9,15 +28,6 @@ use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
 use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
 use url::Url;
-
-use chainthru_index as indexer;
-use chainthru_primitives as types;
-use chainthru_server as server;
-use indexer::app::App;
-use types::storage::Postgres;
-
-mod settings;
-use crate::settings::Settings;
 
 fn get_subscriber<Sink>(
     name: String,
@@ -39,7 +49,7 @@ fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
     set_global_default(subscriber).expect("Failed to set subscriber");
 }
 
-async fn run_migrations(url: &str) -> chainthru::Result<()> {
+async fn run_migrations(url: &str) -> Result<()> {
     let migrator = Migrator::new(Path::new("./migrations/rdms/postgres")).await?;
     let pool = PgPoolOptions::new().max_connections(1).connect(url).await?;
 
@@ -49,7 +59,7 @@ async fn run_migrations(url: &str) -> chainthru::Result<()> {
 }
 
 #[tokio::main]
-async fn main() -> chainthru::Result<()> {
+async fn main() -> Result<()> {
     let settings = Settings::parse();
     let subscriber = get_subscriber(
         "chainthru".into(),
@@ -61,7 +71,7 @@ async fn main() -> chainthru::Result<()> {
 
     match settings.cmd {
         settings::SubCommand::Run(settings) => {
-            run_migrations(settings.storage_url()).await?;
+            run_migrations(settings.database_url()).await?;
             if settings.only_migrations {
                 return Ok(());
             }
@@ -71,7 +81,7 @@ async fn main() -> chainthru::Result<()> {
             if settings.server_enabled() {
                 let server_settings = server::Settings::from(settings.clone());
                 handles.push(tokio::spawn(
-                    server::run(server_settings).map_err(chainthru::Error::from),
+                    server::run(server_settings).map_err(Error::from),
                 ));
             }
 
@@ -83,10 +93,10 @@ async fn main() -> chainthru::Result<()> {
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
-                                    .with_storage(settings.storage_url())
+                                    .with_storage(settings.database_url())
                                     .with_http(settings.node_url()),
                             )
-                            .map_err(chainthru::Error::from),
+                            .map_err(Error::from),
                         ));
                     }
                     "ws" | "wss" => {
@@ -95,11 +105,11 @@ async fn main() -> chainthru::Result<()> {
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
-                                    .with_storage(settings.storage_url())
+                                    .with_storage(settings.database_url())
                                     .with_websocket(settings.node_url())
                                     .await,
                             )
-                            .map_err(chainthru::Error::from),
+                            .map_err(Error::from),
                         ));
                     }
                     "ipc" => {
@@ -108,15 +118,15 @@ async fn main() -> chainthru::Result<()> {
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
-                                    .with_storage(settings.storage_url())
+                                    .with_storage(settings.database_url())
                                     .with_ipc(settings.node_url())
                                     .await,
                             )
-                            .map_err(chainthru::Error::from),
+                            .map_err(Error::from),
                         ));
                     }
                     _ => {
-                        return Err(chainthru::Error::NodeURLScheme(settings.node_url));
+                        return Err(Error::NodeURLScheme(settings.node_url));
                     }
                 };
             }

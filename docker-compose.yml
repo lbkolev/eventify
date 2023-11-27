@@ -31,7 +31,6 @@ services:
     container_name: chainthru
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-chainthru}
-      CHAINTHRU_STORAGE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-chainthru}
     ports:
       - "6969:6969"
     entrypoint:
