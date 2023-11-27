@@ -123,6 +123,7 @@ impl IndexedBlock {
 
 #[cfg(test)]
 mod tests {
+    use super::IndexedBlock;
 
     #[test]
     fn serialize_block() {
@@ -139,7 +140,6 @@ mod tests {
             "baseFeePerGas": "0x7",
             "difficulty": "0x27f07",
             "totalDifficulty": "0x27f07",
-            "transactions": 1,
             "size": "0x27f07",
             "nonce": "0x0000000000000000"
         });
