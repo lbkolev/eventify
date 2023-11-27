@@ -123,34 +123,34 @@ impl IndexedBlock {
 
 #[cfg(test)]
 mod tests {
+    use super::IndexedBlock;
 
-    //    #[test]
-    //    fn serialize_block() {
-    //        let json = serde_json::json!({
-    //            "hash": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
-    //            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
-    //            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
-    //            "author": "0x0000000000000000000000000000000000000001",
-    //            "stateRoot": "0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff",
-    //            "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-    //            "number": "0x1b4",
-    //            "gasUsed": "0x9f759",
-    //            "gasLimit": "0x9f759",
-    //            "baseFeePerGas": "0x7",
-    //            "difficulty": "0x27f07",
-    //            "totalDifficulty": "0x27f07",
-    //            "transactions": 1,
-    //            "size": "0x27f07",
-    //            "nonce": "0x0000000000000000"
-    //        });
-    //
-    //        serde_json::from_value::<IndexedBlock>(json).unwrap();
-    //    }
-    //
-    //    #[test]
-    //    fn serialize_empty_block() {
-    //        let json = serde_json::json!({});
-    //
-    //        serde_json::from_value::<IndexedBlock>(json).unwrap();
-    //    }
+    #[test]
+    fn serialize_block() {
+        let json = serde_json::json!({
+            "hash": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
+            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
+            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
+            "author": "0x0000000000000000000000000000000000000001",
+            "stateRoot": "0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff",
+            "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "number": "0x1b4",
+            "gasUsed": "0x9f759",
+            "gasLimit": "0x9f759",
+            "baseFeePerGas": "0x7",
+            "difficulty": "0x27f07",
+            "totalDifficulty": "0x27f07",
+            "size": "0x27f07",
+            "nonce": "0x0000000000000000"
+        });
+
+        serde_json::from_value::<IndexedBlock>(json).unwrap();
+    }
+
+    #[test]
+    fn serialize_empty_block() {
+        let json = serde_json::json!({});
+
+        serde_json::from_value::<IndexedBlock>(json).unwrap();
+    }
 }

@@ -8,7 +8,7 @@ use ethers_core::types::{H64, U64};
 
 use crate::{storage::Auth, storage::Storage, Error, Result};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Postgres {
     pub inner: Pool<sqlx::postgres::Postgres>,
 }
@@ -114,10 +114,11 @@ impl Storage for Postgres {
             .execute(&self.inner)
             .await?;
 
+        log::info!("Inserted block: [{:?}]", block.hash());
         Ok(())
     }
 
-    async fn insert_transaction(&self, tx: &crate::transaction::IndexedTransaction) -> Result<()> {
+    async fn insert_transaction(&self, tx: &crate::IndexedTransaction) -> Result<()> {
         let sql = "INSERT INTO public.transaction (
             hash,
             nonce,
@@ -186,6 +187,27 @@ impl Storage for Postgres {
             .execute(&self.inner)
             .await?;
 
+        log::debug!("Inserted transaction: [{:?}]", tx.hash());
+        Ok(())
+    }
+
+    async fn insert_contract(&self, tx: &crate::Contract) -> Result<()> {
+        let sql = "INSERT INTO public.contract (
+            transaction_hash,
+            _from,
+            input
+            ) VALUES (
+                $1, $2, $3
+            ) ON CONFLICT DO NOTHING";
+
+        sqlx::query(sql)
+            .bind(tx.transaction_hash().as_bytes())
+            .bind(tx._from().as_ref())
+            .bind(tx.input().0.as_ref())
+            .execute(&self.inner)
+            .await?;
+
+        log::debug!("Inserted contract [{:?}]", tx.transaction_hash());
         Ok(())
     }
 }

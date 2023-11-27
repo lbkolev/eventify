@@ -80,51 +80,10 @@ impl IndexedTransaction {
         self.0.max_priority_fee_per_gas
     }
 
-    /// Determines if the transaction is a contract creation one.
+    /// Determines if the transaction is creating a contract.
     pub fn contract_creation(&self) -> bool {
         self.0.to.is_none()
     }
-
-    // Determines if the transaction is considered special.
-    //
-    // Special transactions are the ones that are indexed into their own tables.
-    //fn special(&self) -> bool {
-    //    self.input.0.len() >= 4
-    //        && (&self.input.0[0..4] == ERC20_APPROVE_SIGNATURE
-    //            || &self.input.0[0..4] == ERC20_TRANSFER_FROM_SIGNATURE
-    //            || &self.input.0[0..4] == ERC20_TRANSFER_SIGNATURE
-    //            || &self.input.0[0..4] == ERC721_SAFE_TRANSFER_FROM_SIGNATURE)
-    //}
-
-    ///// Processes the transaction.
-    /////
-    ///// If the transaction is considered special, it's indexed into its own table.
-    ///// If the transaction is not considered special, but we've got a function signature that matches the transaction's input, it is indexed into the `transaction` table.
-    ////pub async fn process<T: Storage>(&self, conn: &T) -> Result<()> {
-    //    if self.special() {
-    //        match &self.input.0[0..4] {
-    //            ERC20_APPROVE_SIGNATURE => {
-    //                conn.insert_approve(&Approve::try_from(self.clone())?).await
-    //            }
-    //            ERC20_TRANSFER_FROM_SIGNATURE => {
-    //                conn.insert_transfer_from(&TransferFrom::try_from(self.clone())?)
-    //                    .await
-    //            }
-    //            ERC20_TRANSFER_SIGNATURE => {
-    //                conn.insert_transfer(&Transfer::try_from(self.clone())?)
-    //                    .await
-    //            }
-    //            ERC721_SAFE_TRANSFER_FROM_SIGNATURE => {
-    //                log::warn!("ERC721 safe transfer from is not implemented yet");
-    //                Ok(())
-    //            }
-    //            _ => unreachable!(),
-    //        }
-    //    } else {
-    //        log::debug!("Transaction {:?} is not considered special", self.hash);
-    //        Ok(())
-    //    }
-    //}
 }
 
 #[cfg(test)]

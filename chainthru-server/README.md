@@ -1,1 +1,0 @@
-../docs/chainthru-server.md
