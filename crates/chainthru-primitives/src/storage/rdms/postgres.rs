@@ -6,7 +6,10 @@ use sqlx::{pool::PoolOptions, Pool};
 
 use ethers_core::types::{H64, U64};
 
-use crate::{storage::Auth, storage::Storage, Error, Result};
+use crate::{
+    storage::{Auth, Storage},
+    Error, Result,
+};
 
 #[derive(Debug, Clone)]
 pub struct Postgres {

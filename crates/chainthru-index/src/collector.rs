@@ -13,7 +13,7 @@ use std::sync::Arc;
 /// The collector will return a stream of events that match the criterias.
 pub struct Collector {
     client: Arc<Provider<Ws>>,
-    pub(crate) criterias: Vec<Criteria>,
+    pub criterias: Vec<Criteria>,
 }
 
 impl Collector {

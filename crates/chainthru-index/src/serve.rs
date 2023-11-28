@@ -15,7 +15,7 @@ pub async fn run<T: JsonRpcClient + Clone, U: Storage + Auth + Clone>(
         let (block, transactions) = match app.fetch_indexed_data(target).await {
             Ok((block, transactions)) => (block, transactions),
             Err(_) => {
-                if target >= app.latest_block().await? {
+                if target >= app.get_latest_block().await? {
                     log::info!("Reached latest block: {:?}", target);
                     break;
                 }
@@ -24,19 +24,20 @@ pub async fn run<T: JsonRpcClient + Clone, U: Storage + Auth + Clone>(
             }
         };
 
-        app.storage_conn().insert_block(&block).await?;
+        app.storage_conn()?.insert_block(&block).await?;
         for tx in transactions {
             if tx.contract_creation() {
-                app.storage_conn()
+                app.storage_conn()?
                     .insert_contract(&tx.clone().into())
                     .await?;
             }
-            app.storage_conn().insert_transaction(&tx).await?;
+            app.storage_conn()?.insert_transaction(&tx).await?;
         }
     }
     Ok(())
 }
 
+// TODO
 #[allow(unused)]
 pub async fn run_bare<T: JsonRpcClient + Clone + 'static, U: Storage + Auth + Clone>(
     app: App<T, U>,
@@ -50,7 +51,7 @@ pub async fn run_bare<T: JsonRpcClient + Clone + 'static, U: Storage + Auth + Cl
             Err(_) => {
                 log::warn!("Error fetching block: {:?}", target);
 
-                if target >= app.latest_block().await.unwrap() {
+                if target >= app.get_latest_block().await.unwrap() {
                     log::info!("Reached latest block: {:?}", target);
                     break;
                 }
@@ -59,20 +60,21 @@ pub async fn run_bare<T: JsonRpcClient + Clone + 'static, U: Storage + Auth + Cl
             }
         };
 
-        app.storage_conn().insert_block(&block).await?;
+        app.storage_conn()?.insert_block(&block).await?;
         for tx in transactions {
             if tx.contract_creation() {
-                app.storage_conn()
+                app.storage_conn()?
                     .insert_contract(&tx.clone().into())
                     .await?;
             }
-            app.storage_conn().insert_transaction(&tx).await?;
+            app.storage_conn()?.insert_transaction(&tx).await?;
         }
     }
 
     Ok(())
 }
 
+// TODO
 //#[cfg(feature = "parallelism")]
 #[allow(unused)]
 pub async fn run_par<T: JsonRpcClient + Clone + 'static, U: Storage + Auth + Clone>(

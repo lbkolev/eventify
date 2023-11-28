@@ -1,13 +1,13 @@
 use std::net::TcpListener;
 
-use actix_web::dev::Server;
-use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_web::{dev::Server, web, App, HttpResponse, HttpServer};
 
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-use crate::api::transaction;
 use crate::{
-    api::{self},
+    api::{
+        transaction, {self},
+    },
     Result,
 };
 use chainthru_primitives::DatabaseSettings;

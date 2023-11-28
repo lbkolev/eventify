@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use alloy_primitives::BlockNumber;
 use chainthru_primitives::IndexedTransaction;
 
@@ -10,15 +12,31 @@ use chainthru_primitives::{
     storage::{Auth, Storage},
 };
 
+/// The `App` struct represents an application with a JSON-RPC client (`T`) and storage (`U`).
+/// It manages the interaction between the blockchain and storage, keeping track of the source
+/// and destination block numbers for operations.
+///
+/// # Type Parameters
+/// - `T`: A JSON-RPC client that implements `JsonRpcClient`, `Clone`, `Send`, and `Sync`.
+/// - `U`: A storage system that implements `Storage`, `Auth`, `Clone`, `Send`, and `Sync`.
 #[derive(Clone, Debug)]
-pub struct App<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> {
+pub struct App<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> {
     inner: Providers<T, U>,
 
-    pub(crate) src_block: BlockNumber,
-    pub(crate) dst_block: BlockNumber,
+    /// The starting block number from which the `App` operates.
+    pub src_block: BlockNumber,
+
+    /// The ending block number up to which the `App` operates.
+    pub dst_block: BlockNumber,
 }
 
-impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> Default for App<T, U> {
+impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> Default
+    for App<T, U>
+{
+    /// Creates a new `App` instance with default values.
+    ///
+    /// The `src_block` is set to `0`, indicating the start of the blockchain,
+    /// and `dst_block` is set to `BlockNumber::MAX`, representing the end of the blockchain.
     fn default() -> Self {
         Self {
             inner: Providers::default(),
@@ -28,7 +46,7 @@ impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> Default for App<T, U> 
     }
 }
 
-impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> App<T, U> {
+impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> App<T, U> {
     /// Create a new instance of the indexer
     pub fn new(
         transport_node: Option<NodeProvider<T>>,
@@ -37,7 +55,10 @@ impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> App<T, U> {
         dst_block: BlockNumber,
     ) -> Self {
         Self {
-            inner: Providers::new(transport_node, transport_storage),
+            inner: Providers::new(
+                transport_node.map(Arc::new),
+                transport_storage.map(Arc::new),
+            ),
             src_block,
             dst_block,
         }
@@ -53,108 +74,19 @@ impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> App<T, U> {
 
     pub fn with_node_conn(self, transport: NodeProvider<T>) -> Self {
         Self {
-            inner: Providers::new(Some(transport), self.inner.transport_storage),
+            inner: Providers::new(Some(Arc::new(transport)), self.inner.transport_storage),
             ..self
         }
     }
 
     pub fn with_storage(self, url: &str) -> Self {
         Self {
-            inner: Providers::new(self.inner.transport_node, Some(U::connect_lazy(url))),
+            inner: Providers::new(
+                self.inner.transport_node,
+                Some(Arc::new(U::connect_lazy(url))),
+            ),
             ..self
         }
-    }
-
-    /// Get block details with full transaction objects
-    async fn fetch_block(&self, block: BlockId) -> Result<Block<Transaction>> {
-        self.inner
-            .transport_node
-            .as_ref()
-            .expect("Unable to get transport node")
-            .get_block_with_txs(block)
-            .await?
-            .ok_or(crate::Error::FetchBlock(format!(
-                "Unable to fetch block {:?}",
-                block
-            )))
-    }
-
-    #[allow(unused)]
-    async fn fetch_logs(&self, filter: &Filter) -> Result<Vec<ethers_core::types::Log>> {
-        self.inner
-            .transport_node
-            .as_ref()
-            .expect("Unable to get transport node")
-            .get_logs(filter)
-            .await
-            .map_err(|e| crate::Error::FetchEvent(format!("{}", e)))
-    }
-
-    /// Get indexed block & transaction objects from a given block number
-    pub async fn fetch_indexed_data(
-        &self,
-        block: BlockNumber,
-    ) -> Result<(IndexedBlock, Vec<IndexedTransaction>)> {
-        let block = self
-            .fetch_block(BlockId::Number(ethers_core::types::BlockNumber::Number(
-                block.into(),
-            )))
-            .await?;
-
-        let transactions = block
-            .clone()
-            .transactions
-            .into_iter()
-            .map(IndexedTransaction::from)
-            .collect();
-
-        log::info!(
-            "Fetched block {:#?}",
-            block
-                .hash
-                .map(|h| h.to_string())
-                .unwrap_or(format!("{} (PENDING)", H256::zero()))
-        );
-        Ok((IndexedBlock::from(block), transactions))
-    }
-
-    // /// Get the transaction receipt for a given transaction hash
-    //pub async fn fetch_transaction_receipt(
-    //    &self,
-    //    transaction_hash: H256,
-    //) -> Option<TransactionReceipt> {
-    //    std::boxed::Box::into_inner(std::pin::Pin::into_inner(
-    //        self.inner
-    //            .transport_node
-    //            .as_ref()
-    //            .expect("Unable to get transport node")
-    //            .get_transaction_receipt(transaction_hash),
-    //    ))
-    //    .await?
-    //
-    //    //.transaction_receipt(transaction_hash)
-    //    //.await
-    //    //.unwrap_or(None)
-    //}
-    //
-
-    /// Returns the latests finalized block number
-    pub async fn latest_block(&self) -> Result<u64> {
-        Ok(self
-            .inner
-            .transport_node
-            .as_ref()
-            .unwrap()
-            .get_block_number()
-            .await?
-            .as_u64())
-    }
-
-    pub fn storage_conn(&self) -> &U {
-        self.inner
-            .transport_storage
-            .as_ref()
-            .expect("Unable to get transport db")
     }
 
     pub fn src_block(&self) -> u64 {
@@ -164,71 +96,231 @@ impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> App<T, U> {
     pub fn dst_block(&self) -> u64 {
         self.dst_block
     }
-}
 
-impl<U: Storage + Auth + Clone> App<Http, U> {
-    /// Creates a new instance of the App with the HTTP transport
-    pub fn with_http(self, node_url: &str) -> Self {
-        Self {
-            inner: Providers::new(
-                Some(NodeProvider::new(Http::new(
-                    url::Url::parse(node_url).expect("Failed to create an HTTP transport"),
-                ))),
-                self.inner.transport_storage,
-            ),
-            ..self
-        }
+    pub fn storage_conn(&self) -> Result<&U> {
+        self.inner
+            .transport_storage
+            .as_ref()
+            .map(|arc_storage| arc_storage.as_ref()) // Dereference Arc<U> to get &U
+            .ok_or(crate::Error::MissingTransportStorage)
+    }
+
+    /// Retrieves block details along with full transaction objects for a given block ID.
+    ///
+    /// # Arguments
+    /// * `block` - The block ID for which to fetch details.
+    ///
+    /// # Returns
+    /// Returns a `Result` containing the block details on success, or an error if the block
+    /// cannot be fetched or if the transport node is unavailable.
+    pub async fn fetch_block(&self, block: BlockId) -> Result<Block<Transaction>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or(crate::Error::MissingTransportNode)?;
+
+        let block_result = transport_node
+            .get_block_with_txs(block)
+            .await
+            .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
+            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?;
+
+        Ok(block_result)
+    }
+
+    /// Fetches logs based on the specified filter.
+    ///
+    /// # Arguments
+    /// * `filter` - The filter criteria used to fetch the logs.
+    ///
+    /// # Returns
+    /// Returns a `Result` containing a vector of logs on success, or an error if the logs
+    /// cannot be fetched or if the transport node is unavailable.
+    pub async fn fetch_logs(&self, filter: &Filter) -> Result<Vec<ethers_core::types::Log>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or(crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .get_logs(filter)
+            .await
+            .map_err(|e| crate::Error::FetchEvent(format!("Failed to fetch logs: {}", e)))
+    }
+
+    /// Fetches indexed block and transaction objects for a specified block number.
+    ///
+    /// # Arguments
+    /// * `block` - The block number for which to fetch the data.
+    ///
+    /// # Returns
+    /// Returns a `Result` containing the indexed block and its transactions on success,
+    /// or an error if the block cannot be fetched.
+    pub async fn fetch_indexed_data(
+        &self,
+        block: BlockNumber,
+    ) -> Result<(IndexedBlock, Vec<IndexedTransaction>)> {
+        let fetched_block = self
+            .fetch_block(BlockId::Number(ethers_core::types::BlockNumber::Number(
+                block.into(),
+            )))
+            .await?;
+
+        // Clone hash and number before moving transactions
+        let block_hash = fetched_block.hash.unwrap_or(H256::zero());
+        let block_number = fetched_block.number.unwrap_or_default();
+
+        let transactions = fetched_block
+            .transactions
+            .clone()
+            .into_iter()
+            .map(IndexedTransaction::from)
+            .collect();
+
+        log::info!("Fetched block {} with hash {:?}", block_number, block_hash);
+
+        // Ensure IndexedBlock::from can work with the partially moved `fetched_block`
+        Ok((IndexedBlock::from(fetched_block), transactions))
+    }
+
+    /// Returns the latest finalized block number.
+    ///
+    /// This function queries the underlying transport node for the current block number.
+    /// If the transport node is not set, or if there is an error in fetching the block number,
+    /// the function will return an appropriate error.
+    pub async fn get_latest_block(&self) -> Result<u64> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        let block_number = transport_node
+            .get_block_number()
+            .await
+            .map_err(|e| crate::Error::FetchBlockNumberError(e.to_string()))?;
+
+        Ok(block_number.as_u64())
+    }
+
+    /// Checks whether the provided block number is the latest finalized block
+    pub async fn is_latest_block(&self, block: u64) -> Result<bool> {
+        Ok(self.get_latest_block().await? == block)
     }
 }
 
-impl<U: Storage + Auth + Clone> App<Ipc, U> {
-    /// Creates a new instance of the App with the IPC transport
-    pub async fn with_ipc(self, node_url: &str) -> Self {
-        Self {
-            inner: Providers::new(
-                Some(NodeProvider::new(
-                    Ipc::connect(node_url)
-                        .await
-                        .expect("Failed to create IPC transport"),
-                )),
-                self.inner.transport_storage,
-            ),
+impl<U: Storage + Auth + Clone + Send + Sync> App<Http, U> {
+    /// Configures the application to use an HTTP transport node.
+    ///
+    /// # Example
+    /// ```
+    /// # async fn run() -> Result<(), crate::Error> {
+    /// let app = App::default().with_http("http://localhost:8545")?;
+    /// // Use `app` for further operations...
+    ///     # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Arguments
+    /// * `node_url` - The URL of the HTTP node.
+    ///
+    /// # Errors
+    /// Returns an error if the URL parsing fails or the HTTP transport cannot be created.
+    pub fn with_http(self, node_url: &str) -> Result<Self> {
+        let parsed_url = url::Url::parse(node_url)
+            .map_err(|e| crate::Error::UrlParseError(node_url.to_string(), e.to_string()))?;
+
+        let http_transport = NodeProvider::new(Http::new(parsed_url));
+
+        Ok(Self {
+            inner: Providers::new(Some(Arc::new(http_transport)), self.inner.transport_storage),
             ..self
-        }
+        })
     }
 }
 
-impl<U: Storage + Auth + Clone> App<Ws, U> {
-    /// Creates a new instance of the App with the WebSocket transport
-    pub async fn with_websocket(self, node_url: &str) -> Self {
-        Self {
+impl<U: Storage + Auth + Clone + Send + Sync> App<Ipc, U> {
+    /// Creates a new instance of the App with the IPC transport.
+    ///
+    /// # Example
+    /// ```
+    /// # async fn run() -> Result<(), crate::Error> {
+    /// let app = App::default().with_ipc("ipc://path/to/socket").await?;
+    /// // use app...
+    ///     # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Arguments
+    /// * `node_url` - The URL for the IPC node.
+    ///
+    /// # Errors
+    /// Returns an error if the IPC transport creation fails.
+    pub async fn with_ipc(self, node_url: &str) -> Result<Self> {
+        let ipc_transport = Ipc::connect(node_url).await.map_err(|e| {
+            crate::Error::IpcTransportCreationError(node_url.to_string(), e.to_string())
+        })?;
+
+        Ok(Self {
             inner: Providers::new(
-                Some(NodeProvider::new(
-                    Ws::connect(node_url)
-                        .await
-                        .expect("Failed to create WS transport"),
-                )),
+                Some(Arc::new(NodeProvider::new(ipc_transport))),
                 self.inner.transport_storage,
             ),
             ..self
-        }
+        })
+    }
+}
+
+impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
+    /// Creates a new instance of the App with the WebSocket transport.
+    ///
+    /// # Example
+    /// ```
+    /// # async fn run() -> Result<(), crate::Error> {
+    /// let app = App::default().with_websocket("ws://localhost:8546").await?;
+    /// // Use `app` for further operations...
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Arguments
+    /// * `node_url` - The URL for the WebSocket node.
+    ///
+    /// # Errors
+    /// Returns an error if the WebSocket transport creation fails.
+    pub async fn with_websocket(self, node_url: &str) -> Result<Self> {
+        let ws_transport = Ws::connect(node_url).await.map_err(|e| {
+            crate::Error::WsTransportCreationError(node_url.to_string(), e.to_string())
+        })?;
+
+        Ok(Self {
+            inner: Providers::new(
+                Some(Arc::new(NodeProvider::new(ws_transport))),
+                self.inner.transport_storage,
+            ),
+            ..self
+        })
     }
 
     /// Creates a new instance of the App with the WebSocket transport
     ///
-    /// An alias for `with_websocket`
-    pub async fn with_ws(self, node_url: &str) -> Self {
+    /// An alias for [`with_websocket`]
+    pub async fn with_ws(self, node_url: &str) -> Result<Self> {
         self.with_websocket(node_url).await
     }
 }
 
 #[derive(Clone, Debug)]
-struct Providers<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> {
-    transport_node: Option<NodeProvider<T>>,
-    transport_storage: Option<U>,
+struct Providers<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> {
+    transport_node: Option<Arc<NodeProvider<T>>>,
+    transport_storage: Option<Arc<U>>,
 }
 
-impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> Default for Providers<T, U> {
+impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> Default
+    for Providers<T, U>
+{
     fn default() -> Self {
         Self {
             transport_node: None,
@@ -237,8 +329,10 @@ impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> Default for Providers<
     }
 }
 
-impl<T: JsonRpcClient + Clone, U: Storage + Auth + Clone> Providers<T, U> {
-    pub fn new(node: Option<NodeProvider<T>>, db: Option<U>) -> Self {
+impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync>
+    Providers<T, U>
+{
+    pub fn new(node: Option<Arc<NodeProvider<T>>>, db: Option<Arc<U>>) -> Self {
         Self {
             transport_node: node,
             transport_storage: db,

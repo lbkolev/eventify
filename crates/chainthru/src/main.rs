@@ -94,7 +94,7 @@ async fn main() -> Result<()> {
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
                                     .with_storage(settings.database_url())
-                                    .with_http(settings.node_url()),
+                                    .with_http(settings.node_url())?,
                             )
                             .map_err(Error::from),
                         ));
@@ -107,7 +107,7 @@ async fn main() -> Result<()> {
                                     .with_dst_block(settings.dst_block())
                                     .with_storage(settings.database_url())
                                     .with_websocket(settings.node_url())
-                                    .await,
+                                    .await?,
                             )
                             .map_err(Error::from),
                         ));
@@ -120,7 +120,7 @@ async fn main() -> Result<()> {
                                     .with_dst_block(settings.dst_block())
                                     .with_storage(settings.database_url())
                                     .with_ipc(settings.node_url())
-                                    .await,
+                                    .await?,
                             )
                             .map_err(Error::from),
                         ));
