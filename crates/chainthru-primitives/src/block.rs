@@ -3,7 +3,6 @@ use ethers_core::types::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-//use alloy_primitives::{H160, H256, H64, U256, U64};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, FromRow)]
 #[serde(rename_all = "camelCase")]
@@ -82,10 +81,6 @@ impl IndexedBlock {
 
     pub fn uncles(&self) -> Vec<H256> {
         self.0.uncles.clone()
-    }
-
-    pub fn transactions(&self) -> Vec<Transaction> {
-        self.0.transactions.clone()
     }
 
     pub fn size(&self) -> Option<U256> {
