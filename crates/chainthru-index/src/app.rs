@@ -216,8 +216,11 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Http, U> {
     ///
     /// # Example
     /// ```
-    /// # async fn run() -> Result<(), crate::Error> {
-    /// let app = App::default().with_http("http://localhost:8545")?;
+    /// use chainthru_index::App;
+    /// use chainthru_primitives::storage::Postgres;
+    /// use ethers_providers::Http;
+    /// # async fn run() -> Result<(), chainthru_index::error::Error> {
+    /// let app: App<Http, Postgres> = App::default().with_http("http://localhost:8545")?;
     /// // Use `app` for further operations...
     ///     # Ok(())
     /// # }
@@ -246,8 +249,11 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ipc, U> {
     ///
     /// # Example
     /// ```
-    /// # async fn run() -> Result<(), crate::Error> {
-    /// let app = App::default().with_ipc("ipc://path/to/socket").await?;
+    /// use chainthru_index::App;
+    /// use chainthru_primitives::storage::Postgres;
+    /// use ethers_providers::Ipc;
+    /// # async fn run() -> Result<(), chainthru_index::error::Error> {
+    /// let app: App<Ipc, Postgres> = App::default().with_ipc("ipc://path/to/socket").await?;
     /// // use app...
     ///     # Ok(())
     /// # }
@@ -278,8 +284,11 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
     ///
     /// # Example
     /// ```
-    /// # async fn run() -> Result<(), crate::Error> {
-    /// let app = App::default().with_websocket("ws://localhost:8546").await?;
+    /// use chainthru_index::App;
+    /// use chainthru_primitives::storage::Postgres;
+    /// use ethers_providers::Ws;
+    /// # async fn run() -> Result<(), chainthru_index::error::Error> {
+    /// let app: App<Ws, Postgres> = App::default().with_websocket("ws://localhost:8546").await?;
     /// // Use `app` for further operations...
     /// # Ok(())
     /// # }
@@ -358,16 +367,17 @@ mod tests {
     #[tokio::test]
     async fn test_transport_https() {
         let app: App<Http, chainthru_primitives::storage::Postgres> = crate::App::default()
+            .with_storage(
+                env::var("CHAINTHRU_TEST_DATABASE_URL")
+                    .unwrap_or("postgres://postgres:password@localhost:5432/chainthru".to_string())
+                    .as_str(),
+            )
             .with_http(
                 env::var("CHAINTHRU_TEST_HTTPS_PROVIDER")
                     .unwrap_or("https://eth.llamarpc.com".to_string())
                     .as_str(),
             )
-            .with_storage(
-                env::var("CHAINTHRU_TEST_DATABASE_URL")
-                    .unwrap_or("postgres://postgres:password@localhost:5432/chainthru".to_string())
-                    .as_str(),
-            );
+            .unwrap();
 
         assert!(app.inner.transport_node.is_some());
         assert!(app.inner.transport_storage.is_some());
@@ -378,17 +388,18 @@ mod tests {
     #[tokio::test]
     async fn test_transport_wss() {
         let app: App<Ws, chainthru_primitives::storage::Postgres> = crate::App::default()
+            .with_storage(
+                env::var("CHAINTHRU_TEST_DATABASE_URL")
+                    .unwrap_or("postgres://postgres:password@localhost:5432/chainthru".to_string())
+                    .as_str(),
+            )
             .with_ws(
                 env::var("CHAINTHRU_TEST_WSS_PROVIDER")
                     .unwrap_or("wss://eth.llamarpc.com".to_string())
                     .as_str(),
             )
             .await
-            .with_storage(
-                env::var("CHAINTHRU_TEST_DATABASE_URL")
-                    .unwrap_or("postgres://postgres:password@localhost:5432/chainthru".to_string())
-                    .as_str(),
-            );
+            .unwrap();
 
         assert!(app.inner.transport_node.is_some());
         assert!(app.inner.transport_storage.is_some());
