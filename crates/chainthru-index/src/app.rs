@@ -181,7 +181,6 @@ impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + 
 
         log::info!("Fetched block {} with hash {:?}", block_number, block_hash);
 
-        // Ensure IndexedBlock::from can work with the partially moved `fetched_block`
         Ok((IndexedBlock::from(fetched_block), transactions))
     }
 
