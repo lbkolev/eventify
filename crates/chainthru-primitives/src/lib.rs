@@ -4,6 +4,7 @@ pub mod block;
 pub mod contract;
 pub mod database;
 pub mod error;
+pub mod events;
 pub mod macros;
 pub mod storage;
 pub mod transaction;
@@ -12,6 +13,7 @@ pub use block::IndexedBlock;
 pub use contract::Contract;
 pub use database::Settings as DatabaseSettings;
 pub use error::Error;
+pub use events::Criteria;
 pub use storage::{Auth, Storage};
 pub use transaction::IndexedTransaction;
 

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use alloy_primitives::BlockNumber;
-use chainthru_primitives::IndexedTransaction;
+use chainthru_primitives::{Criteria, IndexedTransaction};
 
-use ethers_core::types::{Block, BlockId, Filter, Transaction, H256};
+use ethers_core::types::{Block, BlockId, Transaction, H256};
 use ethers_providers::{Http, Ipc, JsonRpcClient, Middleware, Provider as NodeProvider, Ws};
 
 use crate::Result;
@@ -132,12 +132,12 @@ impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + 
     /// Fetches logs based on the specified filter.
     ///
     /// # Arguments
-    /// * `filter` - The filter criteria used to fetch the logs.
+    /// * `criteria` - The filter criteria used to fetch the logs.
     ///
     /// # Returns
     /// Returns a `Result` containing a vector of logs on success, or an error if the logs
     /// cannot be fetched or if the transport node is unavailable.
-    pub async fn fetch_logs(&self, filter: &Filter) -> Result<Vec<ethers_core::types::Log>> {
+    pub async fn fetch_logs(&self, criteria: &Criteria) -> Result<Vec<ethers_core::types::Log>> {
         let transport_node = self
             .inner
             .transport_node
@@ -145,7 +145,7 @@ impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + 
             .ok_or(crate::Error::MissingTransportNode)?;
 
         transport_node
-            .get_logs(filter)
+            .get_logs(&criteria.into())
             .await
             .map_err(|e| crate::Error::FetchEvent(format!("Failed to fetch logs: {}", e)))
     }
@@ -179,7 +179,8 @@ impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + 
             .map(IndexedTransaction::from)
             .collect();
 
-        log::info!("Fetched block {} with hash {:?}", block_number, block_hash);
+        //log::info!("Fetched block {} with hash {:?}", block_number, block_hash);
+        println!("Fetched block {} with hash {:?}", block_number, block_hash);
 
         Ok((IndexedBlock::from(fetched_block), transactions))
     }
