@@ -25,3 +25,4 @@ async-trait.workspace = true
 alloy-primitives.workspace = true
 ethers-providers.workspace = true
 ethers-core.workspace = true
+clap.workspace = true

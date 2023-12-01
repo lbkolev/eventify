@@ -1,11 +1,10 @@
-use ethers_core::{
-    types::{Address, BlockNumber, Filter, Log, ValueOrArray, H256},
-    utils::keccak256,
-};
+use ethers_core::types::{Filter, Log, ValueOrArray};
 use ethers_providers::{Middleware, Provider, SubscriptionStream, Ws};
 use futures::{stream, stream::SelectAll};
-use serde::{Deserialize, Serialize};
+
 use std::sync::Arc;
+
+use chainthru_primitives::Criteria;
 
 /// Collector is responsible for connecting to a node and subscribing to events
 /// that match a set of criterias.
@@ -36,15 +35,8 @@ impl Collector {
 
         for criteria in self.criterias.iter() {
             let filter = Filter::new()
-                .from_block(BlockNumber::Latest)
-                .topic0(ValueOrArray::Array(
-                    criteria
-                        .events
-                        .clone()
-                        .into_iter()
-                        .map(|event| H256::from(keccak256(event)))
-                        .collect(),
-                ))
+                .from_block(0)
+                .topic0(ValueOrArray::Array(criteria.hashed_events()))
                 .address(ValueOrArray::Array(criteria.addresses.clone()));
 
             let stream = self.client.subscribe_logs(&filter).await.unwrap();
@@ -53,12 +45,4 @@ impl Collector {
 
         stream::select_all(streams)
     }
-}
-
-/// Criteria is a set of events and addresses that the collector will subscribe to.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Criteria {
-    pub name: String,
-    pub events: Vec<String>,
-    pub addresses: Vec<Address>,
 }
