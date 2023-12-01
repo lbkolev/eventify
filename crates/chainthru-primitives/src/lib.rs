@@ -13,7 +13,7 @@ pub use block::IndexedBlock;
 pub use contract::Contract;
 pub use database::Settings as DatabaseSettings;
 pub use error::Error;
-pub use log::{Criteria, Criterias};
+pub use log::{Criteria, Criterias, IndexedLog};
 pub use storage::{Auth, Storage};
 pub use transaction::IndexedTransaction;
 

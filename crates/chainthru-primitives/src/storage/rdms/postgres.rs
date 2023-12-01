@@ -213,4 +213,48 @@ impl Storage for Postgres {
         log::debug!("Inserted contract [{:?}]", tx.transaction_hash());
         Ok(())
     }
+
+    async fn insert_log(&self, log: &crate::IndexedLog) -> Result<()> {
+        let sql = "INSERT INTO public.log (
+            transaction_hash,
+            transaction_index,
+            block_hash,
+            block_number,
+            address,
+            data,
+            topics,
+            log_index,
+            removed
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9
+            ) ON CONFLICT DO NOTHING";
+
+        let topics = format!(
+            "{{{}}}",
+            log.topics()
+                .iter()
+                .map(|t| t.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        let mut log_index_slice = [0u8; 32];
+        log.log_index()
+            .map(|v| v.to_big_endian(&mut log_index_slice));
+
+        sqlx::query(sql)
+            .bind(log.transaction_hash().as_ref().map(|h| h.as_bytes()))
+            .bind(log.transaction_index().map(|v| v.as_u64() as i32))
+            .bind(log.block_hash().as_ref().map(|h| h.as_bytes()))
+            .bind(log.block_number().map(|v| v.as_u64() as i32))
+            .bind(log.address().as_ref())
+            .bind(log.data().0.as_ref())
+            .bind(topics)
+            .bind(log_index_slice)
+            .bind(log.removed())
+            .execute(&self.inner)
+            .await?;
+
+        log::debug!("Inserted log: [{:?}]", log.transaction_hash());
+        Ok(())
+    }
 }

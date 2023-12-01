@@ -1,11 +1,65 @@
 use std::{fs, str::FromStr};
 
 use ethers_core::{
-    types::{Address, Filter, ValueOrArray, H256},
+    types::{Address, Bytes, Filter, Log, ValueOrArray, H256, U256, U64},
     utils::keccak256,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexedLog(Log);
+
+impl From<Log> for IndexedLog {
+    fn from(log: Log) -> Self {
+        Self(log)
+    }
+}
+
+//impl From<Vec<Log>> for IndexedLog {
+//    fn from(logs: Vec<Log>) -> Self {
+//        Self(logs.into_iter().next().unwrap())
+//    }
+//}
+
+impl IndexedLog {
+    pub fn address(&self) -> Address {
+        self.0.address
+    }
+
+    pub fn topics(&self) -> Vec<H256> {
+        self.0.topics.clone()
+    }
+
+    pub fn data(&self) -> Bytes {
+        self.0.data.clone()
+    }
+
+    pub fn block_hash(&self) -> Option<H256> {
+        self.0.block_hash
+    }
+
+    pub fn block_number(&self) -> Option<U64> {
+        self.0.block_number
+    }
+
+    pub fn transaction_hash(&self) -> Option<H256> {
+        self.0.transaction_hash
+    }
+
+    pub fn transaction_index(&self) -> Option<U64> {
+        self.0.transaction_index
+    }
+
+    pub fn log_index(&self) -> Option<U256> {
+        self.0.log_index
+    }
+
+    pub fn removed(&self) -> Option<bool> {
+        self.0.removed
+    }
+}
 
 /// Set of events and addresses
 #[derive(Debug, Serialize, Deserialize, Clone)]
