@@ -1,17 +1,10 @@
-use std::str::FromStr;
-
 use alloy_primitives::BlockNumber;
 use clap::{self, Parser};
 use secrecy::{ExposeSecret, Secret};
 
 use chainthru_primitives as types;
 use chainthru_server as server;
-use types::Criteria;
-
-// Adjust the return type to match clap's expectations
-fn read_criterias_from_file(file_path: &str) -> Result<Vec<Criteria>, clap::Error> {
-    Criteria::read_criterias_from_file(file_path).map_err(clap::Error::from)
-}
+use types::Criterias;
 
 #[derive(Debug, clap::Args, Clone)]
 pub(crate) struct Block {
@@ -54,17 +47,17 @@ pub(crate) struct CriteriasGroup {
         long,
         env = "CHAINTHRU_CRITERIAS_FILE",
         help = "file holding the criterias that'll be used to filter events",
-        value_parser = read_criterias_from_file
+        default_value = None,
     )]
-    pub(crate) criterias_file: Option<Vec<Criteria>>,
+    pub(crate) criterias_file: Option<String>,
 
     #[arg(
         long,
         env = "CHAINTHRU_CRITERIAS_JSON",
-        help = "argument holding the criterias that'll be used to filter events",
-        value_parser = Criteria::from_str
+        help = "Argument holding the criterias that'll be used to filter events",
+        value_parser = clap::value_parser!(Criterias)
     )]
-    pub(crate) criterias_json: Option<Vec<Criteria>>,
+    pub(crate) criterias_json: Option<Criterias>,
 }
 
 #[derive(Debug, clap::Args, Clone)]
@@ -200,6 +193,14 @@ impl Cmd {
         } else {
             self.indexer.block.block.dst
         }
+    }
+
+    pub(crate) fn criterias_file(&self) -> Option<String> {
+        self.indexer.events.criterias.criterias_file.clone()
+    }
+
+    pub(crate) fn criterias_json(&self) -> Option<Criterias> {
+        self.indexer.events.criterias.criterias_json.clone()
     }
 
     #[allow(unused)]

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use alloy_primitives::BlockNumber;
-use chainthru_primitives::{Criteria, IndexedTransaction};
+use chainthru_primitives::{Criterias, IndexedTransaction};
 
-use ethers_core::types::{Block, BlockId, Transaction, H256};
+use ethers_core::types::{Block, BlockId, Filter, Transaction, H256};
 use ethers_providers::{Http, Ipc, JsonRpcClient, Middleware, Provider as NodeProvider, Ws};
 
 use crate::Result;
@@ -137,17 +137,27 @@ impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + 
     /// # Returns
     /// Returns a `Result` containing a vector of logs on success, or an error if the logs
     /// cannot be fetched or if the transport node is unavailable.
-    pub async fn fetch_logs(&self, criteria: &Criteria) -> Result<Vec<ethers_core::types::Log>> {
+    pub async fn fetch_logs(&self, criterias: &Criterias) -> Result<Vec<ethers_core::types::Log>> {
         let transport_node = self
             .inner
             .transport_node
             .as_ref()
             .ok_or(crate::Error::MissingTransportNode)?;
 
-        transport_node
-            .get_logs(&criteria.into())
-            .await
-            .map_err(|e| crate::Error::FetchEvent(format!("Failed to fetch logs: {}", e)))
+        let mut resp = vec![];
+        for criterias in criterias.0.iter() {
+            log::info!("Fetching logs for criteria: {}", criterias.name());
+            let ir: Filter = criterias.into();
+            let filter: Filter = ir.from_block(self.src_block).to_block(self.src_block);
+
+            resp.extend(
+                transport_node.get_logs(&filter).await.map_err(|e| {
+                    crate::Error::FetchEvent(format!("Failed to fetch logs: {}", e))
+                })?,
+            );
+        }
+
+        Ok(resp)
     }
 
     /// Fetches indexed block and transaction objects for a specified block number.
@@ -179,8 +189,7 @@ impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + 
             .map(IndexedTransaction::from)
             .collect();
 
-        //log::info!("Fetched block {} with hash {:?}", block_number, block_hash);
-        println!("Fetched block {} with hash {:?}", block_number, block_hash);
+        log::info!("Fetched block {} with hash {:?}", block_number, block_hash);
 
         Ok((IndexedBlock::from(fetched_block), transactions))
     }

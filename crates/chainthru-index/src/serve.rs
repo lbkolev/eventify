@@ -2,16 +2,20 @@ use alloy_primitives::BlockNumber;
 use ethers_providers::JsonRpcClient;
 
 use crate::{App, Result};
-use chainthru_primitives::{Auth, Storage};
+use chainthru_primitives::{Auth, Criterias, Storage};
 
 pub async fn run<T: JsonRpcClient + Clone, U: Storage + Auth + Clone>(
     app: App<T, U>,
+    criterias: Option<Criterias>,
 ) -> Result<()> {
     let from = app.src_block();
     let to = app.dst_block();
 
     for target in from..=to {
         log::info!("Fetching block: {}", target);
+        let log = app.fetch_logs(criterias.as_ref().unwrap()).await?;
+        log::info!("Logs: {:?}", log);
+
         let (block, transactions) = match app.fetch_indexed_data(target).await {
             Ok((block, transactions)) => (block, transactions),
             Err(_) => {

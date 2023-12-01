@@ -46,16 +46,6 @@ impl Criteria {
         Ok(criteria)
     }
 
-    pub fn read_criterias_from_file(file_path: &str) -> crate::Result<Vec<Criteria>> {
-        let contents = fs::read_to_string(file_path)
-            .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
-
-        let criterias = serde_json::from_str(&contents)
-            .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
-
-        Ok(criterias)
-    }
-
     pub fn hashed_events(&self) -> Vec<H256> {
         self.events
             .clone()
@@ -65,13 +55,48 @@ impl Criteria {
     }
 }
 
-impl FromStr for Criteria {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Criterias(pub Vec<Criteria>);
+
+impl Criterias {
+    pub fn new(criterias: Vec<Criteria>) -> Self {
+        Self(criterias)
+    }
+
+    pub fn criterias(&self) -> &Vec<Criteria> {
+        &self.0
+    }
+
+    pub fn read_criterias_from_file(file_path: &str) -> crate::Result<Criterias> {
+        let contents = fs::read_to_string(file_path)
+            .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
+
+        let criterias = serde_json::from_str(&contents)
+            .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
+
+        Ok(criterias)
+    }
+}
+
+impl FromStr for Criterias {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str(s)
+        Ok(Self(serde_json::from_str(s)?))
     }
 }
+
+//impl From<&Criterias> for Filter {
+//    fn from(criterias: &Criterias) -> Self {
+//        let mut filter = Filter::new();
+//
+//        for criteria in criterias.criterias() {
+//            filter = filter.or(Filter::from(criteria));
+//        }
+//
+//        filter
+//    }
+//}
 
 impl From<&Criteria> for Filter {
     fn from(criteria: &Criteria) -> Self {

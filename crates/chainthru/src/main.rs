@@ -12,7 +12,7 @@ use error::Error;
 
 use crate::settings::Settings;
 use indexer::app::App;
-use types::storage::Postgres;
+use types::{storage::Postgres, Criterias};
 
 pub type Result<T> = std::result::Result<T, Error>;
 //----
@@ -86,6 +86,13 @@ async fn main() -> Result<()> {
             }
 
             if settings.indexer_enabled() {
+                let criterias = settings
+                    .criterias_file()
+                    .map(|file| Criterias::read_criterias_from_file(file.as_str()))
+                    .transpose()?
+                    .or_else(|| settings.criterias_json())
+                    .or(None);
+
                 match Url::parse(&settings.node_url)?.scheme() {
                     "http" | "https" => {
                         handles.push(tokio::spawn(
@@ -95,6 +102,7 @@ async fn main() -> Result<()> {
                                     .with_dst_block(settings.dst_block())
                                     .with_storage(settings.database_url())
                                     .with_http(settings.node_url())?,
+                                criterias,
                             )
                             .map_err(Error::from),
                         ));
@@ -108,6 +116,7 @@ async fn main() -> Result<()> {
                                     .with_storage(settings.database_url())
                                     .with_websocket(settings.node_url())
                                     .await?,
+                                criterias,
                             )
                             .map_err(Error::from),
                         ));
@@ -121,6 +130,7 @@ async fn main() -> Result<()> {
                                     .with_storage(settings.database_url())
                                     .with_ipc(settings.node_url())
                                     .await?,
+                                criterias,
                             )
                             .map_err(Error::from),
                         ));
@@ -135,11 +145,11 @@ async fn main() -> Result<()> {
         }
 
         settings::SubCommand::Db(_) => {
-            unimplemented!("Database management is not implemented yet.")
+            unimplemented!("Database management.")
         }
 
         settings::SubCommand::Config(_) => {
-            unimplemented!("Configuration management is not implemented yet.")
+            unimplemented!("Configuration management.")
         }
     }
 
