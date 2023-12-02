@@ -8,12 +8,12 @@ use ethers_core::types::{H64, U64};
 
 use crate::{
     storage::{Auth, Storage},
-    Error, Result,
+    Contract, Error, IndexedBlock, IndexedLog, IndexedTransaction, Result,
 };
 
 #[derive(Debug, Clone)]
 pub struct Postgres {
-    pub inner: Pool<sqlx::postgres::Postgres>,
+    inner: Pool<sqlx::postgres::Postgres>,
 }
 
 impl Deref for Postgres {
@@ -54,7 +54,8 @@ impl Auth for Postgres {
 
 #[async_trait::async_trait]
 impl Storage for Postgres {
-    async fn insert_block(&self, block: &crate::IndexedBlock) -> Result<()> {
+    async fn insert_block(&self, block: &IndexedBlock) -> Result<()> {
+        println!("Inserting block: [{:?}]", block.hash());
         let sql = "INSERT INTO public.block (
             hash,
             parent_hash,
@@ -111,17 +112,17 @@ impl Storage for Postgres {
             .bind(base_fee_per_gas_slice)
             .bind(difficulty_slice)
             .bind(total_difficulty_slice)
-            //.bind(block.transactions().unwrap_or(0) as i32)
             .bind(size_slice)
             .bind(block.nonce().unwrap_or(H64::zero()).as_bytes())
             .execute(&self.inner)
             .await?;
 
         log::info!("Inserted block: [{:?}]", block.hash());
+        println!("Inserted block: [{:?}]", block.hash());
         Ok(())
     }
 
-    async fn insert_transaction(&self, tx: &crate::IndexedTransaction) -> Result<()> {
+    async fn insert_transaction(&self, tx: &IndexedTransaction) -> Result<()> {
         let sql = "INSERT INTO public.transaction (
             hash,
             nonce,
@@ -194,7 +195,7 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn insert_contract(&self, tx: &crate::Contract) -> Result<()> {
+    async fn insert_contract(&self, tx: &Contract) -> Result<()> {
         let sql = "INSERT INTO public.contract (
             transaction_hash,
             _from,
@@ -214,47 +215,146 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn insert_log(&self, log: &crate::IndexedLog) -> Result<()> {
+    async fn insert_log(&self, log: &IndexedLog) -> Result<()> {
         let sql = "INSERT INTO public.log (
-            transaction_hash,
-            transaction_index,
+            address,
+            topic0,
+            topic1,
+            topic2,
+            topic3,
+            data,
             block_hash,
             block_number,
-            address,
-            data,
-            topics,
+            transaction_hash,
+            transaction_index,
+            transaction_log_index,
             log_index,
+            log_type,
             removed
             ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
             ) ON CONFLICT DO NOTHING";
 
-        let topics = format!(
-            "{{{}}}",
-            log.topics()
-                .iter()
-                .map(|t| t.to_string())
-                .collect::<Vec<_>>()
-                .join(",")
-        );
+        let mut transaction_log_index_slice = [0u8; 32];
+        log.transaction_log_index()
+            .map(|v| v.to_big_endian(&mut transaction_log_index_slice));
+
         let mut log_index_slice = [0u8; 32];
         log.log_index()
             .map(|v| v.to_big_endian(&mut log_index_slice));
 
         sqlx::query(sql)
-            .bind(log.transaction_hash().as_ref().map(|h| h.as_bytes()))
-            .bind(log.transaction_index().map(|v| v.as_u64() as i32))
+            .bind(log.address().as_ref())
+            .bind(log.topics().first().map(|h| h.as_bytes()))
+            .bind(log.topics().get(1).map(|h| h.as_bytes()))
+            .bind(log.topics().get(2).map(|h| h.as_bytes()))
+            .bind(log.topics().get(3).map(|h| h.as_bytes()))
+            .bind(log.data().0.as_ref())
             .bind(log.block_hash().as_ref().map(|h| h.as_bytes()))
             .bind(log.block_number().map(|v| v.as_u64() as i32))
-            .bind(log.address().as_ref())
-            .bind(log.data().0.as_ref())
-            .bind(topics)
+            .bind(log.transaction_hash().as_ref().map(|h| h.as_bytes()))
+            .bind(log.transaction_index().map(|v| v.as_u64() as i32))
+            .bind(transaction_log_index_slice)
             .bind(log_index_slice)
+            .bind(log.log_type())
             .bind(log.removed())
             .execute(&self.inner)
             .await?;
 
-        log::debug!("Inserted log: [{:?}]", log.transaction_hash());
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::storage::Storage;
+    use ethers_core::types::{Address, H256, U256, U64};
+    use sqlx::{postgres::PgPoolOptions, Executor, Pool, Postgres};
+    use std::{convert::TryFrom, env};
+    use uuid::Uuid;
+
+    async fn setup_test_db() -> std::result::Result<(Pool<Postgres>, String), sqlx::Error> {
+        dotenv::dotenv().ok();
+        //let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let db_url = "postgres://postgres:password@localhost:5432/";
+        let master_pool = PgPoolOptions::new()
+            .connect(&format!("{}postgres", db_url))
+            .await?;
+
+        let db_name = format!("test_{}", Uuid::new_v4().simple());
+        let db_url = format!("{}{}", db_url, db_name);
+
+        sqlx::query(&format!("CREATE DATABASE {}", db_name))
+            .execute(&master_pool)
+            .await?;
+
+        let pool = PgPoolOptions::new().connect(&db_url).await?;
+
+        sqlx::migrate!("../../migrations/rdms/postgres/")
+            .run(&pool)
+            .await?;
+
+        Ok((pool, db_name))
+    }
+
+    async fn teardown_test_db(
+        pool: Pool<Postgres>,
+        db_name: &str,
+    ) -> std::result::Result<(), sqlx::Error> {
+        // Disconnect all connections from the pool
+        drop(pool);
+
+        let database_url = "postgres://postgres:password@localhost:5432/postgres";
+        let master_pool = PgPoolOptions::new().connect(&database_url).await?;
+
+        sqlx::query(&format!("DROP DATABASE IF EXISTS {}", db_name))
+            .execute(&master_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_insert_block() {
+        let (pool, db_name) = setup_test_db().await.unwrap();
+        let db = super::Postgres { inner: pool };
+
+        let json = serde_json::json!(
+        {
+            "baseFeePerGas": "0x7",
+            "miner": "0x0000000000000000000000000000000000000001",
+            "number": "0x1b4",
+            "hash": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
+            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
+            "mixHash": "0x1010101010101010101010101010101010101010101010101010101010101010",
+            "nonce": "0x0000000000000000",
+            "sealFields": [
+              "0xe04d296d2460cfb8472af2c5fd05b5a214109c25688d3704aed5484f9a7792f2",
+              "0x0000000000000042"
+            ],
+            "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "logsBloom":  "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
+            "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "stateRoot": "0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff",
+            "difficulty": "0x27f07",
+            "totalDifficulty": "0x27f07",
+            "extraData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "size": "0x27f07",
+            "gasLimit": "0x9f759",
+            "minGasPrice": "0x9f759",
+            "gasUsed": "0x9f759",
+            "timestamp": "0x54e34e8e",
+            "transactions": [],
+            "uncles": []
+          }
+        );
+
+        let block = serde_json::from_value::<IndexedBlock>(json).unwrap();
+        println!("{:?}", block);
+        let _ = db.insert_block(&block).await.unwrap();
+
+        teardown_test_db(db.inner, &db_name).await.unwrap();
     }
 }

@@ -6,6 +6,13 @@ use std::{
 
 use crate::{Contract, IndexedBlock, IndexedLog, IndexedTransaction, Result};
 
+pub trait Insertable: Send + Sync + Debug {}
+
+impl Insertable for IndexedBlock {}
+impl Insertable for IndexedTransaction {}
+impl Insertable for IndexedLog {}
+impl Insertable for Contract {}
+
 #[async_trait]
 pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
     async fn insert_block(&self, block: &IndexedBlock) -> Result<()>;
@@ -16,3 +23,9 @@ pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
 
     async fn insert_contract(&self, contract: &Contract) -> Result<()>;
 }
+
+//
+//#[async_trait]
+//pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
+//    async fn insert<T: Insertable, K, V>(&self, item: &T) -> std::result::Result<K, V>;
+//}

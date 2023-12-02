@@ -1,3 +1,3 @@
-pub mod postgres;
+pub mod pg;
 
-pub use postgres::Postgres;
+pub use pg::Postgres;

@@ -17,12 +17,6 @@ impl From<Log> for IndexedLog {
     }
 }
 
-//impl From<Vec<Log>> for IndexedLog {
-//    fn from(logs: Vec<Log>) -> Self {
-//        Self(logs.into_iter().next().unwrap())
-//    }
-//}
-
 impl IndexedLog {
     pub fn address(&self) -> Address {
         self.0.address
@@ -52,8 +46,16 @@ impl IndexedLog {
         self.0.transaction_index
     }
 
+    pub fn transaction_log_index(&self) -> Option<U256> {
+        self.0.transaction_log_index
+    }
+
     pub fn log_index(&self) -> Option<U256> {
         self.0.log_index
+    }
+
+    pub fn log_type(&self) -> Option<&String> {
+        self.0.log_type.as_ref()
     }
 
     pub fn removed(&self) -> Option<bool> {
@@ -62,7 +64,7 @@ impl IndexedLog {
 }
 
 /// Set of events and addresses
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Criteria {
     pub name: String,
     pub events: Vec<String>,
@@ -109,7 +111,7 @@ impl Criteria {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Criterias(pub Vec<Criteria>);
 
 impl Criterias {
@@ -140,17 +142,11 @@ impl FromStr for Criterias {
     }
 }
 
-//impl From<&Criterias> for Filter {
-//    fn from(criterias: &Criterias) -> Self {
-//        let mut filter = Filter::new();
-//
-//        for criteria in criterias.criterias() {
-//            filter = filter.or(Filter::from(criteria));
-//        }
-//
-//        filter
-//    }
-//}
+impl From<&str> for Criterias {
+    fn from(s: &str) -> Self {
+        Self(serde_json::from_str(s).unwrap())
+    }
+}
 
 impl From<&Criteria> for Filter {
     fn from(criteria: &Criteria) -> Self {

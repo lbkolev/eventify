@@ -17,6 +17,7 @@ pub async fn run<T: JsonRpcClient + Clone, U: Storage + Auth + Clone>(
             log::info!("{:?}", logs);
 
             for log in logs {
+                println!("{:?}", log.clone());
                 app.storage_conn()?.insert_log(&log.into()).await?;
             }
         }

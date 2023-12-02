@@ -30,7 +30,7 @@ impl Collector {
         }
     }
 
-    pub async fn streams(&self) -> SelectAll<SubscriptionStream<Ws, Log>> {
+    pub async fn stream_logs(&self) -> SelectAll<SubscriptionStream<Ws, Log>> {
         let mut streams: Vec<SubscriptionStream<'_, Ws, Log>> = vec![];
 
         for criteria in self.criterias.iter() {

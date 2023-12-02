@@ -1,7 +1,7 @@
 use ethers_core::types::{Address, Bytes, Transaction, H256, U256, U64};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexedTransaction(Transaction);
 
