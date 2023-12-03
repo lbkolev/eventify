@@ -3,8 +3,9 @@ use ethers_core::types::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexedBlock(Block<Transaction>);
 
@@ -118,7 +119,6 @@ impl IndexedBlock {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::value::Index;
 
     use super::IndexedBlock;
 

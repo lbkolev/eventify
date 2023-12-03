@@ -1,6 +1,6 @@
 [workspace.package]
 authors = ["Lachezar Kolev <lachezarkolevgg@gmail.com>"]
-description = "EVM Indexer"
+description = "Ethereum Indexer"
 documentation = "https://docs.rs/chainthru"
 edition = "2021"
 homepage = "https://github.com/lbkolev/chainthru"
@@ -16,30 +16,39 @@ members = [
     "crates/chainthru-index",
     "crates/chainthru-primitives",
     "crates/chainthru-server",
+    #"crates/chainthru-client"
 ]
 resolver = "2"
 
 [workspace.dependencies]
+# internal
 chainthru-primitives = { path = "./crates/chainthru-primitives", version = "0.0.1" }
 chainthru-index = { path = "./crates/chainthru-index", version = "0.0.1" }
 chainthru-server = { path = "./crates/chainthru-server", version = "0.0.1" }
 
+# async
+async-trait = "0.1.72"
+futures = "0.3.28"
+tokio = { version = "1.29.1", features = ["macros", "full"] }
+
+# core
 serde = "1.0.171"
 serde-aux = "4.2.0"
 serde_derive = "1.0.171"
 serde_json = "1.0.104"
 sqlx = { version = "0.7.3", features = ["postgres", "runtime-tokio"] }
-tokio = { version = "1.29.1", features = ["macros", "full"] }
-thiserror = "1.0.44"
-futures = "0.3.28"
-log = "0.4.19"
-num_cpus = "1.16.0"
-url = "2.4.0"
-derive_builder = "0.12.0"
-secrecy = { version = "0.8.0", features = ["serde"] }
-uuid = { version = "1.4.0", features = ["v4"] }
-async-trait = "0.1.72"
+
+# eth
 alloy-primitives = "0.4.2"
 ethers-core = "2.0.11"
 ethers-providers = { version = "2.0.11", features = ["ipc", "ws"] }
+
+# auxiliary
 clap = "4.3.12"
+log = "0.4.19"
+num_cpus = "1.16.0"
+secrecy = { version = "0.8.0", features = ["serde"] }
+thiserror = "1.0.44"
+utoipa = { version = "4.1.0", features = ["actix_extras"] }
+uuid = { version = "1.4.0", features = ["v4"] }
+url = "2.4.0"

@@ -1,0 +1,48 @@
+openapi: 3.0.3
+info:
+  title: chainthru-server
+  description: Ethereum Indexer
+  contact:
+    name: Lachezar Kolev
+    email: lachezarkolevgg@gmail.com
+  license:
+    name: MIT
+  version: 0.0.1
+paths:
+  /api/v1/blocks/count:
+    get:
+      tags:
+        - block
+      summary: Get the Count of Blocks
+      description: |-
+        Get the Count of Blocks
+
+        This endpoint returns the total count of blocks present in the database.
+        The response is a JSON object containing the count.
+
+        # Responses
+
+        * `200 OK`: Successfully retrieved the count of blocks. The response body will be a JSON object with the structure `{ "count": i64 }`, where `i64` is the total number of blocks.
+        * `500 Internal Server Error`: Indicates that an error occurred on the server while processing the request. The response body will contain a JSON object with an error message.
+
+        # Example
+
+        ```json
+        {
+        "count": 42
+        }
+        ```
+      operationId: get_blocks_count
+      responses:
+        "200":
+          description: Successfully retrieved the block count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
