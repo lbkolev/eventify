@@ -4,7 +4,7 @@ use ethers_core::types::{
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, FromRow)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexedBlock(Block<Transaction>);
 
@@ -118,32 +118,48 @@ impl IndexedBlock {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::value::Index;
+
     use super::IndexedBlock;
 
     #[test]
-    fn serialize_block() {
-        let json = serde_json::json!({
+    fn deserialize_block() {
+        let json = serde_json::json!(
+        {
+            "baseFeePerGas": "0x7",
+            "miner": "0x0000000000000000000000000000000000000001",
+            "number": "0x1b4",
             "hash": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
             "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
-            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
-            "author": "0x0000000000000000000000000000000000000001",
-            "stateRoot": "0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff",
+            "mixHash": "0x1010101010101010101010101010101010101010101010101010101010101010",
+            "nonce": "0x0000000000000000",
+            "sealFields": [
+              "0xe04d296d2460cfb8472af2c5fd05b5a214109c25688d3704aed5484f9a7792f2",
+              "0x0000000000000042"
+            ],
+            "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "logsBloom":  "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
+            "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
             "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "number": "0x1b4",
-            "gasUsed": "0x9f759",
-            "gasLimit": "0x9f759",
-            "baseFeePerGas": "0x7",
+            "stateRoot": "0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff",
             "difficulty": "0x27f07",
             "totalDifficulty": "0x27f07",
+            "extraData": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "size": "0x27f07",
-            "nonce": "0x0000000000000000"
-        });
+            "gasLimit": "0x9f759",
+            "minGasPrice": "0x9f759",
+            "gasUsed": "0x9f759",
+            "timestamp": "0x54e34e8e",
+            "transactions": [],
+            "uncles": []
+          }
+        );
 
         serde_json::from_value::<IndexedBlock>(json).unwrap();
     }
 
     #[test]
-    fn serialize_empty_block() {
+    fn deserialize_empty_block() {
         let json = serde_json::json!({});
 
         serde_json::from_value::<IndexedBlock>(json).unwrap();

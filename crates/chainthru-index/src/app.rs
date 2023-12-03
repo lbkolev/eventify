@@ -20,7 +20,11 @@ use chainthru_primitives::{
 /// - `T`: A JSON-RPC client that implements `JsonRpcClient`, `Clone`, `Send`, and `Sync`.
 /// - `U`: A storage system that implements `Storage`, `Auth`, `Clone`, `Send`, and `Sync`.
 #[derive(Clone, Debug)]
-pub struct App<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> {
+pub struct App<T, U>
+where
+    T: JsonRpcClient + Clone + Send + Sync,
+    U: Storage + Auth + Clone + Send + Sync,
+{
     inner: Providers<T, U>,
 
     /// The starting block number from which the `App` operates.
@@ -30,8 +34,10 @@ pub struct App<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone
     pub dst_block: BlockNumber,
 }
 
-impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> Default
-    for App<T, U>
+impl<T, U> Default for App<T, U>
+where
+    T: JsonRpcClient + Clone + Send + Sync,
+    U: Storage + Auth + Clone + Send + Sync,
 {
     /// Creates a new `App` instance with default values.
     ///
@@ -46,7 +52,11 @@ impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + 
     }
 }
 
-impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> App<T, U> {
+impl<T, U> App<T, U>
+where
+    T: JsonRpcClient + Clone + Send + Sync,
+    U: Storage + Auth + Clone + Send + Sync,
+{
     /// Create a new instance of the indexer
     pub fn new(
         transport_node: Option<NodeProvider<T>>,
@@ -331,13 +341,19 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
 }
 
 #[derive(Clone, Debug)]
-struct Providers<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> {
+struct Providers<T, U>
+where
+    T: JsonRpcClient + Clone + Send + Sync,
+    U: Storage + Auth + Clone + Send + Sync,
+{
     transport_node: Option<Arc<NodeProvider<T>>>,
     transport_storage: Option<Arc<U>>,
 }
 
-impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync> Default
-    for Providers<T, U>
+impl<T, U> Default for Providers<T, U>
+where
+    T: JsonRpcClient + Clone + Send + Sync,
+    U: Storage + Auth + Clone + Send + Sync,
 {
     fn default() -> Self {
         Self {
@@ -347,8 +363,10 @@ impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + 
     }
 }
 
-impl<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync>
-    Providers<T, U>
+impl<T, U> Providers<T, U>
+where
+    T: JsonRpcClient + Clone + Send + Sync,
+    U: Storage + Auth + Clone + Send + Sync,
 {
     pub fn new(node: Option<Arc<NodeProvider<T>>>, db: Option<Arc<U>>) -> Self {
         Self {

@@ -3,6 +3,7 @@ use crate::subcommands::{config, db, run};
 #[derive(Clone, Debug, clap::Parser)]
 #[command(name = "Chainthru")]
 #[command(about = "Index Ethereum into a Postgres database & serve it through an API.")]
+#[command(color = clap::ColorChoice::Always)]
 pub(crate) struct Settings {
     #[command(subcommand)]
     pub(crate) cmd: SubCommand,

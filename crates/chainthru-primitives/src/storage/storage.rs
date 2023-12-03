@@ -4,52 +4,22 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::Error;
+use crate::{Contract, IndexedBlock, IndexedLog, IndexedTransaction, Result};
+
+pub trait Insertable: Send + Sync + Debug {}
+
+impl Insertable for IndexedBlock {}
+impl Insertable for IndexedTransaction {}
+impl Insertable for IndexedLog {}
+impl Insertable for Contract {}
 
 #[async_trait]
 pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
-    fn insert_block<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        block: &'life1 crate::IndexedBlock,
-    ) -> ::core::pin::Pin<
-        Box<
-            dyn ::core::future::Future<Output = Result<(), Error>>
-                + ::core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait;
+    async fn insert_block(&self, block: &IndexedBlock) -> Result<()>;
 
-    fn insert_transaction<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        transaction: &'life1 crate::IndexedTransaction,
-    ) -> ::core::pin::Pin<
-        Box<
-            dyn ::core::future::Future<Output = Result<(), Error>>
-                + ::core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait;
+    async fn insert_transaction(&self, transaction: &IndexedTransaction) -> Result<()>;
 
-    fn insert_contract<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        transaction: &'life1 crate::Contract,
-    ) -> ::core::pin::Pin<
-        Box<
-            dyn ::core::future::Future<Output = Result<(), Error>>
-                + ::core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait;
+    async fn insert_log(&self, log: &IndexedLog) -> Result<()>;
+
+    async fn insert_contract(&self, contract: &Contract) -> Result<()>;
 }

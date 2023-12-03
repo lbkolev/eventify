@@ -86,6 +86,7 @@ async fn main() -> Result<()> {
             }
 
             if settings.indexer_enabled() {
+                // event criterias
                 let criterias = settings
                     .criterias_file()
                     .map(|file| Criterias::read_criterias_from_file(file.as_str()))

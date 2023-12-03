@@ -55,6 +55,7 @@ pub(crate) struct CriteriasGroup {
         long,
         env = "CHAINTHRU_CRITERIAS_JSON",
         help = "Argument holding the criterias that'll be used to filter events",
+        default_value = None,
         value_parser = clap::value_parser!(Criterias)
     )]
     pub(crate) criterias_json: Option<Criterias>,
@@ -281,7 +282,7 @@ mod tests {
     fn test_indexer_settings_args_precedence() {
         std::env::set_var("CHAINTHRU_SRC_BLOCK", "1");
         std::env::set_var("CHAINTHRU_DST_BLOCK", "2");
-        std::env::set_var("CHAINTHRU_CRITERIAS_JSON", "[1,2,3]");
+        std::env::set_var("CHAINTHRU_CRITERIAS_JSON", "[{\"name\":\"UniswapV3Factory\",\"events\":[\"PoolCreated(address,address,uint24,int24,address)\"],\"addresses\":[\"0x1F98431c8aD98523631AE4a59f267346ea31F984\"]},{\"name\":\"ERC20\",\"events\":[\"Transfer(address,address,uint256)\",\"Approve(address,address,uint256)\"],\"addresses\":[\"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2\",\"0x6B175474E89094C44Da98b954EedeAC495271d0F\"]}]");
 
         let args = CommandParser::<IndexerSettings>::parse_from([
             "run",
@@ -291,7 +292,7 @@ mod tests {
             "--dst-block",
             "4",
             "--criterias-json",
-            "{\"a\": \"1\"},",
+            "[{\"name\":\"UniswapV3Swap\",\"events\":[\"Swap(address,address,int256,int256,uint160,uint128,int24)\"],\"addresses\":[\"0x1F98431c8aD98523631AE4a59f267346ea31F984\"]}]",
         ])
         .args;
         assert!(args.indexer_enabled);
@@ -300,11 +301,10 @@ mod tests {
         assert_eq!(args.block.block.dst, 4);
         assert_eq!(
             args.events.criterias.criterias_json,
-            Some("{\"a\": \"1\"},".into())
+            Some("[{\"name\":\"UniswapV3Swap\",\"events\":[\"Swap(address,address,int256,int256,uint160,uint128,int24)\"],\"addresses\":[\"0x1F98431c8aD98523631AE4a59f267346ea31F984\"]}]".into())
         );
         assert_eq!(args.events.criterias.criterias_file, None);
 
-        std::env::remove_var("CHAINTHRU_INDEXER_ENABLED");
         std::env::remove_var("CHAINTHRU_SRC_BLOCK");
         std::env::remove_var("CHAINTHRU_DST_BLOCK");
         std::env::remove_var("CHAINTHRU_CRITERIAS_JSON");
@@ -373,7 +373,6 @@ mod tests {
         assert_eq!(args.server_threads, 2);
         assert_eq!(args.host, "1.2.3.4");
 
-        std::env::remove_var("CHAINTHRU_SERVER_ENABLED");
         std::env::remove_var("CHAINTHRU_SERVER_THREADS");
         std::env::remove_var("CHAINTHRU_SERVER_HOST");
         std::env::remove_var("CHAINTHRU_SERVER_PORT");

@@ -12,9 +12,15 @@ pub async fn run<T: JsonRpcClient + Clone, U: Storage + Auth + Clone>(
     let to = app.dst_block();
 
     for target in from..=to {
-        log::info!("Fetching block: {}", target);
-        let log = app.fetch_logs(criterias.as_ref().unwrap()).await?;
-        log::info!("Logs: {:?}", log);
+        if let Some(crits) = criterias.as_ref() {
+            let logs = app.fetch_logs(crits).await?;
+            log::info!("{:?}", logs);
+
+            for log in logs {
+                println!("{:?}", log.clone());
+                app.storage_conn()?.insert_log(&log.into()).await?;
+            }
+        }
 
         let (block, transactions) = match app.fetch_indexed_data(target).await {
             Ok((block, transactions)) => (block, transactions),
