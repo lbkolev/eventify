@@ -1,2 +1,1 @@
-## chainthru-server
-### <p align="center"> 🚧 work in progress 🚧<p>
+../crates/chainthru-server/README.md

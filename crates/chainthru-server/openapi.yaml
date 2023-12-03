@@ -1,48 +1,71 @@
-openapi: 3.0.3
-info:
-  title: chainthru-server
-  description: Ethereum Indexer
-  contact:
-    name: Lachezar Kolev
-    email: lachezarkolevgg@gmail.com
-  license:
-    name: MIT
-  version: 0.0.1
-paths:
-  /api/v1/blocks/count:
-    get:
-      tags:
-        - block
-      summary: Get the Count of Blocks
-      description: |-
-        Get the Count of Blocks
-
-        This endpoint returns the total count of blocks present in the database.
-        The response is a JSON object containing the count.
-
-        # Responses
-
-        * `200 OK`: Successfully retrieved the count of blocks. The response body will be a JSON object with the structure `{ "count": i64 }`, where `i64` is the total number of blocks.
-        * `500 Internal Server Error`: Indicates that an error occurred on the server while processing the request. The response body will contain a JSON object with an error message.
-
-        # Example
-
-        ```json
-        {
-        "count": 42
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "chainthru-server",
+    "description": "Ethereum Indexer",
+    "contact": {
+      "name": "Lachezar Kolev",
+      "email": "lachezarkolevgg@gmail.com"
+    },
+    "license": {
+      "name": "MIT"
+    },
+    "version": "0.0.1"
+  },
+  "paths": {
+    "/api/v1/blocks/count": {
+      "get": {
+        "tags": [
+          "block"
+        ],
+        "summary": "Get the Count of Blocks",
+        "description": "Get the Count of Blocks\n\nThis endpoint returns the total count of blocks present in the database.\nThe response is a JSON object containing the count.\n\n# Responses\n\n* `200 OK`: Successfully retrieved the count of blocks. The response body will be a JSON object with the structure `{ \"count\": i64 }`, where `i64` is the total number of blocks.\n* `500 Internal Server Error`: Indicates that an error occurred on the server while processing the request. The response body will contain a JSON object with an error message.\n\n# Example\n\n```json\n{\n\"count\": 42\n}\n```",
+        "operationId": "get_blocks_count",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the block count"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
         }
-        ```
-      operationId: get_blocks_count
-      responses:
-        "200":
-          description: Successfully retrieved the block count
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CountResponse'
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      }
+    },
+    "/api/v1/logs/count": {
+      "get": {
+        "tags": [
+          "log"
+        ],
+        "summary": "Get the Count of Logs",
+        "description": "Get the Count of Logs\n\nThis endpoint returns the total count of logs present in the database.\nThe response is a JSON object containing the count.\n\n# Responses\n\n* `200 OK`: Successfully retrieved the count of logs. The response body will be a JSON object with the structure `{ \"count\": i64 }`, where `i64` is the total number of logs.\n* `500 Internal Server Error`: Indicates that an error occurred on the server while processing the request. The response body will contain a JSON object with an error message.\n\n# Example\n\n```json\n{\n\"count\": 456\n}\n```",
+        "operationId": "get_logs_count",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the log count"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/count": {
+      "get": {
+        "tags": [
+          "transaction"
+        ],
+        "summary": "Get the Count of Transactions",
+        "description": "Get the Count of Transactions\n\nThis endpoint returns the total count of transactions present in the database.\nThe response is a JSON object containing the count.\n\n# Responses\n\n* `200 OK`: Successfully retrieved the count of transactions. The response body will be a JSON object with the structure `{ \"count\": i64 }`, where `i64` is the total number of transactions.\n* `500 Internal Server Error`: Indicates that an error occurred on the server while processing the request. The response body will contain a JSON object with an error message.\n\n# Example\n\n```json\n{\n\"count\": 123\n}\n```",
+        "operationId": "get_transactions_count",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the transaction count"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  }
+}

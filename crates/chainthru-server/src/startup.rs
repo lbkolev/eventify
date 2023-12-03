@@ -1,6 +1,6 @@
 use std::net::TcpListener;
 
-use actix_web::{dev::Server, web, App, HttpResponse, HttpServer};
+use actix_web::{dev::Server, web, App, HttpServer};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use utoipa::OpenApi;
 use utoipa_rapidoc::RapiDoc;
@@ -10,7 +10,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use chainthru_primitives::DatabaseSettings;
 
 use crate::{
-    api::{self, block, transaction},
+    api::{self, block, log, transaction},
     Result,
 };
 
@@ -54,7 +54,16 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
 }
 
 #[derive(OpenApi)]
-#[openapi(paths(block::get_blocks_count,))]
+#[openapi(paths(
+    // block
+    block::get_blocks_count,
+
+    // tx
+    transaction::get_transactions_count,
+
+    // log
+    log::get_logs_count
+))]
 struct ApiDoc;
 
 pub fn start(
@@ -74,7 +83,7 @@ pub fn start(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
             )
             .service(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
-            // endpoints
+            // api
             .route("/health", web::get().to(api::health))
             .service(
                 web::scope("/api").service(
@@ -82,10 +91,9 @@ pub fn start(
                         .service(web::scope("/blocks").service(block::get_blocks_count))
                         .service(
                             web::scope("/transactions")
-                                .route("/count", web::get().to(transaction::count))
-                                .route("/erc20", web::get().to(HttpResponse::NotImplemented))
-                                .route("/erc721", web::get().to(HttpResponse::NotImplemented)),
-                        ),
+                                .service(transaction::get_transactions_count),
+                        )
+                        .service(web::scope("/logs").service(api::log::get_logs_count)),
                 ),
             )
             .app_data(db_pool.clone())
