@@ -6,16 +6,8 @@ PACKAGE_NAME="chainthru-client"
 OPENAPI_PATH="crates/chainthru-server/openapi.yaml"
 CLIENT_PATH="crates/$PACKAGE_NAME"
 
-ADDITIONAL_PROPERTIES="packageName=$PACKAGE_NAME,"
-ADDITIONAL_PROPERTIES+="authors.workspace=true,"
-ADDITIONAL_PROPERTIES+="description.workspace=true,"
-ADDITIONAL_PROPERTIES+="edition.workspace=true,"
-ADDITIONAL_PROPERTIES+="homepage.workspace=true,"
-ADDITIONAL_PROPERTIES+="license.workspace=true,"
-ADDITIONAL_PROPERTIES+="version.workspace=true,"
-ADDITIONAL_PROPERTIES+="rust-version.workspace=true,"
-ADDITIONAL_PROPERTIES+="readme.workspace=true,"
-ADDITIONAL_PROPERTIES+="repository.workspace=true"
+ADDITIONAL_PROPERTIES="formatting=true,"
+ADDITIONAL_PROPERTIES+="packageName=$PACKAGE_NAME"
 
 if [ ! -f "$OPENAPI_PATH" ]; then
     echo "Error: OpenAPI spec file not found at $OPENAPI_PATH"
@@ -27,7 +19,7 @@ openapi-generator generate -g rust \
     -o "$CLIENT_PATH" \
     --skip-validate-spec \
     --generator-name rust \
-    --additional-properties=formatting=true,$ADDITIONAL_PROPERTIES \
+    --additional-properties "$ADDITIONAL_PROPERTIES" \
     --global-property=codegen.formatting=true
 
 if [ $? -eq 0 ]; then
