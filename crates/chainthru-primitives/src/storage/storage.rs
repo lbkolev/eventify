@@ -23,9 +23,3 @@ pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
 
     async fn insert_contract(&self, contract: &Contract) -> Result<()>;
 }
-
-//
-//#[async_trait]
-//pub trait Storage: 'static + Sized + Send + Sync + Debug + Deref + DerefMut {
-//    async fn insert<T: Insertable, K, V>(&self, item: &T) -> std::result::Result<K, V>;
-//}

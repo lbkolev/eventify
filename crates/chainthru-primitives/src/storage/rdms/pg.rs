@@ -357,4 +357,83 @@ mod tests {
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
+
+    #[tokio::test]
+    async fn test_insert_transaction() {
+        let (pool, db_name) = setup_test_db().await.unwrap();
+        let db = super::Postgres { inner: pool };
+
+        let json = serde_json::json!({
+            "blockHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
+            "blockNumber":"0x5daf3b",
+            "from":"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d",
+            "gas":"0xc350",
+            "gasPrice":"0x4a817c800",
+            "hash":"0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
+            "input":"0x68656c6c6f21",
+            "nonce":"0x15",
+            "to":"0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb",
+            "transactionIndex":"0x41",
+            "value":"0xf3dbb76162000",
+            "v":"0x25",
+            "r":"0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
+            "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
+        });
+
+        let tx = serde_json::from_value::<IndexedTransaction>(json).unwrap();
+        println!("{:?}", tx);
+        let _ = db.insert_transaction(&tx).await.unwrap();
+
+        teardown_test_db(db.inner, &db_name).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_insert_contract() {
+        let (pool, db_name) = setup_test_db().await.unwrap();
+        let db = super::Postgres { inner: pool };
+
+        let json = serde_json::json!({
+            "transactionHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
+            "from":"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d",
+            "input":"0x68656c6c6f21"
+        });
+
+        let tx = serde_json::from_value::<Contract>(json).unwrap();
+        println!("{:?}", tx);
+        let _ = db.insert_contract(&tx).await.unwrap();
+
+        teardown_test_db(db.inner, &db_name).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_insert_log() {
+        let (pool, db_name) = setup_test_db().await.unwrap();
+        let db = super::Postgres { inner: pool };
+
+        let json = serde_json::json!(
+            {
+            "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "topics": [
+                "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                "0x000000000000000000000000a7ca2c8673bcfa5a26d8ceec2887f2cc2b0db22a",
+                "0x00000000000000000000000006da0fd433c1a5d7a4faa01111c044910a184553"
+            ],
+            "data": "0x000000000000000000000000000000000000000000000000007c585087238000",
+            "blockHash": "0x6624f87d3435cc938de6442db45e06f23582a7eeddb5ac15126d440db03e75f4",
+            "blockNumber": "0x11d389d",
+            "transactionHash": "0x933c80c2a18cbf64ec28662991186bd340519eb6974f3d301195b82064329fc8",
+            "transactionIndex": "0xd5",
+            "logIndex": "0x200",
+            "transactionLogIndex": null,
+            "logType": null,
+            "removed": false
+            }
+        );
+
+        let log = serde_json::from_value::<IndexedLog>(json).unwrap();
+        println!("{:?}", log);
+        let _ = db.insert_log(&log).await.unwrap();
+
+        teardown_test_db(db.inner, &db_name).await.unwrap();
+    }
 }
