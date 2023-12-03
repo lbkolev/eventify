@@ -1,2 +1,1 @@
-## chainthru-index
-### <p align="center"> 🚧 work in progress 🚧<p>
+../crates/chainthru-index/README.md

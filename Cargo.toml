@@ -13,11 +13,11 @@ repository = "https://github.com/lbkolev/chainthru"
 [workspace]
 members = [
     "crates/chainthru",
+    "crates/chainthru-client"
+,
     "crates/chainthru-index",
     "crates/chainthru-primitives",
-    "crates/chainthru-server",
-    #"crates/chainthru-client"
-]
+    "crates/chainthru-server"]
 resolver = "2"
 
 [workspace.dependencies]

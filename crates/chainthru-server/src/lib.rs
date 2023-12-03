@@ -3,6 +3,7 @@
 pub mod api;
 pub mod error;
 pub mod startup;
+pub mod types;
 
 pub use error::Error;
 

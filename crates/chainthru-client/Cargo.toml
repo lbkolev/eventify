@@ -1,15 +1,10 @@
 [package]
 name = "chainthru-client"
-
-authors.workspace = true
-description.workspace = true
-edition.workspace = true
-homepage.workspace = true
-license.workspace = true
-version.workspace = true
-rust-version.workspace = true
-readme.workspace = true
-repository.workspace = true
+version = "0.0.1"
+authors = ["lachezarkolevgg@gmail.com"]
+description = "Ethereum Indexer"
+license = "MIT"
+edition = "2018"
 
 [dependencies]
 serde = "^1.0"
