@@ -6,8 +6,9 @@ use ethers_core::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
+use sqlx::prelude::FromRow;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexedLog(Log);
 

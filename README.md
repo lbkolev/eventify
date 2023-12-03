@@ -20,7 +20,7 @@
 </p>
 
 ## <p align="center"> 🚧 work in progress 🚧<p>
-Chainthru is an Ethereum ETL Indexer that aims to provide a seamless [and straightforward] way to index Ethereum blocks, transactions, and events.
+Chainthru is an Ethereum Indexer that aims to provide a seamless [and straightforward] way to index Ethereum blocks, transactions, and events.
 
 Implemented storages:
 - [x] Postgres

@@ -1,16 +1,18 @@
 use std::net::TcpListener;
 
 use actix_web::{dev::Server, web, App, HttpResponse, HttpServer};
-
 use sqlx::{postgres::PgPoolOptions, PgPool};
+use utoipa::OpenApi;
+use utoipa_rapidoc::RapiDoc;
+use utoipa_redoc::{Redoc, Servable};
+use utoipa_swagger_ui::SwaggerUi;
+
+use chainthru_primitives::DatabaseSettings;
 
 use crate::{
-    api::{
-        transaction, {self},
-    },
+    api::{self, block, transaction},
     Result,
 };
-use chainthru_primitives::DatabaseSettings;
 
 pub struct Application {
     port: u16,
@@ -51,6 +53,10 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
         .connect_lazy_with(configuration.with_db())
 }
 
+#[derive(OpenApi)]
+#[openapi(paths(block::get_blocks_count,))]
+struct ApiDoc;
+
 pub fn start(
     listener: TcpListener,
     worker_threads: usize,
@@ -58,18 +64,22 @@ pub fn start(
 ) -> std::result::Result<Server, std::io::Error> {
     let db_pool = web::Data::new(db_pool);
 
+    let openapi = ApiDoc::openapi();
+
     let server = HttpServer::new(move || {
         App::new()
+            // swagger-related
+            .service(Redoc::with_url("/redoc", openapi.clone()))
+            .service(
+                SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
+            )
+            .service(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
+            // endpoints
             .route("/health", web::get().to(api::health))
             .service(
                 web::scope("/api").service(
                     web::scope("/v1")
-                        .service(
-                            web::scope("/blocks"), //.route("/", web::get().to(block::count))
-                                                   //.route("/count", web::get().to(block::count))
-                                                   //.route("/hash/{hash}", web::get().to(HttpResponse::NotImplemented))
-                                                   //.route("/number/{number}", web::get().to(block::number)),
-                        )
+                        .service(web::scope("/blocks").service(block::get_blocks_count))
                         .service(
                             web::scope("/transactions")
                                 .route("/count", web::get().to(transaction::count))

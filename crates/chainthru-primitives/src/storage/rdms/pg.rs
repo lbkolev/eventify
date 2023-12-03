@@ -269,9 +269,9 @@ impl Storage for Postgres {
 mod tests {
     use super::*;
     use crate::storage::Storage;
-    use ethers_core::types::{Address, H256, U256, U64};
+
     use sqlx::{postgres::PgPoolOptions, Executor, Pool, Postgres};
-    use std::{convert::TryFrom, env};
+
     use uuid::Uuid;
 
     async fn setup_test_db() -> std::result::Result<(Pool<Postgres>, String), sqlx::Error> {
@@ -306,7 +306,7 @@ mod tests {
         drop(pool);
 
         let database_url = "postgres://postgres:password@localhost:5432/postgres";
-        let master_pool = PgPoolOptions::new().connect(&database_url).await?;
+        let master_pool = PgPoolOptions::new().connect(database_url).await?;
 
         sqlx::query(&format!("DROP DATABASE IF EXISTS {}", db_name))
             .execute(&master_pool)
@@ -353,7 +353,7 @@ mod tests {
 
         let block = serde_json::from_value::<IndexedBlock>(json).unwrap();
         println!("{:?}", block);
-        let _ = db.insert_block(&block).await.unwrap();
+        db.insert_block(&block).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
@@ -382,7 +382,7 @@ mod tests {
 
         let tx = serde_json::from_value::<IndexedTransaction>(json).unwrap();
         println!("{:?}", tx);
-        let _ = db.insert_transaction(&tx).await.unwrap();
+        db.insert_transaction(&tx).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
@@ -400,7 +400,7 @@ mod tests {
 
         let tx = serde_json::from_value::<Contract>(json).unwrap();
         println!("{:?}", tx);
-        let _ = db.insert_contract(&tx).await.unwrap();
+        db.insert_contract(&tx).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
@@ -432,7 +432,7 @@ mod tests {
 
         let log = serde_json::from_value::<IndexedLog>(json).unwrap();
         println!("{:?}", log);
-        let _ = db.insert_log(&log).await.unwrap();
+        db.insert_log(&log).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
