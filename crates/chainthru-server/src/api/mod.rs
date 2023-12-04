@@ -6,7 +6,6 @@ pub mod transaction;
 pub use health::health;
 
 use actix_web::{web, HttpResponse};
-
 use sqlx::{PgPool, Row};
 
 use crate::types::{CountResponse, ErrorResponse};

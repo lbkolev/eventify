@@ -24,7 +24,7 @@ echo "Starting the server..."
 cargo run -- run --server.enabled &
 
 wait_for_server
-curl "$SERVER_URL" | jq . > crates/chainthru-server/openapi.yaml
+curl --silent "$SERVER_URL" | yq --prettyPrint > crates/chainthru-server/openapi.yaml
 
 kill $(jobs -p)
 echo "OpenAPI spec has been generated and saved as YAML"

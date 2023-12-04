@@ -38,20 +38,24 @@ Include the following
 
 ## Documentation
 - ### Indexer
-    - [Introductory & Architectural](./docs/chainthru-index.md)
+    - [Introductory & Architectural](./crates/chainthru-index/README.md)
     - [Crate & functionality](https://crates.io/crates/chainthru-index)
 
 - ### HTTP-Server
-    - [Introductory & Architectural](./docs/chainthru-server.md)
+    - [Introductory & Architectural](./crates/chainthru-server/README.md)
     - [Crate & functionality](https://crates.io/crates/chainthru-server)
 
+- ### Client
+    - [Introductory & Architectural](./crates/chainthru-client/README.md)
+    - [Crate & functionality](https://crates.io/crates/chainthru-client)
+
 - ### Primitives
-    - [Introductory & Architectural](./docs/chainthru-primitives.md)
+    - [Introductory & Architectural](./crates/chainthru-primitives/README.md)
     - [Crate & functionality](https://crates.io/crates/chainthru-primitives)
 
 - ### Chainthru (binary)
-    - [Introductory & Architectural](./docs/chainthru.md)
-    - [Crate](...)
+    - [Introductory & Architectural](./crates/chainthru/README.md)
+    - [Crate](https://crates.io/crates/chainthru)
 
 - ### [Database](./docs/database.md)
 - ### [Deployment (Helm)](./docs/deploy-helm.md)

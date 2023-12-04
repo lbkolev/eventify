@@ -47,6 +47,24 @@ erDiagram
     BYTEA max_priority_fee_per_gas
 }
 
+"public.log" {
+    SERIAL id "PK"
+    BYTEA address
+    BYTEA topic0
+    BYTEA topic1
+    BYTEA topic2
+    BYTEA topic3
+    BYTEA data
+    BYTEA block_hash
+    BIGSERIAL block_number
+    BYTEA transaction_hash
+    NUMBER transaction_index
+    BYTEA transaction_log_index
+    BYTEA log_index
+    TEXT log_type
+    BOOL removed
+}
+
 "public.contract" {
     BYTEA transaction_hash
     BYTEA _from
