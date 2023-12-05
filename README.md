@@ -1,5 +1,5 @@
 # <p align="center">chainthru</p>
-<p align="center"> Index Ethereum into a Storage backend.</p>
+<p align="center"> Ethereum indexer / event-listener.</p>
 
 <p align="center">
     <a href="https://github.com/lbkolev/chainthru/blob/master/LICENSE-MIT">
@@ -20,20 +20,25 @@
 </p>
 
 ## <p align="center"> 🚧 work in progress 🚧<p>
-Chainthru is an Ethereum Indexer that aims to provide a seamless [and straightforward] way to index Ethereum blocks, transactions, and events.
+Chainthru is an Ethereum event listener and indexer designed with the following objectives in mind:
+- Offering a user-friendly means to index Ethereum blocks, transactions, and events.
+- Implementing an efficient event propagation mechanism.
+- Providing a comprehensive interface for inspecting the Ethereum mempool.
+
+
+Implemented middlewares:
+- [x] None
 
 Implemented storages:
 - [x] Postgres
 
-- [chainthru](#chainthru)
-  - [Crates](#crates)
-  - [Documentation](#documentation)
-
 ## Crates
-Include the following
+Include the following:
 - [chainthru (binary)](./chainthru/) - Provides a CLI interface implementation for the server/indexer.
 - [chainthru-index](./chainthru-index) - Holds the Indexer implementation.
 - [chainthru-server](./chainthru-server) - Exposes an HTTP server for the indexed data.
+- [chainthru-client](./chainthru-client) - Provides an OpenAPI generated client for the exposed API.
+- [chainthru-middleware](./chainthru-middleware) - Holds the traits/types necessary to implement a middleware interface.
 - [chainthru-primitives](./chainthru-primitives) - Contains types shared between the different workspace crates.
 
 ## Documentation
@@ -44,6 +49,10 @@ Include the following
 - ### HTTP-Server
     - [Introductory & Architectural](./crates/chainthru-server/README.md)
     - [Crate & functionality](https://crates.io/crates/chainthru-server)
+
+- ### Client
+    - [Introductory & Architectural](./crates/chainthru-client/README.md)
+    - [Crate & functionality](https://crates.io/crates/chainthru-client)
 
 - ### Client
     - [Introductory & Architectural](./crates/chainthru-client/README.md)

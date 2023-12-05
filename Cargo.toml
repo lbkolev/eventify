@@ -15,6 +15,7 @@ members = [
     "crates/chainthru",
     "crates/chainthru-client",
     "crates/chainthru-index",
+    "crates/chainthru-middleware",
     "crates/chainthru-primitives",
     "crates/chainthru-server"
 ]
