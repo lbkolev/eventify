@@ -12,7 +12,9 @@ readme.workspace = true
 repository.workspace = true
 
 [features]
-parallelism = ["dep:rayon"]
+default = ["multi-thread"]
+multi-thread = []
+#parallelism = ["dep:rayon"]
 
 [dependencies]
 # internal
