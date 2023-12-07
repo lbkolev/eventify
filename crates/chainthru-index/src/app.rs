@@ -3,8 +3,10 @@ use std::sync::Arc;
 use alloy_primitives::BlockNumber;
 use chainthru_primitives::{Criterias, IndexedTransaction};
 
-use ethers_core::types::{Block, BlockId, Filter, Transaction, H256};
-use ethers_providers::{Http, Ipc, JsonRpcClient, Middleware, Provider as NodeProvider, Ws};
+use ethers_core::types::{Block, BlockId, Filter, Log, Transaction, TxHash, H256};
+use ethers_providers::{
+    Http, Ipc, JsonRpcClient, Middleware, Provider as NodeProvider, SubscriptionStream, Ws,
+};
 
 use crate::Result;
 use chainthru_primitives::{
@@ -296,6 +298,32 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ipc, U> {
             ..self
         })
     }
+
+    pub async fn subscribe_block(&self) -> Result<SubscriptionStream<Ipc, Block<TxHash>>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .subscribe_blocks()
+            .await
+            .map_err(|e| crate::Error::SubscriptionNewBlock(e.to_string()))
+    }
+
+    pub async fn subscribe_logs(&self, filter: Filter) -> Result<SubscriptionStream<Ipc, Log>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .subscribe_logs(&filter)
+            .await
+            .map_err(|e| crate::Error::SubscriptionNewBlock(e.to_string()))
+    }
 }
 
 impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
@@ -337,6 +365,32 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
     /// An alias for [`with_websocket`]
     pub async fn with_ws(self, node_url: &str) -> Result<Self> {
         self.with_websocket(node_url).await
+    }
+
+    pub async fn subscribe_block(&self) -> Result<SubscriptionStream<Ws, Block<TxHash>>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .subscribe_blocks()
+            .await
+            .map_err(|e| crate::Error::SubscriptionNewBlock(e.to_string()))
+    }
+
+    pub async fn subscribe_logs(&self, filter: Filter) -> Result<SubscriptionStream<Ws, Log>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .subscribe_logs(&filter)
+            .await
+            .map_err(|e| crate::Error::SubscriptionNewLog(e.to_string()))
     }
 }
 

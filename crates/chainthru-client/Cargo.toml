@@ -1,6 +1,6 @@
 [package]
 name = "chainthru-client"
-version = "0.0.1"
+version = "0.0.0-reserved"
 authors = ["lachezarkolevgg@gmail.com"]
 description = "Ethereum Indexer"
 license = "MIT"

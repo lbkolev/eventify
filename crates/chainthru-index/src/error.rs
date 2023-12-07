@@ -24,6 +24,15 @@ pub enum Error {
     #[error("Missing transport storage")]
     MissingTransportStorage,
 
+    #[error("{0}")]
+    SubscriptionNewBlock(String),
+
+    #[error("{0}")]
+    SubscriptionNewLog(String),
+
+    #[error(transparent)]
+    JoinTask(#[from] tokio::task::JoinError),
+
     #[error(transparent)]
     ChainthruPrimitives(#[from] chainthru_primitives::Error),
 

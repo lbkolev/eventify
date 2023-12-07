@@ -1,6 +1,6 @@
 [workspace.package]
 authors = ["Chainthru contributors"]
-description = "Ethereum Indexer"
+description = "Ethereum Indexer/Event listener"
 documentation = "https://docs.rs/chainthru"
 edition = "2021"
 homepage = "https://github.com/lbkolev/chainthru"
@@ -26,6 +26,8 @@ resolver = "2"
 chainthru-primitives = { path = "./crates/chainthru-primitives", version = "0.0.1" }
 chainthru-index = { path = "./crates/chainthru-index", version = "0.0.1" }
 chainthru-server = { path = "./crates/chainthru-server", version = "0.0.1" }
+chainthru-client = { path = "./crates/chainthru-client", version = "0.0.1" }
+chainthru-middleware = { path = "./crates/chainthru-middleware", version = "0.0.1" }
 
 # async
 async-trait = "0.1.72"
