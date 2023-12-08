@@ -25,10 +25,6 @@ Chainthru is an Ethereum event listener and indexer designed with the following 
 - Implementing an efficient event propagation mechanism.
 - Providing a comprehensive interface for inspecting the Ethereum mempool.
 
-
-Implemented middlewares:
-- [x] None
-
 Implemented storages:
 - [x] Postgres
 
@@ -54,9 +50,9 @@ Include the following:
     - [Introductory & Architectural](./crates/chainthru-client/README.md)
     - [Crate & functionality](https://crates.io/crates/chainthru-client)
 
-- ### Client
-    - [Introductory & Architectural](./crates/chainthru-client/README.md)
-    - [Crate & functionality](https://crates.io/crates/chainthru-client)
+- ### Middleware
+    - [Introductory & Architectural](./crates/chainthru-middleware/README.md)
+    - [Crate & functionality](https://crates.io/crates/chainthru-middleware)
 
 - ### Primitives
     - [Introductory & Architectural](./crates/chainthru-primitives/README.md)
