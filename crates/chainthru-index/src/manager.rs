@@ -12,6 +12,7 @@ impl Manager {
     }
 }
 
+#[async_trait::async_trait]
 impl Runner for Manager {
     type Error = crate::Error;
 
@@ -26,7 +27,6 @@ impl Runner for Manager {
         Ok(())
     }
 
-    #[cfg(feature = "multi-thread")]
     async fn run_par<
         T: JsonRpcClient + Clone + Send + Sync,
         U: Storage + Auth + Clone + Send + Sync,
