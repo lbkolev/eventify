@@ -1,8 +1,6 @@
-use async_trait::async_trait;
-
 macro_rules! define_processor_trait {
     ($trait_name:ident, $fn_suffix:ident) => {
-        #[async_trait]
+        #[async_trait::async_trait]
         pub trait $trait_name: Sync + Send {
             type Error;
 

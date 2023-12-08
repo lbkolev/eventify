@@ -1,5 +1,3 @@
-#![allow(async_fn_in_trait)]
-
 use ethers_providers::JsonRpcClient;
 
 use crate::Processor;
@@ -16,6 +14,7 @@ use chainthru_primitives::{Auth, Storage};
 /// of blockchain data processing tasks, whether running sequentially or
 /// in parallel (when enabled through feature flags).
 //#[async_trait::async_trait]
+#[async_trait::async_trait]
 pub trait Runner {
     type Error;
 
