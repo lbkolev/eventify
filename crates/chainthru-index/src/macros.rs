@@ -1,5 +1,3 @@
-#![allow(async_fn_in_trait)]
-
 use async_trait::async_trait;
 
 macro_rules! define_processor_trait {
@@ -9,9 +7,9 @@ macro_rules! define_processor_trait {
             type Error;
 
             paste::item! {
-                async fn [< process_ $fn_suffix >](&self) -> std::result::Result<(), Self::Error>;
-                async fn [< stream_ $fn_suffix >](&self) -> std::result::Result<(), Self::Error>;
-                async fn [< stream_latest_ $fn_suffix >](&self) -> std::result::Result<(), Self::Error>;
+                fn [< process_ $fn_suffix >](&self) -> impl std::future::Future<Output = std::result::Result<(), Self::Error>> + Send;
+                fn [< stream_ $fn_suffix >](&self) -> impl std::future::Future<Output = std::result::Result<(), Self::Error>> + Send;
+                fn [< stream_latest_ $fn_suffix >](&self) -> impl std::future::Future<Output = std::result::Result<(), Self::Error>> + Send;
             }
         }
     };
