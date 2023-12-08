@@ -20,8 +20,8 @@ impl Contract {
         self._from
     }
 
-    pub fn input(&self) -> Bytes {
-        self.input.clone()
+    pub fn input(&self) -> &Bytes {
+        &self.input
     }
 }
 
@@ -30,7 +30,7 @@ impl From<IndexedTransaction> for Contract {
         Self {
             transaction_hash: transaction.hash(),
             _from: transaction._from(),
-            input: transaction.input(),
+            input: transaction.input().clone(),
         }
     }
 }

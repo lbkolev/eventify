@@ -11,7 +11,7 @@ use chainthru_server as server;
 use error::Error;
 
 use crate::settings::Settings;
-use indexer::app::App;
+use indexer::{app::App, Manager, Processor, Runner};
 use types::{storage::Postgres, Criterias};
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -91,26 +91,25 @@ async fn main() -> Result<()> {
                     .criterias_file()
                     .map(|file| Criterias::read_criterias_from_file(file.as_str()))
                     .transpose()?
-                    .or_else(|| settings.criterias_json())
-                    .or(None);
+                    .or_else(|| settings.criterias_json());
 
                 match Url::parse(&settings.node_url)?.scheme() {
                     "http" | "https" => {
                         handles.push(tokio::spawn(
-                            indexer::run::<Http, Postgres>(
+                            Manager::run_par::<Http, Postgres>(Processor::new(
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
                                     .with_storage(settings.database_url())
                                     .with_http(settings.node_url())?,
                                 criterias,
-                            )
+                            ))
                             .map_err(Error::from),
                         ));
                     }
                     "ws" | "wss" => {
                         handles.push(tokio::spawn(
-                            indexer::run::<Ws, Postgres>(
+                            Manager::run_par::<Ws, Postgres>(Processor::new(
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
@@ -118,13 +117,13 @@ async fn main() -> Result<()> {
                                     .with_websocket(settings.node_url())
                                     .await?,
                                 criterias,
-                            )
+                            ))
                             .map_err(Error::from),
                         ));
                     }
                     "ipc" => {
                         handles.push(tokio::spawn(
-                            indexer::run::<Ipc, Postgres>(
+                            Manager::run_par::<Ipc, Postgres>(Processor::new(
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
@@ -132,7 +131,7 @@ async fn main() -> Result<()> {
                                     .with_ipc(settings.node_url())
                                     .await?,
                                 criterias,
-                            )
+                            ))
                             .map_err(Error::from),
                         ));
                     }

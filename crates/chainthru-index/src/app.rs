@@ -3,8 +3,10 @@ use std::sync::Arc;
 use alloy_primitives::BlockNumber;
 use chainthru_primitives::{Criterias, IndexedTransaction};
 
-use ethers_core::types::{Block, BlockId, Filter, Transaction, H256};
-use ethers_providers::{Http, Ipc, JsonRpcClient, Middleware, Provider as NodeProvider, Ws};
+use ethers_core::types::{Block, BlockId, Filter, Log, Transaction, TxHash, H256};
+use ethers_providers::{
+    Http, Ipc, JsonRpcClient, Middleware, Provider as NodeProvider, SubscriptionStream, Ws,
+};
 
 use crate::Result;
 use chainthru_primitives::{
@@ -147,7 +149,14 @@ where
     /// # Returns
     /// Returns a `Result` containing a vector of logs on success, or an error if the logs
     /// cannot be fetched or if the transport node is unavailable.
-    pub async fn fetch_logs(&self, criterias: &Criterias) -> Result<Vec<ethers_core::types::Log>> {
+    // TODO:
+    // Improve the exposed API; it doesn't make much sense to require a block to fetch logs from,
+    // when we've already defined src & dst blocks in the type itself
+    pub async fn fetch_logs(
+        &self,
+        criterias: &Criterias,
+        block: BlockNumber,
+    ) -> Result<Vec<ethers_core::types::Log>> {
         let transport_node = self
             .inner
             .transport_node
@@ -158,12 +167,13 @@ where
         for criterias in criterias.0.iter() {
             log::info!("Fetching logs for criteria: {}", criterias.name());
             let ir: Filter = criterias.into();
-            let filter: Filter = ir.from_block(self.src_block).to_block(self.src_block);
+            let filter: Filter = ir.from_block(block).to_block(block);
 
             resp.extend(
-                transport_node.get_logs(&filter).await.map_err(|e| {
-                    crate::Error::FetchEvent(format!("Failed to fetch logs: {}", e))
-                })?,
+                transport_node
+                    .get_logs(&filter)
+                    .await
+                    .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?,
             );
         }
 
@@ -296,6 +306,32 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ipc, U> {
             ..self
         })
     }
+
+    pub async fn subscribe_blocks(&self) -> Result<SubscriptionStream<Ipc, Block<TxHash>>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .subscribe_blocks()
+            .await
+            .map_err(|e| crate::Error::SubscriptionNewBlock(e.to_string()))
+    }
+
+    pub async fn subscribe_logs(&self, filter: Filter) -> Result<SubscriptionStream<Ipc, Log>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .subscribe_logs(&filter)
+            .await
+            .map_err(|e| crate::Error::SubscriptionNewBlock(e.to_string()))
+    }
 }
 
 impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
@@ -337,6 +373,32 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
     /// An alias for [`with_websocket`]
     pub async fn with_ws(self, node_url: &str) -> Result<Self> {
         self.with_websocket(node_url).await
+    }
+
+    pub async fn subscribe_blocks(&self) -> Result<SubscriptionStream<Ws, Block<TxHash>>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .subscribe_blocks()
+            .await
+            .map_err(|e| crate::Error::SubscriptionNewBlock(e.to_string()))
+    }
+
+    pub async fn subscribe_logs(&self, filter: Filter) -> Result<SubscriptionStream<Ws, Log>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or_else(|| crate::Error::MissingTransportNode)?;
+
+        transport_node
+            .subscribe_logs(&filter)
+            .await
+            .map_err(|e| crate::Error::SubscriptionNewLog(e.to_string()))
     }
 }
 

@@ -4,7 +4,7 @@ pub enum Error {
     FetchBlock(String),
 
     #[error("Fetching events failed {0}")]
-    FetchEvent(String),
+    FetchLog(String),
 
     #[error("Missing transport node")]
     MissingTransportNode,
@@ -23,6 +23,15 @@ pub enum Error {
 
     #[error("Missing transport storage")]
     MissingTransportStorage,
+
+    #[error("{0}")]
+    SubscriptionNewBlock(String),
+
+    #[error("{0}")]
+    SubscriptionNewLog(String),
+
+    #[error(transparent)]
+    JoinTask(#[from] tokio::task::JoinError),
 
     #[error(transparent)]
     ChainthruPrimitives(#[from] chainthru_primitives::Error),
