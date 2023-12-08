@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![allow(async_fn_in_trait)]
 
 pub mod app;
 pub mod error;

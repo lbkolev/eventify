@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use ethers_providers::JsonRpcClient;
 
 use crate::{App, BlockProcessor, LogProcessor, Result};
@@ -66,6 +67,7 @@ where
     }
 }
 
+#[async_trait]
 impl<T, U> BlockProcessor for Processor<T, U>
 where
     T: JsonRpcClient + Clone + 'static,
@@ -115,6 +117,7 @@ where
     }
 }
 
+#[async_trait]
 impl<T, U> LogProcessor for Processor<T, U>
 where
     T: JsonRpcClient + Clone + 'static,
