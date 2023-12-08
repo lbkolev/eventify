@@ -24,9 +24,9 @@ pub trait Runner {
     /// This method is responsible for iterating over blockchain blocks,
     /// processing logs, and handling data storage. It should be implemented
     /// to perform these operations sequentially.
-    async fn run<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync>(
+    fn run<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync>(
         app: Processor<T, U>,
-    ) -> std::result::Result<(), Self::Error>;
+    ) -> impl std::future::Future<Output = std::result::Result<(), Self::Error>> + Send;
 
     /// Executes defined operations in a multi-threaded environment.
     ///
@@ -37,10 +37,7 @@ pub trait Runner {
     /// This method is only available when compiled with the `multi-thread`
     /// feature flag enabled.
     #[cfg(feature = "multi-thread")]
-    async fn run_par<
-        T: JsonRpcClient + Clone + Send + Sync,
-        U: Storage + Auth + Clone + Send + Sync,
-    >(
+    fn run_par<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync>(
         app: Processor<T, U>,
-    ) -> std::result::Result<(), Self::Error>;
+    ) -> impl std::future::Future<Output = std::result::Result<(), Self::Error>> + Send;
 }
