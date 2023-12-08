@@ -431,7 +431,7 @@ mod tests {
         );
 
         let log = serde_json::from_value::<IndexedLog>(json).unwrap();
-        println!("{:?}", log);
+        println!("{:#?}", log);
         db.insert_log(&log).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();

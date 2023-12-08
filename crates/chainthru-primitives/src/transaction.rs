@@ -53,8 +53,8 @@ impl IndexedTransaction {
         self.0.gas
     }
 
-    pub fn input(&self) -> Bytes {
-        self.0.input.clone()
+    pub fn input(&self) -> &Bytes {
+        &self.0.input
     }
 
     pub fn v(&self) -> U64 {

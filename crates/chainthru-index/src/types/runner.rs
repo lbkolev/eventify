@@ -1,3 +1,5 @@
+#![allow(async_fn_in_trait)]
+
 use ethers_providers::JsonRpcClient;
 
 use crate::Processor;
@@ -13,6 +15,7 @@ use chainthru_primitives::{Auth, Storage};
 /// This trait is particularly useful for managing the execution flow
 /// of blockchain data processing tasks, whether running sequentially or
 /// in parallel (when enabled through feature flags).
+//#[async_trait::async_trait]
 pub trait Runner {
     type Error;
 
@@ -33,6 +36,7 @@ pub trait Runner {
     ///
     /// This method is only available when compiled with the `multi-thread`
     /// feature flag enabled.
+    #[cfg(feature = "multi-thread")]
     async fn run_par<
         T: JsonRpcClient + Clone + Send + Sync,
         U: Storage + Auth + Clone + Send + Sync,

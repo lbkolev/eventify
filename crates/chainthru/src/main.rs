@@ -91,8 +91,7 @@ async fn main() -> Result<()> {
                     .criterias_file()
                     .map(|file| Criterias::read_criterias_from_file(file.as_str()))
                     .transpose()?
-                    .or_else(|| settings.criterias_json())
-                    .or(None);
+                    .or_else(|| settings.criterias_json());
 
                 match Url::parse(&settings.node_url)?.scheme() {
                     "http" | "https" => {

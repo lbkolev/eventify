@@ -4,7 +4,7 @@ pub enum Error {
     FetchBlock(String),
 
     #[error("Fetching events failed {0}")]
-    FetchEvent(String),
+    FetchLog(String),
 
     #[error("Missing transport node")]
     MissingTransportNode,

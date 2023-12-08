@@ -170,9 +170,10 @@ where
             let filter: Filter = ir.from_block(block).to_block(block);
 
             resp.extend(
-                transport_node.get_logs(&filter).await.map_err(|e| {
-                    crate::Error::FetchEvent(format!("Failed to fetch logs: {}", e))
-                })?,
+                transport_node
+                    .get_logs(&filter)
+                    .await
+                    .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?,
             );
         }
 

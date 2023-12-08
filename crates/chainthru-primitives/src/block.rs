@@ -56,8 +56,8 @@ impl IndexedBlock {
         self.0.gas_limit
     }
 
-    pub fn extra_data(&self) -> Bytes {
-        self.0.extra_data.clone()
+    pub fn extra_data(&self) -> &Bytes {
+        &self.0.extra_data
     }
 
     pub fn logs_bloom(&self) -> Option<Bloom> {
@@ -76,12 +76,12 @@ impl IndexedBlock {
         self.0.total_difficulty
     }
 
-    pub fn seal_fields(&self) -> Vec<Bytes> {
-        self.0.seal_fields.clone()
+    pub fn seal_fields(&self) -> &Vec<Bytes> {
+        &self.0.seal_fields
     }
 
-    pub fn uncles(&self) -> Vec<H256> {
-        self.0.uncles.clone()
+    pub fn uncles(&self) -> &Vec<H256> {
+        &self.0.uncles
     }
 
     pub fn size(&self) -> Option<U256> {
@@ -112,8 +112,8 @@ impl IndexedBlock {
         self.0.withdrawals_root
     }
 
-    pub fn withdrawals(&self) -> Option<Vec<Withdrawal>> {
-        self.0.withdrawals.clone()
+    pub fn withdrawals(&self) -> &Option<Vec<Withdrawal>> {
+        &self.0.withdrawals
     }
 }
 

@@ -1,9 +1,9 @@
 use ethers_providers::JsonRpcClient;
-use tokio::task::JoinHandle;
 
-use crate::{App, BlockProcessor, LogProcessor, Processor, Result, Runner};
-use chainthru_primitives::{Auth, Criterias, Storage};
+use crate::{BlockProcessor, LogProcessor, Processor, Result, Runner};
+use chainthru_primitives::{Auth, Storage};
 
+#[derive(Debug, Clone, Default)]
 pub struct Manager;
 
 impl Manager {
@@ -19,9 +19,11 @@ impl Runner for Manager {
         T: JsonRpcClient + Clone + Send + Sync,
         U: Storage + Auth + Clone + Send + Sync,
     >(
-        app: Processor<T, U>,
+        processor: Processor<T, U>,
     ) -> std::result::Result<(), Self::Error> {
-        todo!()
+        processor.process_all_serial().await?;
+
+        Ok(())
     }
 
     #[cfg(feature = "multi-thread")]
@@ -29,10 +31,10 @@ impl Runner for Manager {
         T: JsonRpcClient + Clone + Send + Sync,
         U: Storage + Auth + Clone + Send + Sync,
     >(
-        app: Processor<T, U>,
+        processor: Processor<T, U>,
     ) -> Result<()> {
-        let block_processor = app.clone();
-        let log_processor = app.clone();
+        let block_processor = processor.clone();
+        let log_processor = processor.clone();
 
         let handles = vec![
             tokio::spawn(async move { log_processor.process_logs().await }),

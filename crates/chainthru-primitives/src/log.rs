@@ -23,12 +23,12 @@ impl IndexedLog {
         self.0.address
     }
 
-    pub fn topics(&self) -> Vec<H256> {
-        self.0.topics.clone()
+    pub fn topics(&self) -> &Vec<H256> {
+        &self.0.topics
     }
 
-    pub fn data(&self) -> Bytes {
-        self.0.data.clone()
+    pub fn data(&self) -> &Bytes {
+        &self.0.data
     }
 
     pub fn block_hash(&self) -> Option<H256> {
