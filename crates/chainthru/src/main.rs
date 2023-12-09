@@ -11,7 +11,7 @@ use chainthru_server as server;
 use error::Error;
 
 use crate::settings::Settings;
-use indexer::{app::App, Manager, Processor, Runner};
+use indexer::{app::App, Collector, Manager, Runner};
 use types::{storage::Postgres, Criterias};
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -96,7 +96,7 @@ async fn main() -> Result<()> {
                 match Url::parse(&settings.node_url)?.scheme() {
                     "http" | "https" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<Http, Postgres>(Processor::new(
+                            Manager::run_par::<Http, Postgres>(Collector::new(
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
@@ -109,7 +109,7 @@ async fn main() -> Result<()> {
                     }
                     "ws" | "wss" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<Ws, Postgres>(Processor::new(
+                            Manager::run_par::<Ws, Postgres>(Collector::new(
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())
@@ -123,7 +123,7 @@ async fn main() -> Result<()> {
                     }
                     "ipc" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<Ipc, Postgres>(Processor::new(
+                            Manager::run_par::<Ipc, Postgres>(Collector::new(
                                 App::default()
                                     .with_src_block(settings.src_block())
                                     .with_dst_block(settings.dst_block())

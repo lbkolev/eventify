@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use ethers_providers::JsonRpcClient;
 
-use crate::Processor;
+use crate::Collector;
 use chainthru_primitives::{Auth, Storage};
 
 /// A trait for executing blockchain-related operations.
@@ -25,8 +25,8 @@ pub trait Runner {
     /// processing logs, and handling data storage. It should be implemented
     /// to perform these operations sequentially.
     async fn run<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync>(
-        processor: Processor<T, U>,
-    ) -> std::result::Result<(), Self::Error>;
+        processor: Collector<T, U>,
+    ) -> Result<(), Self::Error>;
 
     /// Executes defined operations in a multi-threaded environment.
     ///
@@ -41,6 +41,6 @@ pub trait Runner {
         T: JsonRpcClient + Clone + Send + Sync,
         U: Storage + Auth + Clone + Send + Sync,
     >(
-        processor: Processor<T, U>,
-    ) -> std::result::Result<(), Self::Error>;
+        processor: Collector<T, U>,
+    ) -> Result<(), Self::Error>;
 }

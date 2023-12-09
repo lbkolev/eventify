@@ -113,7 +113,7 @@ where
         self.inner
             .transport_storage
             .as_ref()
-            .map(|arc_storage| arc_storage.as_ref()) // Dereference Arc<U> to get &U
+            .map(|arc_storage| arc_storage.as_ref())
             .ok_or(crate::Error::MissingTransportStorage)
     }
 
@@ -125,7 +125,7 @@ where
     /// # Returns
     /// Returns a `Result` containing the block details on success, or an error if the block
     /// cannot be fetched or if the transport node is unavailable.
-    pub async fn fetch_block(&self, block: BlockId) -> Result<Block<Transaction>> {
+    pub async fn fetch_block_with_txs(&self, block: BlockId) -> Result<Block<Transaction>> {
         let transport_node = self
             .inner
             .transport_node
@@ -134,6 +134,25 @@ where
 
         let block_result = transport_node
             .get_block_with_txs(block)
+            .await
+            .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
+            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?;
+
+        Ok(block_result)
+    }
+
+    /// Retrieves block details for a given block ID.
+    ///
+    /// This function does not return transaction objects.
+    pub async fn fetch_block(&self, block: BlockId) -> Result<Block<TxHash>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or(crate::Error::MissingTransportNode)?;
+
+        let block_result = transport_node
+            .get_block(block)
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
             .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?;
@@ -180,6 +199,25 @@ where
         Ok(resp)
     }
 
+    /// Fetches transactions for a specified block number.
+    pub async fn fetch_transactions(&self, block: BlockNumber) -> Result<Vec<Transaction>> {
+        let transport_node = self
+            .inner
+            .transport_node
+            .as_ref()
+            .ok_or(crate::Error::MissingTransportNode)?;
+
+        let block = transport_node
+            .get_block_with_txs(BlockId::Number(ethers_core::types::BlockNumber::Number(
+                block.into(),
+            )))
+            .await
+            .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
+            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?;
+
+        Ok(block.transactions)
+    }
+
     /// Fetches indexed block and transaction objects for a specified block number.
     ///
     /// # Arguments
@@ -193,7 +231,7 @@ where
         block: BlockNumber,
     ) -> Result<(IndexedBlock, Vec<IndexedTransaction>)> {
         let fetched_block = self
-            .fetch_block(BlockId::Number(ethers_core::types::BlockNumber::Number(
+            .fetch_block_with_txs(BlockId::Number(ethers_core::types::BlockNumber::Number(
                 block.into(),
             )))
             .await?;

@@ -1,7 +1,7 @@
 use ethers_providers::JsonRpcClient;
 
-use crate::{BlockProcessor, LogProcessor, Processor, Result, Runner};
-use chainthru_primitives::{Auth, Storage};
+use crate::{Collector, Process, Result, Runner};
+use chainthru_primitives::{Auth, IndexedBlock, IndexedLog, Storage};
 
 #[derive(Debug, Clone, Default)]
 pub struct Manager;
@@ -20,7 +20,7 @@ impl Runner for Manager {
         T: JsonRpcClient + Clone + Send + Sync,
         U: Storage + Auth + Clone + Send + Sync,
     >(
-        processor: Processor<T, U>,
+        processor: Collector<T, U>,
     ) -> std::result::Result<(), Self::Error> {
         processor.process_all_serial().await?;
 
@@ -31,14 +31,18 @@ impl Runner for Manager {
         T: JsonRpcClient + Clone + Send + Sync,
         U: Storage + Auth + Clone + Send + Sync,
     >(
-        processor: Processor<T, U>,
+        processor: Collector<T, U>,
     ) -> Result<()> {
         let block_processor = processor.clone();
         let log_processor = processor.clone();
 
         let handles = vec![
-            tokio::spawn(async move { log_processor.process_logs().await }),
-            tokio::spawn(async move { block_processor.process_blocks().await }),
+            tokio::spawn(async move {
+                <Collector<T, U> as Process<IndexedLog>>::process(&log_processor).await
+            }),
+            tokio::spawn(async move {
+                <Collector<T, U> as Process<IndexedBlock>>::process(&block_processor).await
+            }),
         ];
 
         futures::future::join_all(handles).await;
