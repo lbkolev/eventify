@@ -1,9 +1,9 @@
 ## Database
-The Database is referenced by both [The indexer](../chainthru-index/), as well as the [HTTP-Server](../chainthru-server/).
+The Database is referenced by both [The indexer](../eventify-idx/), as well as the [HTTP-Server](../eventify-http-server/).
 
-Generally, there are two different ways of using `chainthru`
+Generally, there are two different ways of using `eventify`
 - with both Indexer & Server running simultaneously on different threads.
-- with either `chainthru-index` or `chainthru-server` one of them running (e.g it might be desirable to decouple responsibilities in case the server receives high traffic, so as to avoid unnecessary service interruptions/slowdowns).
+- with either `eventify-idx` or `eventify-http-server` one of them running (e.g it might be desirable to decouple responsibilities in case the server receives high traffic, so as to avoid unnecessary service interruptions/slowdowns).
 
 ## Postgres - schema
 ```mermaid

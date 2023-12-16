@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "chainthru.fullname" . }}
+  name: {{ include "eventify.fullname" . }}
   labels:
-    {{- include "chainthru.labels" . | nindent 4 }}
+    {{- include "eventify.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "chainthru.selectorLabels" . | nindent 6 }}
+      {{- include "eventify.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -16,13 +16,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "chainthru.selectorLabels" . | nindent 8 }}
+        {{- include "eventify.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "chainthru.serviceAccountName" . }}
+      serviceAccountName: {{ include "eventify.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -32,17 +32,17 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            - name: CHAINTHRU_NODE_URL
+            - name: eventify_NODE_URL
               value: {{ .Values.nodeUrl }}
-            - name: CHAINTHRU_DATABASE_URL
+            - name: eventify_DATABASE_URL
               value: {{ .Values.databaseJDBC }}
-            - name: CHAINTHRU_FROM_BLOCK
+            - name: eventify_FROM_BLOCK
               value: {{ .Values.startBlock }}
-            - name: CHAINTHRU_TO_BLOCK
+            - name: eventify_TO_BLOCK
               value: {{ .Values.endBlock }}
             - name: RUST_LOG
               value: {{ .Values.logLevel }}
-          command: ["./chainthru", "--server.disabled"]
+          command: ["./eventify", "--server.disabled"]
           args: {{ .Values.additionalArguments }}
           livenessProbe:
             exec:
@@ -55,7 +55,7 @@ spec:
             exec:
               command:
                 - pgrep
-                - chainthru
+                - eventify
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

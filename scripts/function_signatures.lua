@@ -2,7 +2,7 @@
 Function calls in the Ethereum Virtual Machine are specified by the first four bytes of data sent with a transaction.
 These 4-byte signatures are defined as the first four bytes of the Keccak hash (SHA3) of the canonical representation of the function signature.
 
-Fetch all submitted/well-known Function Signatures from the public database https://4byte.directory & save them in a csv that'll be imported during the initial execution of the chainthru binary (or db_init).
+Fetch all submitted/well-known Function Signatures from the public database https://4byte.directory & save them in a csv that'll be imported during the initial execution of the eventify binary (or db_init).
 ]]
 
 function script_directory()

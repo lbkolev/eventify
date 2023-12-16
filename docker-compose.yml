@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${POSTGRES_DB:-chainthru}
+      POSTGRES_DB: ${POSTGRES_DB:-eventify}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -20,7 +20,7 @@ services:
     networks:
       - default
 
-  chainthru:
+  eventify:
     depends_on:
       - postgres
     build:
@@ -28,14 +28,14 @@ services:
       dockerfile: ./Dockerfile
       args:
         BUILD_PROFILE: dev
-    container_name: chainthru
+    container_name: eventify
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-chainthru}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-eventify}
     ports:
       - "6969:6969"
     entrypoint:
       [
-        "/app/chainthru",
+        "/app/eventify",
         "run",
         "--indexer.enabled",
         "--server.enabled",

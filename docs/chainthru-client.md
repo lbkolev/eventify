@@ -1,1 +1,0 @@
-../crates/chainthru-client/README.md

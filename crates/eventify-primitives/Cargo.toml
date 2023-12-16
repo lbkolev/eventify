@@ -1,0 +1,40 @@
+[package]
+name = "eventify-primitives"
+
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+version.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+[dependencies]
+# async
+async-trait.workspace = true
+tokio.workspace = true
+
+# core
+serde.workspace = true
+serde-aux.workspace = true
+serde_json.workspace = true
+
+# eth
+alloy-primitives.workspace = true
+ethers-core.workspace = true
+
+# auxiliary
+clap.workspace = true
+log.workspace = true
+secrecy.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+url.workspace = true
+utoipa.workspace = true
+
+[dev-dependencies]
+dotenv = "0.15.0"
+uuid.workspace = true

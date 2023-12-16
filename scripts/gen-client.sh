@@ -2,8 +2,8 @@
 
 # generates the openapi client from the openapi spec
 
-PACKAGE_NAME="chainthru-client"
-OPENAPI_PATH="crates/chainthru-server/openapi.yaml"
+PACKAGE_NAME="eventify-http-client"
+OPENAPI_PATH="crates/eventify-http-server/openapi.yaml"
 CLIENT_PATH="crates/$PACKAGE_NAME"
 
 ADDITIONAL_PROPERTIES="formatting=true,"

@@ -1,0 +1,46 @@
+[package]
+name = "eventify-http-server"
+
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+version.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+[dependencies]
+# internal
+eventify-primitives.workspace = true
+
+# core
+actix-web = "4.3.1"
+sqlx.workspace = true
+
+utoipa.workspace = true
+utoipa-swagger-ui = { version = "5.0.0", features = ["actix-web"] }
+utoipa-rapidoc = { version = "2.0.0", features = ["actix-web"] }
+utoipa-redoc = { version = "2.0.0", features = ["actix-web"] }
+
+serde = { workspace = true, features = ["derive"]}
+serde-aux.workspace = true
+serde_json.workspace = true
+serde_derive.workspace = true
+
+# async
+tokio.workspace = true
+futures.workspace = true
+
+# auxiliary
+thiserror.workspace = true
+num_cpus.workspace = true
+secrecy.workspace = true
+uuid.workspace = true
+log.workspace = true
+reqwest = "0.11.18"
+
+[dev-dependencies]
+mockito = "1.2.0"

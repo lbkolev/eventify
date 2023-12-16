@@ -1,1 +1,0 @@
-../crates/chainthru-index/README.md

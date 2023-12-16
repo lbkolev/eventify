@@ -1,9 +1,9 @@
-# Default values for chainthru-index.
+# Default values for eventify-idx.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 image:
-  name: "ghcr.io/lbkolev/chainthru"
+  name: "ghcr.io/lbkolev/eventify"
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   # @default - AppVersion
@@ -27,7 +27,7 @@ serviceAccount:
 nodeUrl: "https://eth.llamarpc.com"
 
 # -- The Database JDBC connection string
-databaseJDBC: "postgres://postgres:password@localhost:5432/chainthru"
+databaseJDBC: "postgres://postgres:password@localhost:5432/eventify"
 
 # -- The log level to use: Trace, Debug, Info, Warn, Error
 # @default - INFO
@@ -52,7 +52,7 @@ indexer:
   endBlock: 999999999
 
 # -- A list of potential additional arguments.
-# Passed directly to the chainthru-indexer
+# Passed directly to the eventify-idxer
 # and take precedence over environment variables
 additionalArguments: []
 

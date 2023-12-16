@@ -8,6 +8,6 @@ The chart is responsible for both:
 
 ### Installation
 ```
-$ helm upgrade --install chainthru chart/ \
+$ helm upgrade --install eventify chart/ \
   --namespace `namespace_name` --create-namespace
 ```

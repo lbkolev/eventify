@@ -1,33 +1,33 @@
 [workspace.package]
-authors = ["Chainthru contributors"]
+authors = ["eventify contributors"]
 description = "Ethereum Indexer/Event listener"
-documentation = "https://docs.rs/chainthru"
+documentation = "https://docs.rs/eventify"
 edition = "2021"
-homepage = "https://github.com/lbkolev/chainthru"
+homepage = "https://github.com/lbkolev/eventify"
 license = "MIT OR Apache-2.0"
 version = "0.0.1"
 rust-version = "1.73.0"
 readme = "README.md"
-repository = "https://github.com/lbkolev/chainthru"
+repository = "https://github.com/lbkolev/eventify"
 
 [workspace]
 members = [
-    "crates/chainthru",
-    "crates/chainthru-client",
-    "crates/chainthru-index",
-    "crates/chainthru-middleware",
-    "crates/chainthru-primitives",
-    "crates/chainthru-server"
-]
+    "crates/eventify",
+    "crates/eventify-http-client",
+    "crates/eventify-http-server"
+,
+    "crates/eventify-idx",
+    "crates/eventify-middleware",
+    "crates/eventify-primitives"]
 resolver = "2"
 
 [workspace.dependencies]
 # internal
-chainthru-primitives = { path = "./crates/chainthru-primitives", version = "0.0.1" }
-chainthru-index = { path = "./crates/chainthru-index", version = "0.0.1" }
-chainthru-server = { path = "./crates/chainthru-server", version = "0.0.1" }
-chainthru-client = { path = "./crates/chainthru-client", version = "0.0.1" }
-chainthru-middleware = { path = "./crates/chainthru-middleware", version = "0.0.1" }
+eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1" }
+eventify-idx = { path = "./crates/eventify-idx", version = "0.0.1" }
+eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
+eventify-client = { path = "./crates/eventify-http-client", version = "0.0.1" }
+eventify-middleware = { path = "./crates/eventify-middleware", version = "0.0.1" }
 
 # async
 async-trait = "0.1.72"

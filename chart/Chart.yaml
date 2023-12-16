@@ -1,6 +1,6 @@
 apiVersion: v2
-name: chainthru
-description: A Helm chart for Chainthru Indexer & Server
+name: eventify
+description: A Helm chart for eventify Indexer & Server
 
 # A chart can be either an 'application' or a 'library' chart.
 #

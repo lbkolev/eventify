@@ -1,1 +1,0 @@
-../crates/chainthru-primitives/README.md

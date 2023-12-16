@@ -2,7 +2,7 @@
 FROM lukemathwalker/cargo-chef:latest-rust-1.73.0 as chef
 WORKDIR /app
 
-LABEL org.opencontainers.image.source="https://github.com/lbkolev/chainthru"
+LABEL org.opencontainers.image.source="https://github.com/lbkolev/eventify"
 LABEL org.opencontainers.image.licenses="MIT OR Apache-2.0"
 #----
 
@@ -30,13 +30,13 @@ RUN cargo chef cook --profile=$BUILD_PROFILE --recipe-path recipe.json
 
 # Build our project
 COPY . .
-RUN cargo build --profile=$BUILD_PROFILE --locked --bin chainthru
+RUN cargo build --profile=$BUILD_PROFILE --locked --bin eventify
 
 # Determine the correct target directory
 RUN if [ "$BUILD_PROFILE" = "dev" ]; then \
-        cp /app/target/debug/chainthru /app/chainthru; \
+        cp /app/target/debug/eventify /app/eventify; \
     else \
-        cp /app/target/$BUILD_PROFILE/chainthru /app/chainthru; \
+        cp /app/target/$BUILD_PROFILE/eventify /app/eventify; \
     fi
 #----
 
@@ -45,12 +45,12 @@ FROM ubuntu AS runtime
 WORKDIR /app
 
 # Copy the binary from the build stage
-COPY --from=builder /app/chainthru /app
+COPY --from=builder /app/eventify /app
 COPY ./migrations/ /app/migrations
 
 # Copy licenses
 COPY LICENSE-* ./
 
 EXPOSE 6969
-ENTRYPOINT ["/app/chainthru"]
+ENTRYPOINT ["/app/eventify"]
 #----

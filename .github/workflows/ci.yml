@@ -11,7 +11,7 @@ env:
   CARGO_TERM_COLOR: always
   SQLX_VERSION: 0.7.0
   SQLX_FEATURES: "rustls,postgres"
-  DATABASE_URL: "postgres://postgres:password@localhost:5432/chainthru"
+  DATABASE_URL: "postgres://postgres:password@localhost:5432/eventify"
 
 jobs:
   pre-commit:
