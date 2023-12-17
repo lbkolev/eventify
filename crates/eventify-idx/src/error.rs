@@ -34,7 +34,7 @@ pub enum Error {
     JoinTask(#[from] tokio::task::JoinError),
 
     #[error(transparent)]
-    eventifyPrimitives(#[from] eventify_primitives::Error),
+    EventifyPrimitives(#[from] eventify_primitives::Error),
 
     #[error(transparent)]
     Sql(#[from] sqlx::Error),

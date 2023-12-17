@@ -1,10 +1,8 @@
-use async_trait::async_trait;
-
 /// The `Process` trait defines asynchronous operations for processing different types of data.
 /// It's generic over a type `T`, allowing flexibility in the type of data being processed.
 ///
 /// This trait is ideal for scenarios where data needs to be processed, streamed, or monitored in real-time.
-#[async_trait]
+#[async_trait::async_trait]
 pub trait Process<T> {
     type Error;
 

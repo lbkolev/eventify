@@ -1,6 +1,6 @@
 use ethers_providers::JsonRpcClient;
 
-use crate::{Collector, Process, Result, Runner};
+use crate::{types::provider::NodeProvider, Collector, Process, Result, Runner};
 use eventify_primitives::{Auth, IndexedBlock, IndexedLog, Storage};
 
 #[derive(Debug, Clone, Default)]
@@ -16,10 +16,7 @@ impl Manager {
 impl Runner for Manager {
     type Error = crate::Error;
 
-    async fn run<
-        T: JsonRpcClient + Clone + Send + Sync,
-        U: Storage + Auth + Clone + Send + Sync,
-    >(
+    async fn run<T: NodeProvider + JsonRpcClient + 'static, U: Storage>(
         processor: Collector<T, U>,
     ) -> std::result::Result<(), Self::Error> {
         processor.process_all_serial().await?;
@@ -27,10 +24,7 @@ impl Runner for Manager {
         Ok(())
     }
 
-    async fn run_par<
-        T: JsonRpcClient + Clone + Send + Sync,
-        U: Storage + Auth + Clone + Send + Sync,
-    >(
+    async fn run_par<T: NodeProvider + JsonRpcClient + 'static, U: Storage>(
         processor: Collector<T, U>,
     ) -> Result<()> {
         let block_processor = processor.clone();

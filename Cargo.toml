@@ -6,7 +6,7 @@ edition = "2021"
 homepage = "https://github.com/lbkolev/eventify"
 license = "MIT OR Apache-2.0"
 version = "0.0.1"
-rust-version = "1.73.0"
+rust-version = "1.74.0"
 readme = "README.md"
 repository = "https://github.com/lbkolev/eventify"
 
@@ -14,11 +14,11 @@ repository = "https://github.com/lbkolev/eventify"
 members = [
     "crates/eventify",
     "crates/eventify-http-client",
-    "crates/eventify-http-server"
-,
+    "crates/eventify-http-server",
     "crates/eventify-idx",
     "crates/eventify-middleware",
-    "crates/eventify-primitives"]
+    "crates/eventify-primitives"
+]
 resolver = "2"
 
 [workspace.dependencies]

@@ -1,5 +1,5 @@
 [package]
-name = "eventify"
+name = "eventify-cli"
 
 authors.workspace = true
 description.workspace = true

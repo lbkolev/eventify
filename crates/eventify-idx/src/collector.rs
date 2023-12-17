@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use ethers_providers::JsonRpcClient;
 
-use crate::{App, Process, Result};
+use crate::{types::provider::NodeProvider, App, Process, Result};
 use eventify_primitives::{Auth, Criterias, IndexedBlock, IndexedLog, Storage};
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Collector<T, U>
 where
-    T: JsonRpcClient + Clone + 'static,
-    U: Storage + Auth + Clone + 'static,
+    T: NodeProvider + JsonRpcClient,
+    U: Storage,
 {
     app: App<T, U>,
     criterias: Option<Criterias>,
@@ -16,8 +16,8 @@ where
 
 impl<T, U> Collector<T, U>
 where
-    T: JsonRpcClient + Clone + 'static,
-    U: Storage + Auth + Clone + 'static,
+    T: NodeProvider + JsonRpcClient,
+    U: Storage,
 {
     pub fn new(app: App<T, U>, criterias: Option<Criterias>) -> Self {
         Self { app, criterias }
@@ -70,8 +70,8 @@ where
 #[async_trait]
 impl<T, U> Process<IndexedBlock> for Collector<T, U>
 where
-    T: JsonRpcClient + Clone + 'static,
-    U: Storage + Auth + Clone + 'static,
+    T: NodeProvider + JsonRpcClient + Clone + 'static,
+    U: Storage,
 {
     type Error = crate::Error;
 
@@ -120,8 +120,8 @@ where
 #[async_trait]
 impl<T, U> Process<IndexedLog> for Collector<T, U>
 where
-    T: JsonRpcClient + Clone + 'static,
-    U: Storage + Auth + Clone + 'static,
+    T: NodeProvider + JsonRpcClient + Clone + 'static,
+    U: Storage,
 {
     type Error = crate::Error;
 

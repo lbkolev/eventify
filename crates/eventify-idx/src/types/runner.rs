@@ -1,8 +1,9 @@
-use async_trait::async_trait;
 use ethers_providers::JsonRpcClient;
 
 use crate::Collector;
-use eventify_primitives::{Auth, Storage};
+use eventify_primitives::Storage;
+
+use super::provider::NodeProvider;
 
 /// A trait for executing blockchain-related operations.
 ///
@@ -14,8 +15,7 @@ use eventify_primitives::{Auth, Storage};
 /// This trait is particularly useful for managing the execution flow
 /// of blockchain data processing tasks, whether running sequentially or
 /// in parallel (when enabled through feature flags).
-//#[async_trait::async_trait]
-#[async_trait]
+#[async_trait::async_trait]
 pub trait Runner {
     type Error;
 
@@ -24,7 +24,7 @@ pub trait Runner {
     /// This method is responsible for iterating over blockchain blocks,
     /// processing logs, and handling data storage. It should be implemented
     /// to perform these operations sequentially.
-    async fn run<T: JsonRpcClient + Clone + Send + Sync, U: Storage + Auth + Clone + Send + Sync>(
+    async fn run<T: NodeProvider + JsonRpcClient + 'static, U: Storage>(
         processor: Collector<T, U>,
     ) -> Result<(), Self::Error>;
 
@@ -37,10 +37,7 @@ pub trait Runner {
     /// This method is only available when compiled with the `multi-thread`
     /// feature flag enabled.
     #[cfg(feature = "multi-thread")]
-    async fn run_par<
-        T: JsonRpcClient + Clone + Send + Sync,
-        U: Storage + Auth + Clone + Send + Sync,
-    >(
+    async fn run_par<T: NodeProvider + JsonRpcClient + 'static, U: Storage>(
         processor: Collector<T, U>,
     ) -> Result<(), Self::Error>;
 }

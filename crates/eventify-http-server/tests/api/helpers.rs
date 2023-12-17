@@ -15,8 +15,8 @@ pub async fn spawn_app() -> TestApp {
     // Randomise configuration to ensure test isolation
     let configuration = {
         //let mut c = get_configuration().expect("Failed to read configuration.");
-        let mut c = eventify_server::Settings {
-            application: eventify_server::ApplicationSettings {
+        let mut c = eventify_http_server::Settings {
+            application: eventify_http_server::ApplicationSettings {
                 host: String::from("localhost"),
                 port: 0,
                 worker_threads: 1,
@@ -43,7 +43,7 @@ pub async fn spawn_app() -> TestApp {
     configure_database(&configuration.database).await;
 
     // Launch the application as a background task
-    let application = eventify_server::startup::Application::build(configuration.clone())
+    let application = eventify_http_server::startup::Application::build(configuration.clone())
         .await
         .expect("Failed to build application.");
     let application_port = application.port();
@@ -52,7 +52,7 @@ pub async fn spawn_app() -> TestApp {
     TestApp {
         address: format!("http://localhost:{}", application_port),
         port: application_port,
-        db_pool: eventify_server::startup::get_connection_pool(&configuration.database),
+        db_pool: eventify_http_server::startup::get_connection_pool(&configuration.database),
     }
 }
 

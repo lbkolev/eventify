@@ -5,10 +5,10 @@ use eventify_primitives::{Criterias, IndexedTransaction};
 
 use ethers_core::types::{Block, BlockId, Filter, Log, Transaction, TxHash, H256};
 use ethers_providers::{
-    Http, Ipc, JsonRpcClient, Middleware, Provider as NodeProvider, SubscriptionStream, Ws,
+    Http, Ipc, JsonRpcClient, Middleware, Provider as ETHProvider, SubscriptionStream, Ws,
 };
 
-use crate::Result;
+use crate::{types::provider::NodeProvider, Result};
 use eventify_primitives::{
     block::IndexedBlock,
     storage::{Auth, Storage},
@@ -24,8 +24,8 @@ use eventify_primitives::{
 #[derive(Clone, Debug)]
 pub struct App<T, U>
 where
-    T: JsonRpcClient + Clone + Send + Sync,
-    U: Storage + Auth + Clone + Send + Sync,
+    T: NodeProvider,
+    U: Storage,
 {
     inner: Providers<T, U>,
 
@@ -38,8 +38,8 @@ where
 
 impl<T, U> Default for App<T, U>
 where
-    T: JsonRpcClient + Clone + Send + Sync,
-    U: Storage + Auth + Clone + Send + Sync,
+    T: NodeProvider,
+    U: Storage,
 {
     /// Creates a new `App` instance with default values.
     ///
@@ -56,12 +56,12 @@ where
 
 impl<T, U> App<T, U>
 where
-    T: JsonRpcClient + Clone + Send + Sync,
-    U: Storage + Auth + Clone + Send + Sync,
+    T: NodeProvider  + JsonRpcClient,
+    U: Storage,
 {
     /// Create a new instance of the indexer
     pub fn new(
-        transport_node: Option<NodeProvider<T>>,
+        transport_node: Option<ETHProvider<T>>,
         transport_storage: Option<U>,
         src_block: BlockNumber,
         dst_block: BlockNumber,
@@ -84,7 +84,7 @@ where
         Self { dst_block, ..self }
     }
 
-    pub fn with_node_conn(self, transport: NodeProvider<T>) -> Self {
+    pub fn with_node_conn(self, transport: ETHProvider<T>) -> Self {
         Self {
             inner: Providers::new(Some(Arc::new(transport)), self.inner.transport_storage),
             ..self
@@ -278,7 +278,7 @@ where
     }
 }
 
-impl<U: Storage + Auth + Clone + Send + Sync> App<Http, U> {
+impl<U: Storage> App<Http, U> {
     /// Configures the application to use an HTTP transport node.
     ///
     /// # Example
@@ -302,7 +302,7 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Http, U> {
         let parsed_url = url::Url::parse(node_url)
             .map_err(|e| crate::Error::UrlParseError(node_url.to_string(), e.to_string()))?;
 
-        let http_transport = NodeProvider::new(Http::new(parsed_url));
+        let http_transport = ETHProvider::new(Http::new(parsed_url));
 
         Ok(Self {
             inner: Providers::new(Some(Arc::new(http_transport)), self.inner.transport_storage),
@@ -311,7 +311,7 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Http, U> {
     }
 }
 
-impl<U: Storage + Auth + Clone + Send + Sync> App<Ipc, U> {
+impl<U: Storage> App<Ipc, U> {
     /// Creates a new instance of the App with the IPC transport.
     ///
     /// # Example
@@ -338,7 +338,7 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ipc, U> {
 
         Ok(Self {
             inner: Providers::new(
-                Some(Arc::new(NodeProvider::new(ipc_transport))),
+                Some(Arc::new(ETHProvider::new(ipc_transport))),
                 self.inner.transport_storage,
             ),
             ..self
@@ -372,7 +372,7 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ipc, U> {
     }
 }
 
-impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
+impl<U: Storage> App<Ws, U> {
     /// Creates a new instance of the App with the WebSocket transport.
     ///
     /// # Example
@@ -399,7 +399,7 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
 
         Ok(Self {
             inner: Providers::new(
-                Some(Arc::new(NodeProvider::new(ws_transport))),
+                Some(Arc::new(ETHProvider::new(ws_transport))),
                 self.inner.transport_storage,
             ),
             ..self
@@ -443,17 +443,17 @@ impl<U: Storage + Auth + Clone + Send + Sync> App<Ws, U> {
 #[derive(Clone, Debug)]
 struct Providers<T, U>
 where
-    T: JsonRpcClient + Clone + Send + Sync,
-    U: Storage + Auth + Clone + Send + Sync,
+    T: NodeProvider ,
+    U: Storage,
 {
-    transport_node: Option<Arc<NodeProvider<T>>>,
+    transport_node: Option<Arc<ETHProvider<T>>>,
     transport_storage: Option<Arc<U>>,
 }
 
 impl<T, U> Default for Providers<T, U>
 where
-    T: JsonRpcClient + Clone + Send + Sync,
-    U: Storage + Auth + Clone + Send + Sync,
+    T: NodeProvider ,
+    U: Storage,
 {
     fn default() -> Self {
         Self {
@@ -465,10 +465,10 @@ where
 
 impl<T, U> Providers<T, U>
 where
-    T: JsonRpcClient + Clone + Send + Sync,
-    U: Storage + Auth + Clone + Send + Sync,
+    T: NodeProvider ,
+    U: Storage,
 {
-    pub fn new(node: Option<Arc<NodeProvider<T>>>, db: Option<Arc<U>>) -> Self {
+    pub fn new(node: Option<Arc<ETHProvider<T>>>, db: Option<Arc<U>>) -> Self {
         Self {
             transport_node: node,
             transport_storage: db,

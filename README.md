@@ -1,5 +1,5 @@
 # <p align="center">eventify</p>
-<p align="center"> Onchain Indexer / Event listener.</p>
+<p align="center"> Onchain Indexer / Event listener</p>
 
 <p align="center">
     <a href="https://github.com/lbkolev/eventify/blob/master/LICENSE-MIT">
@@ -30,12 +30,12 @@ Implemented storages:
 
 ## Crates
 Include the following:
-- [eventify (binary)](./eventify/) - Provides a CLI interface implementation for the server/indexer.
-- [eventify-idx](./eventify-idx) - Holds the Indexer implementation.
-- [eventify-http-server](./eventify-http-server) - Exposes an HTTP server for the indexed data.
-- [eventify-http-client](./eventify-http-client) - Provides an OpenAPI generated client for the exposed API.
-- [eventify-middleware](./eventify-middleware) - Holds the traits/types necessary to implement a middleware interface.
-- [eventify-primitives](./eventify-primitives) - Contains types shared between the different workspace crates.
+- [eventify (binary)](./crates/eventify/) - Provides a CLI interface implementation for the server/indexer.
+- [eventify-idx](./crates/eventify-idx) - Holds the Indexer implementation.
+- [eventify-http-server](./crates/eventify-http-server) - Exposes an HTTP server for the indexed data.
+- [eventify-http-client](.crates//eventify-http-client) - Provides an OpenAPI generated client for the exposed API.
+- [eventify-middleware](./crates/eventify-middleware) - Holds the traits/types necessary to implement a middleware interface.
+- [eventify-primitives](./crates/eventify-primitives) - Contains types shared between the different workspace crates.
 
 ## Documentation
 - ### Indexer

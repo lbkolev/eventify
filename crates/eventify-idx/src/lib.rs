@@ -3,7 +3,10 @@
 pub mod app;
 pub mod collector;
 pub mod error;
+pub mod macros;
 pub mod manager;
+pub mod provider;
+pub mod providers;
 pub mod types;
 
 pub use app::App;
@@ -16,6 +19,6 @@ pub use types::{process::Process, runner::Runner};
 type Result<T> = std::result::Result<T, error::Error>;
 
 #[derive(Debug)]
-pub enum SupportedChains {
+pub enum Chain {
     Ethereum,
 }

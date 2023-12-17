@@ -13,9 +13,20 @@ readme.workspace = true
 repository.workspace = true
 
 [features]
-default = ["multi-thread"]
+default = [
+    "multi-thread",
+    "eth",
+    "http",
+]
 multi-thread = []
-#parallelism = ["dep:rayon"]
+
+# chain
+eth = []
+
+# provider
+http = []
+ws = []
+ipc = []
 
 [dependencies]
 # internal
