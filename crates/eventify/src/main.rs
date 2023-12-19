@@ -1,4 +1,6 @@
 #![doc = include_str!("../README.md")]
+#![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
+#![deny(unused_must_use, rust_2018_idioms)]
 
 //----
 pub mod error;
@@ -16,7 +18,7 @@ use indexer::{
     types::provider::NodeProvider,
     Collector, Manager, Run,
 };
-use types::{storage::Postgres, Criterias};
+use types::{config::ServerConfig, storage::Postgres, Criterias};
 
 pub type Result<T> = std::result::Result<T, Error>;
 //----
@@ -82,9 +84,8 @@ async fn main() -> Result<()> {
             let mut handles = vec![];
 
             if settings.server_enabled() {
-                let server_settings = server::Settings::from(settings.clone());
                 handles.push(tokio::spawn(
-                    server::run(server_settings).map_err(Error::from),
+                    server::run(ServerConfig::from(settings.clone())).map_err(Error::from),
                 ));
             }
 

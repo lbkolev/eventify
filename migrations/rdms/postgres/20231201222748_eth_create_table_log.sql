@@ -1,5 +1,4 @@
--- Add migration script here
-CREATE TABLE public.log (
+CREATE TABLE eth.log (
     id SERIAL,
     address BYTEA NOT NULL,
     topic0 BYTEA,

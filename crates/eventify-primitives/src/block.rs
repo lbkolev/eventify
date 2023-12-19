@@ -1,126 +1,73 @@
-use ethers_core::types::{
-    Block, Bloom, Bytes, Transaction, Withdrawal, H160, H256, H64, U256, U64,
-};
+use ethers_core::types::{Bloom, Bytes, Withdrawal, H160, H256, H64, U256, U64};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct IndexedBlock(Block<Transaction>);
-
-impl From<Block<Transaction>> for IndexedBlock {
-    fn from(block: Block<Transaction>) -> Self {
-        Self(block)
-    }
+pub struct Block {
+    pub hash: Option<H256>,
+    pub parent_hash: H256,
+    pub uncles_hash: H256,
+    pub author: Option<H160>,
+    pub state_root: H256,
+    pub transactions_root: H256,
+    pub receipts_root: H256,
+    pub number: Option<U64>,
+    pub gas_used: U256,
+    pub gas_limit: U256,
+    pub extra_data: Bytes,
+    pub logs_bloom: Option<Bloom>,
+    pub timestamp: U256,
+    pub difficulty: U256,
+    pub total_difficulty: Option<U256>,
+    pub seal_fields: Vec<Bytes>,
+    pub uncles: Vec<H256>,
+    pub size: Option<U256>,
+    pub mix_hash: Option<H256>,
+    pub nonce: Option<H64>,
+    pub base_fee_per_gas: Option<U256>,
+    pub blob_gas_used: Option<U256>,
+    pub excess_blob_gas: Option<U256>,
+    pub withdrawals_root: Option<H256>,
+    pub withdrawals: Option<Vec<Withdrawal>>,
 }
 
-impl IndexedBlock {
-    pub fn hash(&self) -> Option<H256> {
-        self.0.hash
-    }
-
-    pub fn parent_hash(&self) -> H256 {
-        self.0.parent_hash
-    }
-
-    pub fn uncles_hash(&self) -> H256 {
-        self.0.uncles_hash
-    }
-
-    pub fn author(&self) -> Option<H160> {
-        self.0.author
-    }
-
-    pub fn state_root(&self) -> H256 {
-        self.0.state_root
-    }
-
-    pub fn transactions_root(&self) -> H256 {
-        self.0.transactions_root
-    }
-
-    pub fn receipts_root(&self) -> H256 {
-        self.0.receipts_root
-    }
-
-    pub fn number(&self) -> Option<U64> {
-        self.0.number
-    }
-
-    pub fn gas_used(&self) -> U256 {
-        self.0.gas_used
-    }
-
-    pub fn gas_limit(&self) -> U256 {
-        self.0.gas_limit
-    }
-
-    pub fn extra_data(&self) -> &Bytes {
-        &self.0.extra_data
-    }
-
-    pub fn logs_bloom(&self) -> Option<Bloom> {
-        self.0.logs_bloom
-    }
-
-    pub fn timestamp(&self) -> U256 {
-        self.0.timestamp
-    }
-
-    pub fn difficulty(&self) -> U256 {
-        self.0.difficulty
-    }
-
-    pub fn total_difficulty(&self) -> Option<U256> {
-        self.0.total_difficulty
-    }
-
-    pub fn seal_fields(&self) -> &Vec<Bytes> {
-        &self.0.seal_fields
-    }
-
-    pub fn uncles(&self) -> &Vec<H256> {
-        &self.0.uncles
-    }
-
-    pub fn size(&self) -> Option<U256> {
-        self.0.size
-    }
-
-    pub fn mix_hash(&self) -> Option<H256> {
-        self.0.mix_hash
-    }
-
-    pub fn nonce(&self) -> Option<H64> {
-        self.0.nonce
-    }
-
-    pub fn base_fee_per_gas(&self) -> Option<U256> {
-        self.0.base_fee_per_gas
-    }
-
-    pub fn blob_gas_used(&self) -> Option<U256> {
-        self.0.blob_gas_used
-    }
-
-    pub fn excess_blob_gas(&self) -> Option<U256> {
-        self.0.excess_blob_gas
-    }
-
-    pub fn withdrawals_root(&self) -> Option<H256> {
-        self.0.withdrawals_root
-    }
-
-    pub fn withdrawals(&self) -> &Option<Vec<Withdrawal>> {
-        &self.0.withdrawals
+impl From<crate::ETHBlock<crate::ETHTransaction>> for Block {
+    fn from(block: crate::ETHBlock<crate::ETHTransaction>) -> Self {
+        Self {
+            hash: block.hash,
+            parent_hash: block.parent_hash,
+            uncles_hash: block.uncles_hash,
+            author: block.author,
+            state_root: block.state_root,
+            transactions_root: block.transactions_root,
+            receipts_root: block.receipts_root,
+            number: block.number,
+            gas_used: block.gas_used,
+            gas_limit: block.gas_limit,
+            extra_data: block.extra_data,
+            logs_bloom: block.logs_bloom,
+            timestamp: block.timestamp,
+            difficulty: block.difficulty,
+            total_difficulty: block.total_difficulty,
+            seal_fields: block.seal_fields,
+            uncles: block.uncles,
+            size: block.size,
+            mix_hash: block.mix_hash,
+            nonce: block.nonce,
+            base_fee_per_gas: block.base_fee_per_gas,
+            blob_gas_used: block.blob_gas_used,
+            excess_blob_gas: block.excess_blob_gas,
+            withdrawals_root: block.withdrawals_root,
+            withdrawals: block.withdrawals,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-
-    use super::IndexedBlock;
+    use super::Block;
 
     #[test]
     fn deserialize_block() {
@@ -131,6 +78,7 @@ mod tests {
             "number": "0x1b4",
             "hash": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
             "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
+            "unclesHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
             "mixHash": "0x1010101010101010101010101010101010101010101010101010101010101010",
             "nonce": "0x0000000000000000",
             "sealFields": [
@@ -155,13 +103,13 @@ mod tests {
           }
         );
 
-        serde_json::from_value::<IndexedBlock>(json).unwrap();
+        serde_json::from_value::<Block>(json).unwrap();
     }
 
     #[test]
     fn deserialize_empty_block() {
         let json = serde_json::json!({});
 
-        serde_json::from_value::<IndexedBlock>(json).unwrap();
+        assert!(serde_json::from_value::<Block>(json).is_err());
     }
 }

@@ -2,13 +2,12 @@
 
 use std::ops::{Deref, DerefMut};
 
-use sqlx::{pool::PoolOptions, Pool};
-
 use ethers_core::types::{H64, U64};
+use sqlx::{pool::PoolOptions, Pool};
 
 use crate::{
     storage::{Auth, Storage},
-    Contract, Error, IndexedBlock, IndexedLog, IndexedTransaction, Result,
+    Block, Contract, Error, Log, Result, Transaction,
 };
 
 #[derive(Debug, Clone)]
@@ -66,9 +65,9 @@ impl Auth for Postgres {
 
 #[async_trait::async_trait]
 impl Storage for Postgres {
-    async fn store_block(&self, block: &IndexedBlock) -> Result<()> {
-        println!("Inserting block: [{:?}]", block.hash());
-        let sql = "INSERT INTO public.block (
+    async fn store_block(&self, block: &Block) -> Result<()> {
+        println!("Inserting block: [{:?}]", block.hash);
+        let sql = r#"INSERT INTO eth.block (
             hash,
             parent_hash,
             uncles_hash,
@@ -86,63 +85,63 @@ impl Storage for Postgres {
             nonce
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-            ) ON CONFLICT DO NOTHING";
+            ) ON CONFLICT DO NOTHING"#;
 
         let mut gas_used_slice = [0u8; 32];
-        block.gas_used().to_big_endian(&mut gas_used_slice);
+        block.gas_used.to_big_endian(&mut gas_used_slice);
 
         let mut gas_limit_slice = [0u8; 32];
-        block.gas_limit().to_big_endian(&mut gas_limit_slice);
+        block.gas_limit.to_big_endian(&mut gas_limit_slice);
 
         let mut base_fee_per_gas_slice = [0u8; 32];
         block
-            .base_fee_per_gas()
+            .base_fee_per_gas
             .map(|v| v.to_big_endian(&mut base_fee_per_gas_slice));
 
         let mut difficulty_slice = [0u8; 32];
-        block.difficulty().to_big_endian(&mut difficulty_slice);
+        block.difficulty.to_big_endian(&mut difficulty_slice);
 
         let mut total_difficulty_slice = [0u8; 32];
         block
-            .total_difficulty()
+            .total_difficulty
             .map(|v| v.to_big_endian(&mut total_difficulty_slice));
 
         let mut size_slice = [0u8; 32];
-        block.size().map(|v| v.to_big_endian(&mut size_slice));
+        block.size.map(|v| v.to_big_endian(&mut size_slice));
 
         sqlx::query(sql)
-            .bind(block.hash().as_ref().map(|h| h.as_bytes()))
-            .bind(block.parent_hash().as_ref())
-            .bind(block.uncles_hash().as_ref())
-            .bind(block.author().as_ref().map(|h| h.as_bytes()))
-            .bind(block.state_root().as_ref())
-            .bind(block.transactions_root().as_ref())
-            .bind(block.receipts_root().as_ref())
-            .bind(block.number().unwrap_or(U64::zero()).as_u64() as i32)
+            .bind(block.hash.as_ref().map(|h| h.as_bytes()))
+            .bind(block.parent_hash.as_ref())
+            .bind(block.uncles_hash.as_ref())
+            .bind(block.author.as_ref().map(|h| h.as_bytes()))
+            .bind(block.state_root.as_ref())
+            .bind(block.transactions_root.as_ref())
+            .bind(block.receipts_root.as_ref())
+            .bind(block.number.unwrap_or(U64::zero()).as_u64() as i32)
             .bind(gas_used_slice)
             .bind(gas_limit_slice)
             .bind(base_fee_per_gas_slice)
             .bind(difficulty_slice)
             .bind(total_difficulty_slice)
             .bind(size_slice)
-            .bind(block.nonce().unwrap_or(H64::zero()).as_bytes())
+            .bind(block.nonce.unwrap_or(H64::zero()).as_bytes())
             .execute(&self.inner)
             .await?;
 
-        log::info!("Inserted block: [{:?}]", block.hash());
-        println!("Inserted block: [{:?}]", block.hash());
+        log::info!("Inserted block: [{:?}]", block.hash);
+        println!("Inserted block: [{:?}]", block.hash);
         Ok(())
     }
 
-    async fn store_transaction(&self, tx: &IndexedTransaction) -> Result<()> {
-        let sql = "INSERT INTO public.transaction (
+    async fn store_transaction(&self, tx: &Transaction) -> Result<()> {
+        let sql = r#"INSERT INTO eth.transaction (
             hash,
             nonce,
             block_hash,
             block_number,
             transaction_index,
-            _from,
-            _to,
+            "from",
+            "to",
             value,
             gas_price,
             gas,
@@ -153,82 +152,81 @@ impl Storage for Postgres {
             max_priority_fee_per_gas
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
-            ) ON CONFLICT DO NOTHING";
+            ) ON CONFLICT DO NOTHING"#;
 
         let mut nonce_slice = [0u8; 32];
-        tx.nonce().to_big_endian(&mut nonce_slice);
+        tx.nonce.to_big_endian(&mut nonce_slice);
 
         let mut value_slice = [0u8; 32];
-        tx.value().to_big_endian(&mut value_slice);
+        tx.value.to_big_endian(&mut value_slice);
 
         let mut gas_price_slice = [0u8; 32];
-        tx.gas_price()
-            .map(|v| v.to_big_endian(&mut gas_price_slice));
+        tx.gas_price.map(|v| v.to_big_endian(&mut gas_price_slice));
 
         let mut gas_slice = [0u8; 32];
-        tx.gas().to_big_endian(&mut gas_slice);
+        tx.gas.to_big_endian(&mut gas_slice);
 
         let mut r_slice = [0u8; 32];
-        tx.r().to_big_endian(&mut r_slice);
+        tx.r.to_big_endian(&mut r_slice);
 
         let mut s_slice = [0u8; 32];
-        tx.s().to_big_endian(&mut s_slice);
+        tx.s.to_big_endian(&mut s_slice);
 
         let mut max_fee_per_gas_slice = [0u8; 32];
-        tx.max_fee_per_gas()
+        tx.max_fee_per_gas
             .map(|v| v.to_big_endian(&mut max_fee_per_gas_slice));
 
         let mut max_priority_fee_per_gas_slice = [0u8; 32];
-        tx.max_priority_fee_per_gas()
+        tx.max_priority_fee_per_gas
             .map(|v| v.to_big_endian(&mut max_priority_fee_per_gas_slice));
 
         sqlx::query(sql)
-            .bind(tx.hash().as_bytes())
+            .bind(tx.hash.as_bytes())
             .bind(nonce_slice)
-            .bind(tx.block_hash().as_ref().map(|h| h.as_bytes()))
-            .bind(tx.block_number().map(|v| v.as_u64() as i32))
-            .bind(tx.transaction_index().map(|v| v.as_u64() as i32))
-            .bind(tx._from().as_ref())
-            .bind(tx.to().as_ref().map(|x| x.as_bytes()))
+            .bind(tx.block_hash.as_ref().map(|h| h.as_bytes()))
+            .bind(tx.block_number.map(|v| v.as_u64() as i32))
+            .bind(tx.transaction_index.map(|v| v.as_u64() as i32))
+            .bind(tx.from.as_ref())
+            .bind(tx.to.as_ref().map(|x| x.as_bytes()))
             .bind(value_slice)
             .bind(gas_price_slice)
             .bind(gas_slice)
-            .bind(tx.input().0.as_ref())
-            .bind(tx.v().as_u64() as i32)
+            .bind(tx.input.0.as_ref())
+            .bind(tx.v.as_u64() as i32)
             .bind(r_slice)
             .bind(s_slice)
-            .bind(tx.transaction_type().map(|v| v.as_u64() as i32))
+            .bind(tx.transaction_type.map(|v| v.as_u64() as i32))
             .bind(max_fee_per_gas_slice)
             .bind(max_priority_fee_per_gas_slice)
             .execute(&self.inner)
             .await?;
 
-        log::debug!("Inserted transaction: [{:?}]", tx.hash());
+        log::debug!("Inserted transaction: [{:?}]", tx.hash);
         Ok(())
     }
 
     async fn store_contract(&self, tx: &Contract) -> Result<()> {
-        let sql = "INSERT INTO public.contract (
+        let sql = r#"INSERT INTO eth.contract (
             transaction_hash,
-            _from,
+            "from",
             input
             ) VALUES (
                 $1, $2, $3
-            ) ON CONFLICT DO NOTHING";
+            ) ON CONFLICT DO NOTHING"#;
 
         sqlx::query(sql)
-            .bind(tx.transaction_hash().as_bytes())
-            .bind(tx._from().as_ref())
-            .bind(tx.input().0.as_ref())
+            .bind(tx.transaction_hash.as_bytes())
+            .bind(tx.from.as_ref())
+            .bind(tx.input.0.as_ref())
             .execute(&self.inner)
             .await?;
 
-        log::debug!("Inserted contract [{:?}]", tx.transaction_hash());
+        log::debug!("Inserted contract [{:?}]", tx.transaction_hash);
         Ok(())
     }
 
-    async fn store_log(&self, log: &IndexedLog) -> Result<()> {
-        let sql = "INSERT INTO public.log (
+    async fn store_log(&self, log: &Log) -> Result<()> {
+        let sql = r#"INSERT INTO eth.log (
             address,
             topic0,
             topic1,
@@ -245,31 +243,30 @@ impl Storage for Postgres {
             removed
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-            ) ON CONFLICT DO NOTHING";
+            ) ON CONFLICT DO NOTHING"#;
 
         let mut transaction_log_index_slice = [0u8; 32];
-        log.transaction_log_index()
+        log.transaction_log_index
             .map(|v| v.to_big_endian(&mut transaction_log_index_slice));
 
         let mut log_index_slice = [0u8; 32];
-        log.log_index()
-            .map(|v| v.to_big_endian(&mut log_index_slice));
+        log.log_index.map(|v| v.to_big_endian(&mut log_index_slice));
 
         sqlx::query(sql)
-            .bind(log.address().as_ref())
-            .bind(log.topics().first().map(|h| h.as_bytes()))
-            .bind(log.topics().get(1).map(|h| h.as_bytes()))
-            .bind(log.topics().get(2).map(|h| h.as_bytes()))
-            .bind(log.topics().get(3).map(|h| h.as_bytes()))
-            .bind(log.data().0.as_ref())
-            .bind(log.block_hash().as_ref().map(|h| h.as_bytes()))
-            .bind(log.block_number().map(|v| v.as_u64() as i32))
-            .bind(log.transaction_hash().as_ref().map(|h| h.as_bytes()))
-            .bind(log.transaction_index().map(|v| v.as_u64() as i32))
+            .bind(log.address.as_ref())
+            .bind(log.topics.first().map(|h| h.as_bytes()))
+            .bind(log.topics.get(1).map(|h| h.as_bytes()))
+            .bind(log.topics.get(2).map(|h| h.as_bytes()))
+            .bind(log.topics.get(3).map(|h| h.as_bytes()))
+            .bind(log.data.0.as_ref())
+            .bind(log.block_hash.as_ref().map(|h| h.as_bytes()))
+            .bind(log.block_number.map(|v| v.as_u64() as i32))
+            .bind(log.transaction_hash.as_ref().map(|h| h.as_bytes()))
+            .bind(log.transaction_index.map(|v| v.as_u64() as i32))
             .bind(transaction_log_index_slice)
             .bind(log_index_slice)
-            .bind(log.log_type())
-            .bind(log.removed())
+            .bind(log.log_type.as_ref())
+            .bind(log.removed)
             .execute(&self.inner)
             .await?;
 
@@ -288,7 +285,6 @@ mod tests {
 
     async fn setup_test_db() -> std::result::Result<(Pool<Postgres>, String), sqlx::Error> {
         dotenv::dotenv().ok();
-        //let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         let db_url = "postgres://postgres:password@localhost:5432/";
         let master_pool = PgPoolOptions::new()
             .connect(&format!("{}postgres", db_url))
@@ -339,6 +335,7 @@ mod tests {
             "number": "0x1b4",
             "hash": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
             "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
+            "unclesHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
             "mixHash": "0x1010101010101010101010101010101010101010101010101010101010101010",
             "nonce": "0x0000000000000000",
             "sealFields": [
@@ -363,7 +360,7 @@ mod tests {
           }
         );
 
-        let block = serde_json::from_value::<IndexedBlock>(json).unwrap();
+        let block = serde_json::from_value::<Block>(json).unwrap();
         println!("{:?}", block);
         db.store_block(&block).await.unwrap();
 
@@ -392,7 +389,7 @@ mod tests {
             "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
         });
 
-        let tx = serde_json::from_value::<IndexedTransaction>(json).unwrap();
+        let tx = serde_json::from_value::<Transaction>(json).unwrap();
         println!("{:?}", tx);
         db.store_transaction(&tx).await.unwrap();
 
@@ -442,7 +439,7 @@ mod tests {
             }
         );
 
-        let log = serde_json::from_value::<IndexedLog>(json).unwrap();
+        let log = serde_json::from_value::<Log>(json).unwrap();
         println!("{:#?}", log);
         db.store_log(&log).await.unwrap();
 

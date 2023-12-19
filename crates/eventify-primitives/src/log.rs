@@ -1,7 +1,7 @@
 use std::{fs, str::FromStr};
 
 use ethers_core::{
-    types::{Address, Bytes, Filter, Log, ValueOrArray, H256, U256, U64},
+    types::{Address, Bytes, Filter, ValueOrArray, H256, U256, U64},
     utils::keccak256,
 };
 use serde::{Deserialize, Serialize};
@@ -10,57 +10,35 @@ use sqlx::prelude::FromRow;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, FromRow)]
 #[serde(rename_all = "camelCase")]
-pub struct IndexedLog(Log);
-
-impl From<Log> for IndexedLog {
-    fn from(log: Log) -> Self {
-        Self(log)
-    }
+pub struct Log {
+    pub address: Address,
+    pub topics: Vec<H256>,
+    pub data: Bytes,
+    pub block_hash: Option<H256>,
+    pub block_number: Option<U64>,
+    pub transaction_hash: Option<H256>,
+    pub transaction_index: Option<U64>,
+    pub transaction_log_index: Option<U256>,
+    pub log_index: Option<U256>,
+    pub log_type: Option<String>,
+    pub removed: Option<bool>,
 }
 
-impl IndexedLog {
-    pub fn address(&self) -> Address {
-        self.0.address
-    }
-
-    pub fn topics(&self) -> &Vec<H256> {
-        &self.0.topics
-    }
-
-    pub fn data(&self) -> &Bytes {
-        &self.0.data
-    }
-
-    pub fn block_hash(&self) -> Option<H256> {
-        self.0.block_hash
-    }
-
-    pub fn block_number(&self) -> Option<U64> {
-        self.0.block_number
-    }
-
-    pub fn transaction_hash(&self) -> Option<H256> {
-        self.0.transaction_hash
-    }
-
-    pub fn transaction_index(&self) -> Option<U64> {
-        self.0.transaction_index
-    }
-
-    pub fn transaction_log_index(&self) -> Option<U256> {
-        self.0.transaction_log_index
-    }
-
-    pub fn log_index(&self) -> Option<U256> {
-        self.0.log_index
-    }
-
-    pub fn log_type(&self) -> Option<&String> {
-        self.0.log_type.as_ref()
-    }
-
-    pub fn removed(&self) -> Option<bool> {
-        self.0.removed
+impl From<crate::ETHLog> for Log {
+    fn from(log: crate::ETHLog) -> Self {
+        Self {
+            address: log.address,
+            topics: log.topics,
+            data: log.data,
+            block_hash: log.block_hash,
+            block_number: log.block_number,
+            transaction_hash: log.transaction_hash,
+            transaction_index: log.transaction_index,
+            transaction_log_index: log.transaction_log_index,
+            log_index: log.log_index,
+            log_type: log.log_type,
+            removed: log.removed,
+        }
     }
 }
 
@@ -184,7 +162,14 @@ mod tests {
             }
         );
 
-        serde_json::from_value::<IndexedLog>(json).unwrap();
+        serde_json::from_value::<Log>(json).unwrap();
+    }
+
+    #[test]
+    fn test_deserialize_empty_log() {
+        let json = serde_json::json!({});
+
+        assert!(serde_json::from_value::<Log>(json).is_err());
     }
 
     //#[test]

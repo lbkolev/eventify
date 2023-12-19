@@ -15,7 +15,7 @@ pub async fn get_count<'a>(
     table_name: &'a str,
     description: &'a str,
 ) -> Result<HttpResponse, HttpResponse> {
-    let sql_query = format!("SELECT COUNT(*) FROM public.{}", table_name);
+    let sql_query = format!("SELECT COUNT(*) FROM eth.{}", table_name);
     let result = sqlx::query(&sql_query).fetch_one(conn.as_ref()).await;
 
     match result {

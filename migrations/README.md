@@ -1,15 +1,18 @@
 ## Database
+
 The Database is referenced by both [The indexer](../eventify-idx/), as well as the [HTTP-Server](../eventify-http-server/).
 
 Generally, there are two different ways of using `eventify`
+
 - with both Indexer & Server running simultaneously on different threads.
 - with either `eventify-idx` or `eventify-http-server` one of them running (e.g it might be desirable to decouple responsibilities in case the server receives high traffic, so as to avoid unnecessary service interruptions/slowdowns).
 
 ## Postgres - schema
+
 ```mermaid
 erDiagram
 
-"public.block" {
+"eth.block" {
     BYTEA hash "PK"
     BYTEA parent_hash "Hash of the parent block"
     BYTEA uncles_hash
@@ -28,7 +31,7 @@ erDiagram
     BYTEA nonce
 }
 
-"public.transaction" {
+"eth.transaction" {
     BYTEA hash "PK"
     BYTEA nonce
     BYTEA block_hash
@@ -47,7 +50,7 @@ erDiagram
     BYTEA max_priority_fee_per_gas
 }
 
-"public.log" {
+"eth.log" {
     SERIAL id "PK"
     BYTEA address
     BYTEA topic0
@@ -65,14 +68,14 @@ erDiagram
     BOOL removed
 }
 
-"public.contract" {
+"eth.contract" {
     BYTEA transaction_hash
     BYTEA _from
     BYTEA input
     TIMESTAMP created_at "TS of the table entry"
 }
 
-"public.function_signature" {
+"eth.function_signature" {
     uuid id "PK"
     BYTEA hex_sig
     BYTEA text_sig

@@ -26,8 +26,6 @@ impl Run for Manager {
         S: Storage,
     {
         todo!();
-
-        Ok(())
     }
 
     async fn run_par<N, S, E>(

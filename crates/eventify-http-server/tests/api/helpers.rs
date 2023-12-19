@@ -15,13 +15,13 @@ pub async fn spawn_app() -> TestApp {
     // Randomise configuration to ensure test isolation
     let configuration = {
         //let mut c = get_configuration().expect("Failed to read configuration.");
-        let mut c = eventify_http_server::Settings {
-            application: eventify_http_server::ApplicationSettings {
+        let mut c = eventify_primitives::config::ServerConfig {
+            application: eventify_primitives::config::ApplicationConfig {
                 host: String::from("localhost"),
                 port: 0,
                 worker_threads: 1,
             },
-            database: eventify_primitives::DatabaseSettings {
+            database: eventify_primitives::config::DatabaseConfig {
                 host: String::from("localhost"),
                 port: 5432,
                 username: String::from("postgres"),
@@ -56,7 +56,7 @@ pub async fn spawn_app() -> TestApp {
     }
 }
 
-async fn configure_database(config: &eventify_primitives::DatabaseSettings) -> PgPool {
+async fn configure_database(config: &eventify_primitives::config::DatabaseConfig) -> PgPool {
     // Create database
     let mut connection = PgConnection::connect_with(&config.without_db())
         .await

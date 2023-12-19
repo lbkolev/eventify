@@ -1,12 +1,9 @@
 use std::error::Error;
 
 use alloy_primitives::BlockNumber;
-use ethers_providers::JsonRpcClient;
 
-use crate::Collector;
+use crate::{types::provider::NodeProvider, Collector};
 use eventify_primitives::{Criterias, Storage};
-
-use super::provider::NodeProvider;
 
 /// A trait for executing blockchain-related operations.
 ///
