@@ -64,6 +64,7 @@ impl IndexedLog {
     }
 }
 
+// add strategy; e.g. from-to blocks, number of events etc
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Criteria {
     pub name: String,
@@ -124,7 +125,7 @@ impl Criterias {
         &self.0
     }
 
-    pub fn read_criterias_from_file(file_path: &str) -> crate::Result<Criterias> {
+    pub fn from_file(file_path: &str) -> crate::Result<Criterias> {
         let contents = fs::read_to_string(file_path)
             .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
 
@@ -187,8 +188,8 @@ mod tests {
     }
 
     //#[test]
-    //fn test_read_criterias_from_file() {
-    //    let criterias = Criterias::read_criterias_from_file("tests/criterias.json").unwrap();
+    //fn test_from_file() {
+    //    let criterias = Criterias::from_file("tests/criterias.json").unwrap();
 
     //    assert_eq!(criterias.criterias().len(), 2);
     //    assert_eq!(criterias.criterias()[0].name(), "test1");

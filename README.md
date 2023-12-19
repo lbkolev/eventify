@@ -1,5 +1,8 @@
-# <p align="center">eventify</p>
-<p align="center"> Onchain Indexer / Event listener</p>
+<div align="center">
+    <a href="https://github.com/lbkolev/fieri">
+        <img width="750px" height="180px" src=".github/logo.png">
+    </a>
+</div>
 
 <p align="center">
     <a href="https://github.com/lbkolev/eventify/blob/master/LICENSE-MIT">
@@ -19,17 +22,18 @@
     </a>
 </p>
 
-## <p align="center"> 🚧 work in progress 🚧<p>
-eventify is an Ethereum event listener and indexer designed with the following objectives in mind:
-- Offering a user-friendly means to index Ethereum blocks, transactions, and events.
-- Implementing an efficient event propagation mechanism.
-- Providing a comprehensive interface for inspecting the Ethereum mempool.
+> <p align="center"> 🚧 work in progress 🚧<p>
 
-Implemented storages:
-- [x] Postgres
+eventify is an event listener and indexer designed with the following objectives in mind:
+
+- Offering a user-friendly means to index blocks, transactions, and events.
+- Implementing an efficient event propagation mechanism.
+- Providing a comprehensive interface for inspecting the different chains' mempools.
 
 ## Crates
+
 Include the following:
+
 - [eventify (binary)](./crates/eventify/) - Provides a CLI interface implementation for the server/indexer.
 - [eventify-idx](./crates/eventify-idx) - Holds the Indexer implementation.
 - [eventify-http-server](./crates/eventify-http-server) - Exposes an HTTP server for the indexed data.
@@ -38,29 +42,36 @@ Include the following:
 - [eventify-primitives](./crates/eventify-primitives) - Contains types shared between the different workspace crates.
 
 ## Documentation
+
 - ### Indexer
-    - [Introductory & Architectural](./crates/eventify-idx/README.md)
-    - [Crate & functionality](https://crates.io/crates/eventify-idx)
+
+  - [Introductory & Architectural](./crates/eventify-idx/README.md)
+  - [Crate & functionality](https://crates.io/crates/eventify-idx)
 
 - ### HTTP-Server
-    - [Introductory & Architectural](./crates/eventify-http-server/README.md)
-    - [Crate & functionality](https://crates.io/crates/eventify-http-server)
+
+  - [Introductory & Architectural](./crates/eventify-http-server/README.md)
+  - [Crate & functionality](https://crates.io/crates/eventify-http-server)
 
 - ### Client
-    - [Introductory & Architectural](./crates/eventify-http-client/README.md)
-    - [Crate & functionality](https://crates.io/crates/eventify-http-client)
+
+  - [Introductory & Architectural](./crates/eventify-http-client/README.md)
+  - [Crate & functionality](https://crates.io/crates/eventify-http-client)
 
 - ### Middleware
-    - [Introductory & Architectural](./crates/eventify-middleware/README.md)
-    - [Crate & functionality](https://crates.io/crates/eventify-middleware)
+
+  - [Introductory & Architectural](./crates/eventify-middleware/README.md)
+  - [Crate & functionality](https://crates.io/crates/eventify-middleware)
 
 - ### Primitives
-    - [Introductory & Architectural](./crates/eventify-primitives/README.md)
-    - [Crate & functionality](https://crates.io/crates/eventify-primitives)
+
+  - [Introductory & Architectural](./crates/eventify-primitives/README.md)
+  - [Crate & functionality](https://crates.io/crates/eventify-primitives)
 
 - ### eventify (binary)
-    - [Introductory & Architectural](./crates/eventify/README.md)
-    - [Crate](https://crates.io/crates/eventify)
+
+  - [Introductory & Architectural](./crates/eventify/README.md)
+  - [Crate](https://crates.io/crates/eventify)
 
 - ### [Database](./docs/database.md)
 - ### [Deployment (Helm)](./docs/deploy-helm.md)

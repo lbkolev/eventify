@@ -16,6 +16,18 @@ pub struct Postgres {
     inner: Pool<sqlx::postgres::Postgres>,
 }
 
+impl Postgres {
+    pub fn new(url: &str) -> Self {
+        Self {
+            inner: PoolOptions::new()
+                .acquire_timeout(std::time::Duration::from_secs(2))
+                .connect_lazy(url)
+                .map_err(Error::from)
+                .expect("Failed to connect to Postgres"),
+        }
+    }
+}
+
 impl Deref for Postgres {
     type Target = Pool<sqlx::postgres::Postgres>;
 
@@ -32,7 +44,7 @@ impl DerefMut for Postgres {
 
 #[async_trait::async_trait]
 impl Auth for Postgres {
-    async fn connect(url: &str) -> Self {
+    async fn connect(&mut self, url: &str) -> Self {
         Self {
             inner: PoolOptions::new()
                 .acquire_timeout(std::time::Duration::from_secs(2))
@@ -42,7 +54,7 @@ impl Auth for Postgres {
         }
     }
 
-    fn connect_lazy(url: &str) -> Self {
+    fn connect_lazy(&mut self, url: &str) -> Self {
         Self {
             inner: PoolOptions::new()
                 .connect_lazy(url)
@@ -54,7 +66,7 @@ impl Auth for Postgres {
 
 #[async_trait::async_trait]
 impl Storage for Postgres {
-    async fn insert_block(&self, block: &IndexedBlock) -> Result<()> {
+    async fn store_block(&self, block: &IndexedBlock) -> Result<()> {
         println!("Inserting block: [{:?}]", block.hash());
         let sql = "INSERT INTO public.block (
             hash,
@@ -122,7 +134,7 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn insert_transaction(&self, tx: &IndexedTransaction) -> Result<()> {
+    async fn store_transaction(&self, tx: &IndexedTransaction) -> Result<()> {
         let sql = "INSERT INTO public.transaction (
             hash,
             nonce,
@@ -195,7 +207,7 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn insert_contract(&self, tx: &Contract) -> Result<()> {
+    async fn store_contract(&self, tx: &Contract) -> Result<()> {
         let sql = "INSERT INTO public.contract (
             transaction_hash,
             _from,
@@ -215,7 +227,7 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn insert_log(&self, log: &IndexedLog) -> Result<()> {
+    async fn store_log(&self, log: &IndexedLog) -> Result<()> {
         let sql = "INSERT INTO public.log (
             address,
             topic0,
@@ -316,7 +328,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_insert_block() {
+    async fn test_store_block() {
         let (pool, db_name) = setup_test_db().await.unwrap();
         let db = super::Postgres { inner: pool };
 
@@ -353,13 +365,13 @@ mod tests {
 
         let block = serde_json::from_value::<IndexedBlock>(json).unwrap();
         println!("{:?}", block);
-        db.insert_block(&block).await.unwrap();
+        db.store_block(&block).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
 
     #[tokio::test]
-    async fn test_insert_transaction() {
+    async fn test_store_transaction() {
         let (pool, db_name) = setup_test_db().await.unwrap();
         let db = super::Postgres { inner: pool };
 
@@ -382,13 +394,13 @@ mod tests {
 
         let tx = serde_json::from_value::<IndexedTransaction>(json).unwrap();
         println!("{:?}", tx);
-        db.insert_transaction(&tx).await.unwrap();
+        db.store_transaction(&tx).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
 
     #[tokio::test]
-    async fn test_insert_contract() {
+    async fn test_store_contract() {
         let (pool, db_name) = setup_test_db().await.unwrap();
         let db = super::Postgres { inner: pool };
 
@@ -400,13 +412,13 @@ mod tests {
 
         let tx = serde_json::from_value::<Contract>(json).unwrap();
         println!("{:?}", tx);
-        db.insert_contract(&tx).await.unwrap();
+        db.store_contract(&tx).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
 
     #[tokio::test]
-    async fn test_insert_log() {
+    async fn test_store_log() {
         let (pool, db_name) = setup_test_db().await.unwrap();
         let db = super::Postgres { inner: pool };
 
@@ -432,7 +444,7 @@ mod tests {
 
         let log = serde_json::from_value::<IndexedLog>(json).unwrap();
         println!("{:#?}", log);
-        db.insert_log(&log).await.unwrap();
+        db.store_log(&log).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }

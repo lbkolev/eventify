@@ -1,14 +1,14 @@
 pub mod eth;
 
-use crate::{provider_struct, types::provider::NodeProvider};
+use crate::provider;
 
 // --- eth
 #[cfg(all(feature = "eth", feature = "http"))]
-provider_struct!(EthHttp, ethers_providers::Http);
+provider!(EthHttp, ethers_providers::Provider<ethers_providers::Http>);
 
 #[cfg(all(feature = "eth", feature = "ws"))]
-provider_struct!(EthWs, ethers_providers::Ws);
+provider!(EthWs, ethers_providers::Provider<ethers_providers::Ws>);
 
 #[cfg(all(feature = "eth", feature = "ipc"))]
-provider_struct!(EthIpc, ethers_providers::Ipc);
+provider!(EthIpc, ethers_providers::Provider<ethers_providers::Ipc>);
 // ---

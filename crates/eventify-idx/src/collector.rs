@@ -1,160 +1,90 @@
-use async_trait::async_trait;
-use ethers_providers::JsonRpcClient;
+use alloy_primitives::BlockNumber;
 
-use crate::{types::provider::NodeProvider, App, Process, Result};
-use eventify_primitives::{Auth, Criterias, IndexedBlock, IndexedLog, Storage};
+use crate::{types::provider::NodeProvider, Result};
+use eventify_primitives::{Criterias, IndexedBlock, IndexedLog, IndexedTransaction, Storage};
 
-#[derive(Clone, Debug)]
-pub struct Collector<T, U>
+#[derive(Debug, Clone)]
+pub struct Collector<N, S>
 where
-    T: NodeProvider + JsonRpcClient,
-    U: Storage,
+    N: NodeProvider<crate::Error>,
+    S: Storage,
 {
-    app: App<T, U>,
-    criterias: Option<Criterias>,
+    pub node: N,
+    pub storage: S,
 }
 
-impl<T, U> Collector<T, U>
+impl<N, S> Collector<N, S>
 where
-    T: NodeProvider + JsonRpcClient,
-    U: Storage,
+    N: NodeProvider<crate::Error>,
+    S: Storage,
 {
-    pub fn new(app: App<T, U>, criterias: Option<Criterias>) -> Self {
-        Self { app, criterias }
+    pub fn new(node: N, storage: S) -> Self {
+        Self { node, storage }
     }
 
-    pub async fn process_all_serial(&self) -> Result<()> {
-        let from = self.app.src_block();
-        let to = self.app.dst_block();
+    pub async fn get_latest_block(&self) -> Result<BlockNumber> {
+        self.node
+            .get_block_number()
+            .await
+            .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch latest block: {}", e)))
+    }
 
-        for target in from..=to {
-            if let Some(crits) = self.criterias.as_ref() {
-                let logs = self.app.fetch_logs(crits, target).await?;
-                log::info!("{:?}", logs);
-
-                for log in logs {
-                    println!("{:#?}", log);
-                    self.app.storage_conn()?.insert_log(&log.into()).await?;
-                }
-            }
-
-            let (block, transactions) = match self.app.fetch_indexed_data(target).await {
-                Ok((block, transactions)) => (block, transactions),
-                Err(_) => {
-                    // TODO: impl stream subscription
-                    if target >= self.app.get_latest_block().await? {
-                        log::info!("Reached latest block: {:?}", target);
-                        break;
-                    }
-
-                    continue;
-                }
-            };
-
-            self.app.storage_conn()?.insert_block(&block).await?;
-            for tx in transactions {
-                if tx.contract_creation() {
-                    self.app
-                        .storage_conn()?
-                        .insert_contract(&tx.clone().into())
-                        .await?;
-                }
-                self.app.storage_conn()?.insert_transaction(&tx).await?;
-            }
-        }
+    pub async fn fetch_block(&self, block: BlockNumber) -> Result<()> {
+        let block = self
+            .node
+            .get_block(block)
+            .await
+            .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch block: {}", e)))?;
+        self.storage.store_block(&IndexedBlock::from(block)).await?;
 
         Ok(())
     }
-}
 
-#[async_trait]
-impl<T, U> Process<IndexedBlock> for Collector<T, U>
-where
-    T: NodeProvider + JsonRpcClient + Clone + 'static,
-    U: Storage,
-{
-    type Error = crate::Error;
-
-    async fn process(&self) -> Result<()> {
-        // TODO: proper err handling
-        let from = self.app.src_block();
-        let to = self.app.dst_block();
-
-        for target in from..=to {
-            let (block, transactions) = match self.app.fetch_indexed_data(target).await {
-                Ok((block, transactions)) => (block, transactions),
-                Err(_) => {
-                    // TODO: impl stream subscription
-                    if target >= self.app.get_latest_block().await? {
-                        log::info!("Reached latest block: {:?}", target);
-                        break;
-                    }
-                    continue;
-                }
-            };
-
-            self.app.storage_conn()?.insert_block(&block).await?;
-            for tx in transactions {
-                if tx.contract_creation() {
-                    self.app
-                        .storage_conn()?
-                        .insert_contract(&tx.clone().into())
-                        .await?;
-                }
-                self.app.storage_conn()?.insert_transaction(&tx).await?;
-            }
+    pub async fn fetch_blocks(&self, from: BlockNumber, to: BlockNumber) -> Result<()> {
+        for block in from..=to {
+            self.fetch_block(block).await?;
         }
 
         Ok(())
     }
 
-    async fn stream(&self) -> Result<()> {
-        todo!()
+    pub async fn fetch_blocks_from(&self, from: BlockNumber) -> Result<()> {
+        let to = self.node.get_block_number().await?;
+        self.fetch_blocks(from, to).await?;
+
+        Ok(())
     }
 
-    async fn stream_latest(&self) -> Result<()> {
-        todo!()
-    }
-}
+    pub async fn fetch_transactions(&self, block: BlockNumber) -> Result<()> {
+        let transactions = self.node.get_transactions(block).await.map_err(|e| {
+            crate::Error::FetchBlock(format!("Failed to fetch transactions: {}", e))
+        })?;
 
-#[async_trait]
-impl<T, U> Process<IndexedLog> for Collector<T, U>
-where
-    T: NodeProvider + JsonRpcClient + Clone + 'static,
-    U: Storage,
-{
-    type Error = crate::Error;
-
-    async fn process(&self) -> Result<()> {
-        // TODO: proper err handling
-        let from = self.app.src_block();
-        let to = self.app.dst_block();
-
-        for target in from..=to {
-            if let Some(crits) = self.criterias.as_ref() {
-                let logs = self.app.fetch_logs(crits, target).await.unwrap();
-                log::info!("{:?}", logs);
-
-                for log in logs {
-                    println!("{:#?}", log);
-                    self.app
-                        .storage_conn()
-                        .unwrap()
-                        .insert_log(&log.into())
-                        .await
-                        .unwrap();
-                }
-            }
+        for tx in transactions {
+            self.storage
+                .store_transaction(&IndexedTransaction::from(tx))
+                .await?;
         }
 
         Ok(())
     }
 
-    async fn stream(&self) -> Result<()> {
-        todo!()
+    pub async fn fetch_transactions_from(&self, from: BlockNumber) -> Result<()> {
+        let to = self.node.get_block_number().await?;
+        for block in from..=to {
+            self.fetch_transactions(block).await?;
+        }
+
+        Ok(())
     }
 
-    async fn stream_latest(&self) -> Result<()> {
-        todo!()
+    pub async fn fetch_logs(&self, criterias: Criterias, block: BlockNumber) -> Result<()> {
+        let log = self.node.get_logs(criterias, block).await?;
+
+        for log in log {
+            self.storage.store_log(&IndexedLog::from(log)).await?;
+        }
+
+        Ok(())
     }
 }

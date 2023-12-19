@@ -1,9 +1,9 @@
 #[macro_export]
-macro_rules! provider_struct {
+macro_rules! provider {
     ($name:ident, $transport:ty) => {
         #[derive(Debug, Clone)]
         pub struct $name {
-            pub(crate) inner: ethers_providers::Provider<$transport>,
+            pub inner: $transport,
         }
     };
 }

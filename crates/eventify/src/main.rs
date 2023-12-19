@@ -11,7 +11,11 @@ use eventify_idx as indexer;
 use eventify_primitives as types;
 
 use crate::settings::Settings;
-use indexer::{app::App, Collector, Manager, Runner};
+use indexer::{
+    providers::{EthHttp, EthIpc, EthWs},
+    types::provider::NodeProvider,
+    Collector, Manager, Run,
+};
 use types::{storage::Postgres, Criterias};
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -20,7 +24,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 use std::path::Path;
 
 use clap::Parser;
-use ethers_providers::{Http, Ipc, Ws};
 use futures::TryFutureExt;
 use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
 use tracing::{subscriber::set_global_default, Subscriber};
@@ -89,49 +92,50 @@ async fn main() -> Result<()> {
                 // event criterias
                 let criterias = settings
                     .criterias_file()
-                    .map(|file| Criterias::read_criterias_from_file(file.as_str()))
+                    .map(|file| Criterias::from_file(file.as_str()))
                     .transpose()?
                     .or_else(|| settings.criterias_json());
 
                 match Url::parse(&settings.node_url)?.scheme() {
                     "http" | "https" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<Http, Postgres>(Collector::new(
-                                App::default()
-                                    .with_src_block(settings.src_block())
-                                    .with_dst_block(settings.dst_block())
-                                    .with_storage(settings.database_url())
-                                    .with_http(settings.node_url())?,
+                            Manager::run_par::<_, _, Error>(
+                                Collector::new(
+                                    EthHttp::new(&settings.node_url).await?,
+                                    Postgres::new(settings.database_url()),
+                                ),
+                                settings.src_block(),
+                                settings.dst_block(),
                                 criterias,
-                            ))
+                            )
                             .map_err(Error::from),
                         ));
                     }
                     "ws" | "wss" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<Ws, Postgres>(Collector::new(
-                                App::default()
-                                    .with_src_block(settings.src_block())
-                                    .with_dst_block(settings.dst_block())
-                                    .with_storage(settings.database_url())
-                                    .with_websocket(settings.node_url())
-                                    .await?,
+                            Manager::run_par::<_, _, Error>(
+                                Collector::new(
+                                    EthWs::new(&settings.node_url).await?,
+                                    Postgres::new(settings.database_url()),
+                                ),
+                                settings.src_block(),
+                                settings.dst_block(),
                                 criterias,
-                            ))
+                            )
                             .map_err(Error::from),
                         ));
                     }
                     "ipc" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<Ipc, Postgres>(Collector::new(
-                                App::default()
-                                    .with_src_block(settings.src_block())
-                                    .with_dst_block(settings.dst_block())
-                                    .with_storage(settings.database_url())
-                                    .with_ipc(settings.node_url())
-                                    .await?,
+                            Manager::run_par::<_, _, Error>(
+                                Collector::new(
+                                    EthIpc::new(&settings.node_url).await?,
+                                    Postgres::new(settings.database_url()),
+                                ),
+                                settings.src_block(),
+                                settings.dst_block(),
                                 criterias,
-                            ))
+                            )
                             .map_err(Error::from),
                         ));
                     }

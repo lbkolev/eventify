@@ -1,23 +1,21 @@
 #![doc = include_str!("../README.md")]
 
-pub mod app;
 pub mod collector;
 pub mod error;
 pub mod macros;
 pub mod manager;
-pub mod provider;
 pub mod providers;
 pub mod types;
 
-pub use app::App;
 pub use collector::Collector;
 pub use error::Error;
 pub use manager::Manager;
-pub use types::{process::Process, runner::Runner};
+pub use types::run::Run;
 
 /// The Result used throughout the indexer
 type Result<T> = std::result::Result<T, error::Error>;
 
+// Supported chains
 #[derive(Debug)]
 pub enum Chain {
     Ethereum,

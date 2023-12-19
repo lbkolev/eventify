@@ -1,7 +1,7 @@
-use ethers_providers::JsonRpcClient;
+use alloy_primitives::BlockNumber;
 
-use crate::{types::provider::NodeProvider, Collector, Process, Result, Runner};
-use eventify_primitives::{Auth, IndexedBlock, IndexedLog, Storage};
+use crate::{types::provider::NodeProvider, Collector, Run};
+use eventify_primitives::{Criterias, Storage};
 
 #[derive(Debug, Clone, Default)]
 pub struct Manager;
@@ -13,34 +13,50 @@ impl Manager {
 }
 
 #[async_trait::async_trait]
-impl Runner for Manager {
-    type Error = crate::Error;
-
-    async fn run<T: NodeProvider + JsonRpcClient + 'static, U: Storage>(
-        processor: Collector<T, U>,
-    ) -> std::result::Result<(), Self::Error> {
-        processor.process_all_serial().await?;
+impl Run for Manager {
+    async fn run<N, S, E>(
+        _: Collector<N, S>,
+        _: BlockNumber,
+        _: BlockNumber,
+        _: Option<Criterias>,
+    ) -> std::result::Result<(), E>
+    where
+        E: std::error::Error + Send + Sync,
+        N: NodeProvider<crate::Error>,
+        S: Storage,
+    {
+        todo!();
 
         Ok(())
     }
 
-    async fn run_par<T: NodeProvider + JsonRpcClient + 'static, U: Storage>(
-        processor: Collector<T, U>,
-    ) -> Result<()> {
-        let block_processor = processor.clone();
-        let log_processor = processor.clone();
+    async fn run_par<N, S, E>(
+        collector: Collector<N, S>,
+        src_block: BlockNumber,
+        dst_block: BlockNumber,
+        criterias: Option<Criterias>,
+    ) -> std::result::Result<(), E>
+    where
+        E: std::error::Error + Send + Sync,
+        N: NodeProvider<crate::Error>,
+        S: Storage,
+    {
+        let collector_logs = collector.clone();
 
         let handles = vec![
             tokio::spawn(async move {
-                <Collector<T, U> as Process<IndexedLog>>::process(&log_processor).await
+                let _ = collector.fetch_blocks(src_block, dst_block).await;
             }),
             tokio::spawn(async move {
-                <Collector<T, U> as Process<IndexedBlock>>::process(&block_processor).await
+                if criterias.is_some() {
+                    let _ = collector_logs
+                        .fetch_logs(criterias.unwrap(), src_block)
+                        .await;
+                }
             }),
         ];
 
         futures::future::join_all(handles).await;
-
         Ok(())
     }
 }

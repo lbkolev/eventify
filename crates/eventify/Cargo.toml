@@ -18,7 +18,7 @@ name = "eventify"
 
 [dependencies]
 # internal
-eventify-idx.workspace = true
+eventify-idx = { workspace = true, features = ["eth", "ws", "ipc", "http"] }
 eventify-http-server.workspace = true
 eventify-primitives.workspace = true
 

@@ -1,2 +1,3 @@
 ## eventify
-### <p align="center"> 🚧 work in progress 🚧<p>
+
+> <p align="center"> 🚧 work in progress 🚧<p>
