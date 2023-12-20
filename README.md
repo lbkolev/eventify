@@ -24,11 +24,10 @@
 
 > <p align="center"> 🚧 work in progress 🚧<p>
 
-eventify is an event listener and indexer designed with the following objectives in mind:
+Eventify is an event listener and indexer designed with the following objectives in mind:
 
 - Offering a user-friendly means to index blocks, transactions, and events.
 - Implementing an efficient event propagation mechanism.
-- Providing a comprehensive interface for inspecting the different chains' mempools.
 
 ## Crates
 
