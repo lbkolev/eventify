@@ -1,7 +1,7 @@
 use alloy_primitives::BlockNumber;
 
 use crate::{types::provider::NodeProvider, Result};
-use eventify_primitives::{Criterias, IndexedBlock, IndexedLog, IndexedTransaction, Storage};
+use eventify_primitives::{Block, Criterias, Log, Storage, Transaction};
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S>
@@ -35,7 +35,7 @@ where
             .get_block(block)
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch block: {}", e)))?;
-        self.storage.store_block(&IndexedBlock::from(block)).await?;
+        self.storage.store_block(&Block::from(block)).await?;
 
         Ok(())
     }
@@ -62,7 +62,7 @@ where
 
         for tx in transactions {
             self.storage
-                .store_transaction(&IndexedTransaction::from(tx))
+                .store_transaction(&Transaction::from(tx))
                 .await?;
         }
 
@@ -82,7 +82,7 @@ where
         let log = self.node.get_logs(criterias, block).await?;
 
         for log in log {
-            self.storage.store_log(&IndexedLog::from(log)).await?;
+            self.storage.store_log(&Log::from(log)).await?;
         }
 
         Ok(())

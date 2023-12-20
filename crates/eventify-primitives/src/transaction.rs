@@ -1,89 +1,56 @@
-use ethers_core::types::{Address, Bytes, Transaction, H256, U256, U64};
+use ethers_core::types::{Address, Bytes, H256, U256, U64};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]
 #[serde(rename_all = "camelCase")]
-pub struct IndexedTransaction(Transaction);
+pub struct Transaction {
+    pub hash: H256,
+    pub nonce: U256,
+    pub block_hash: Option<H256>,
+    pub block_number: Option<U64>,
+    pub transaction_index: Option<U64>,
+    pub from: Address,
+    pub to: Option<Address>,
+    pub value: U256,
+    pub gas_price: Option<U256>,
+    pub gas: U256,
+    pub input: Bytes,
+    pub v: U64,
+    pub r: U256,
+    pub s: U256,
+    pub transaction_type: Option<U64>,
+    pub max_fee_per_gas: Option<U256>,
+    pub max_priority_fee_per_gas: Option<U256>,
+}
 
-impl From<Transaction> for IndexedTransaction {
-    fn from(tx: Transaction) -> Self {
-        Self(tx)
+impl Transaction {
+    pub fn contract_creation(&self) -> bool {
+        self.to.is_none()
     }
 }
 
-impl IndexedTransaction {
-    pub fn hash(&self) -> H256 {
-        self.0.hash
-    }
-
-    pub fn nonce(&self) -> U256 {
-        self.0.nonce
-    }
-
-    pub fn block_hash(&self) -> Option<H256> {
-        self.0.block_hash
-    }
-
-    pub fn block_number(&self) -> Option<U64> {
-        self.0.block_number
-    }
-
-    pub fn transaction_index(&self) -> Option<U64> {
-        self.0.transaction_index
-    }
-
-    pub fn _from(&self) -> Address {
-        self.0.from
-    }
-
-    pub fn to(&self) -> Option<Address> {
-        self.0.to
-    }
-
-    pub fn value(&self) -> U256 {
-        self.0.value
-    }
-
-    pub fn gas_price(&self) -> Option<U256> {
-        self.0.gas_price
-    }
-
-    pub fn gas(&self) -> U256 {
-        self.0.gas
-    }
-
-    pub fn input(&self) -> &Bytes {
-        &self.0.input
-    }
-
-    pub fn v(&self) -> U64 {
-        self.0.v
-    }
-
-    pub fn r(&self) -> U256 {
-        self.0.r
-    }
-
-    pub fn s(&self) -> U256 {
-        self.0.s
-    }
-
-    pub fn transaction_type(&self) -> Option<U64> {
-        self.0.transaction_type
-    }
-
-    pub fn max_fee_per_gas(&self) -> Option<U256> {
-        self.0.max_fee_per_gas
-    }
-
-    pub fn max_priority_fee_per_gas(&self) -> Option<U256> {
-        self.0.max_priority_fee_per_gas
-    }
-
-    /// Determines if the transaction is creating a contract.
-    pub fn contract_creation(&self) -> bool {
-        self.0.to.is_none()
+impl From<crate::ETHTransaction> for Transaction {
+    fn from(tx: crate::ETHTransaction) -> Self {
+        Self {
+            hash: tx.hash,
+            nonce: tx.nonce,
+            block_hash: tx.block_hash,
+            block_number: tx.block_number,
+            transaction_index: tx.transaction_index,
+            from: tx.from,
+            to: tx.to,
+            value: tx.value,
+            gas_price: tx.gas_price,
+            gas: tx.gas,
+            input: tx.input,
+            v: tx.v,
+            r: tx.r,
+            s: tx.s,
+            transaction_type: tx.transaction_type,
+            max_fee_per_gas: tx.max_fee_per_gas,
+            max_priority_fee_per_gas: tx.max_priority_fee_per_gas,
+        }
     }
 }
 
@@ -110,6 +77,23 @@ mod tests {
             "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
         });
 
-        serde_json::from_value::<IndexedTransaction>(json).unwrap();
+        serde_json::from_value::<Transaction>(json).unwrap();
+    }
+
+    #[test]
+    fn deserialize_empty_tx() {
+        let json = serde_json::json!({});
+
+        assert!(serde_json::from_value::<Transaction>(json).is_err());
+    }
+
+    #[test]
+    fn test_is_contract_creation() {
+        let tx = Transaction {
+            to: None,
+            ..Default::default() // Using other default values
+        };
+
+        assert!(tx.contract_creation());
     }
 }

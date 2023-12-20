@@ -30,7 +30,7 @@ use crate::api::get_count;
     )
 )]
 #[get("/count")]
-pub async fn get_blocks_count(conn: web::Data<PgPool>) -> impl Responder {
+pub(crate) async fn get_blocks_count(conn: web::Data<PgPool>) -> impl Responder {
     match get_count(conn, "block", "Internal server error").await {
         Ok(response) => response,
         Err(response) => response,

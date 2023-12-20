@@ -7,20 +7,21 @@ use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-use eventify_primitives::DatabaseSettings;
+use eventify_primitives::config::{DatabaseConfig, ServerConfig};
 
 use crate::{
     api::{self, block, log, transaction},
     Result,
 };
 
+#[allow(missing_debug_implementations)]
 pub struct Application {
     port: u16,
     server: Server,
 }
 
 impl Application {
-    pub async fn build(settings: crate::Settings) -> Result<Self> {
+    pub async fn build(settings: ServerConfig) -> Result<Self> {
         let connection_pool = get_connection_pool(&settings.database);
         let listener = TcpListener::bind(format!(
             "{}:{}",
@@ -45,7 +46,7 @@ impl Application {
     }
 }
 
-pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
+pub fn get_connection_pool(configuration: &DatabaseConfig) -> PgPool {
     PgPoolOptions::new()
         .acquire_timeout(std::time::Duration::from_secs(2))
         // The connection needs to be established lazily, since the database

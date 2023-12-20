@@ -1,6 +1,6 @@
 <div align="center">
     <a href="https://github.com/lbkolev/fieri">
-        <img width="750px" height="180px" src=".github/logo.png">
+        <img width="500px" height="150px" src=".github/logo.png">
     </a>
 </div>
 
@@ -24,11 +24,10 @@
 
 > <p align="center"> 🚧 work in progress 🚧<p>
 
-eventify is an event listener and indexer designed with the following objectives in mind:
+Eventify is an event listener and indexer designed with the following objectives in mind:
 
 - Offering a user-friendly means to index blocks, transactions, and events.
 - Implementing an efficient event propagation mechanism.
-- Providing a comprehensive interface for inspecting the different chains' mempools.
 
 ## Crates
 

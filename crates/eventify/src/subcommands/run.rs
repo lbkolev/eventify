@@ -2,9 +2,11 @@ use alloy_primitives::BlockNumber;
 use clap::{self, Parser};
 use secrecy::{ExposeSecret, Secret};
 
-use eventify_http_server as server;
 use eventify_primitives as types;
-use types::Criterias;
+use types::{
+    config::{ApplicationConfig, DatabaseConfig, ServerConfig},
+    Criterias,
+};
 
 #[derive(Debug, clap::Args, Clone)]
 pub(crate) struct Block {
@@ -157,11 +159,11 @@ pub(crate) struct Cmd {
     pub(crate) node_url: String,
 }
 
-impl From<Cmd> for server::Settings {
+impl From<Cmd> for ServerConfig {
     fn from(settings: Cmd) -> Self {
         Self {
-            database: types::DatabaseSettings::from(settings.database_url()),
-            application: server::ApplicationSettings {
+            database: DatabaseConfig::from(settings.database_url()),
+            application: ApplicationConfig {
                 host: settings.server.host,
                 port: settings.server.port,
                 worker_threads: settings.server.server_threads,

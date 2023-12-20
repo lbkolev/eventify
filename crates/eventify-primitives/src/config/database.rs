@@ -7,7 +7,7 @@ use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Settings {
+pub struct DatabaseConfig {
     pub database_name: String,
     pub host: String,
     #[serde(deserialize_with = "deserialize_number_from_string")]
@@ -17,7 +17,7 @@ pub struct Settings {
     pub require_ssl: bool,
 }
 
-impl Settings {
+impl DatabaseConfig {
     pub fn without_db(&self) -> PgConnectOptions {
         let require_ssl = if self.require_ssl {
             PgSslMode::Require
@@ -38,7 +38,7 @@ impl Settings {
     }
 }
 
-impl From<String> for Settings {
+impl From<String> for DatabaseConfig {
     fn from(s: String) -> Self {
         let url = Url::parse(&s).expect("Invalid database URL");
 
@@ -53,8 +53,8 @@ impl From<String> for Settings {
     }
 }
 
-impl From<Settings> for String {
-    fn from(settings: Settings) -> Self {
+impl From<DatabaseConfig> for String {
+    fn from(settings: DatabaseConfig) -> Self {
         format!(
             "postgres://{}:{}@{}:{}/{}",
             settings.username,
@@ -66,13 +66,13 @@ impl From<Settings> for String {
     }
 }
 
-impl From<&str> for Settings {
+impl From<&str> for DatabaseConfig {
     fn from(s: &str) -> Self {
         Self::from(s.to_owned())
     }
 }
 
-impl Display for Settings {
+impl Display for DatabaseConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

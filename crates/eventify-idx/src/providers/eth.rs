@@ -79,7 +79,7 @@ impl NodeProvider<crate::Error> for EthHttp {
         todo!()
     }
 
-    async fn stream_logs(&self, criterias: Criterias) -> Result<(), crate::Error> {
+    async fn stream_logs(&self, _criterias: Criterias) -> Result<(), crate::Error> {
         todo!()
     }
 }
@@ -161,7 +161,7 @@ impl NodeProvider<crate::Error> for EthWs {
         todo!()
     }
 
-    async fn stream_logs(&self, criterias: Criterias) -> Result<(), crate::Error> {
+    async fn stream_logs(&self, _criterias: Criterias) -> Result<(), crate::Error> {
         todo!()
     }
 }
@@ -240,7 +240,7 @@ impl NodeProvider<crate::Error> for EthIpc {
         todo!()
     }
 
-    async fn stream_logs(&self, criterias: Criterias) -> Result<(), crate::Error> {
+    async fn stream_logs(&self, _criterias: Criterias) -> Result<(), crate::Error> {
         todo!()
     }
 }

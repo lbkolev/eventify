@@ -1,45 +1,33 @@
-use ethers_core::types::{Bytes, Transaction, H160, H256};
+use ethers_core::types::{Bytes, H160, H256};
 use serde::{Deserialize, Serialize};
 
-use crate::IndexedTransaction;
+use crate::Transaction;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Contract {
     pub transaction_hash: H256,
-    pub _from: H160,
+    pub from: H160,
     pub input: Bytes,
 }
 
-impl Contract {
-    pub fn transaction_hash(&self) -> H256 {
-        self.transaction_hash
-    }
-
-    pub fn _from(&self) -> H160 {
-        self._from
-    }
-
-    pub fn input(&self) -> &Bytes {
-        &self.input
-    }
-}
-
-impl From<IndexedTransaction> for Contract {
-    fn from(transaction: IndexedTransaction) -> Self {
+impl From<Transaction> for Contract {
+    fn from(transaction: Transaction) -> Self {
         Self {
-            transaction_hash: transaction.hash(),
-            _from: transaction._from(),
-            input: transaction.input().clone(),
+            transaction_hash: transaction.hash,
+            from: transaction.from,
+            input: transaction.input,
         }
     }
 }
 
-impl From<Transaction> for Contract {
-    fn from(tx: Transaction) -> Self {
-        let tx = IndexedTransaction::from(tx);
-
-        Self::from(tx)
+impl From<crate::ETHTransaction> for Contract {
+    fn from(tx: crate::ETHTransaction) -> Self {
+        Self {
+            transaction_hash: tx.hash,
+            from: tx.from,
+            input: tx.input,
+        }
     }
 }
 
