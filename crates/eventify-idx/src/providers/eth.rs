@@ -1,12 +1,12 @@
 use alloy_primitives::BlockNumber;
-use ethers_core::types::{Block, BlockId, Filter, Log, Transaction};
+use ethers_core::types::{BlockId, Filter};
 use ethers_providers::Middleware;
 
 use crate::{
     providers::{EthHttp, EthIpc, EthWs},
     types::provider::NodeProvider,
 };
-use eventify_primitives::Criterias;
+use eventify_primitives::{Block, Criteria, Log, Transaction};
 
 #[cfg(all(feature = "eth", feature = "http"))]
 #[async_trait::async_trait]
@@ -29,58 +29,37 @@ impl NodeProvider<crate::Error> for EthHttp {
             .map_err(|e| e.into())
     }
 
-    async fn get_block(&self, block: BlockNumber) -> Result<Block<Transaction>, crate::Error> {
+    async fn get_block(&self, block: BlockNumber) -> Result<Block, crate::Error> {
         self.inner
             .get_block_with_txs(BlockId::Number(block.into()))
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
+            .map(Block::from)
             .ok_or(crate::Error::FetchBlock("Block not found".to_string()))
     }
 
     async fn get_transactions(&self, block: BlockNumber) -> Result<Vec<Transaction>, crate::Error> {
-        let node = self
+        Ok(self
             .inner
             .get_block_with_txs(BlockId::Number(block.into()))
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
-            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?;
-
-        Ok(node.transactions)
+            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?
+            .transactions
+            .into_iter()
+            .map(Transaction::from)
+            .collect())
     }
 
-    // TODO: add the block from/to in the criterias
-    async fn get_logs(
-        &self,
-        criterias: Criterias,
-        block: BlockNumber,
-    ) -> Result<Vec<Log>, crate::Error> {
-        let mut resp = vec![];
-        for criterias in criterias.0.iter() {
-            log::info!("Fetching logs for criteria: {}", criterias.name());
-            let ir: Filter = criterias.into();
-            let filter: Filter = ir.from_block(block).to_block(block);
-
-            resp.extend(
-                self.inner
-                    .get_logs(&filter)
-                    .await
-                    .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?,
-            );
-        }
-
-        Ok(resp)
-    }
-
-    async fn stream_blocks(&self) -> Result<(), crate::Error> {
-        todo!()
-    }
-
-    async fn stream_transactions(&self) -> Result<(), crate::Error> {
-        todo!()
-    }
-
-    async fn stream_logs(&self, _criterias: Criterias) -> Result<(), crate::Error> {
-        todo!()
+    async fn get_logs(&self, criteria: Criteria) -> Result<Vec<Log>, crate::Error> {
+        Ok(self
+            .inner
+            .get_logs(&Filter::from(&criteria))
+            .await
+            .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?
+            .into_iter()
+            .map(Log::from)
+            .collect::<Vec<Log>>())
     }
 }
 
@@ -112,57 +91,37 @@ impl NodeProvider<crate::Error> for EthWs {
             .map_err(|e| e.into())
     }
 
-    async fn get_block(&self, block: BlockNumber) -> Result<Block<Transaction>, crate::Error> {
+    async fn get_block(&self, block: BlockNumber) -> Result<Block, crate::Error> {
         self.inner
             .get_block_with_txs(BlockId::Number(block.into()))
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
+            .map(Block::from)
             .ok_or(crate::Error::FetchBlock("Block not found".to_string()))
     }
 
     async fn get_transactions(&self, block: BlockNumber) -> Result<Vec<Transaction>, crate::Error> {
-        let node = self
+        Ok(self
             .inner
             .get_block_with_txs(BlockId::Number(block.into()))
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
-            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?;
-
-        Ok(node.transactions)
+            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?
+            .transactions
+            .into_iter()
+            .map(Transaction::from)
+            .collect())
     }
 
-    async fn get_logs(
-        &self,
-        criterias: Criterias,
-        block: BlockNumber,
-    ) -> Result<Vec<Log>, crate::Error> {
-        let mut resp = vec![];
-        for criterias in criterias.0.iter() {
-            log::info!("Fetching logs for criteria: {}", criterias.name());
-            let ir: Filter = criterias.into();
-            let filter: Filter = ir.from_block(block).to_block(block);
-
-            resp.extend(
-                self.inner
-                    .get_logs(&filter)
-                    .await
-                    .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?,
-            );
-        }
-
-        Ok(resp)
-    }
-
-    async fn stream_blocks(&self) -> Result<(), crate::Error> {
-        todo!()
-    }
-
-    async fn stream_transactions(&self) -> Result<(), crate::Error> {
-        todo!()
-    }
-
-    async fn stream_logs(&self, _criterias: Criterias) -> Result<(), crate::Error> {
-        todo!()
+    async fn get_logs(&self, criteria: Criteria) -> Result<Vec<Log>, crate::Error> {
+        Ok(self
+            .inner
+            .get_logs(&Filter::from(&criteria))
+            .await
+            .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?
+            .into_iter()
+            .map(Log::from)
+            .collect::<Vec<Log>>())
     }
 }
 
@@ -191,56 +150,36 @@ impl NodeProvider<crate::Error> for EthIpc {
             .map_err(|e| e.into())
     }
 
-    async fn get_block(&self, block: BlockNumber) -> Result<Block<Transaction>, crate::Error> {
+    async fn get_block(&self, block: BlockNumber) -> Result<Block, crate::Error> {
         self.inner
             .get_block_with_txs(BlockId::Number(block.into()))
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
+            .map(Block::from)
             .ok_or(crate::Error::FetchBlock("Block not found".to_string()))
     }
 
     async fn get_transactions(&self, block: BlockNumber) -> Result<Vec<Transaction>, crate::Error> {
-        let node = self
+        Ok(self
             .inner
             .get_block_with_txs(BlockId::Number(block.into()))
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("{}", e)))?
-            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?;
-
-        Ok(node.transactions)
+            .ok_or(crate::Error::FetchBlock("Block not found".to_string()))?
+            .transactions
+            .into_iter()
+            .map(Transaction::from)
+            .collect())
     }
 
-    async fn get_logs(
-        &self,
-        criterias: Criterias,
-        block: BlockNumber,
-    ) -> Result<Vec<Log>, crate::Error> {
-        let mut resp = vec![];
-        for criterias in criterias.0.iter() {
-            log::info!("Fetching logs for criteria: {}", criterias.name());
-            let ir: Filter = criterias.into();
-            let filter: Filter = ir.from_block(block).to_block(block);
-
-            resp.extend(
-                self.inner
-                    .get_logs(&filter)
-                    .await
-                    .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?,
-            );
-        }
-
-        Ok(resp)
-    }
-
-    async fn stream_blocks(&self) -> Result<(), crate::Error> {
-        todo!()
-    }
-
-    async fn stream_transactions(&self) -> Result<(), crate::Error> {
-        todo!()
-    }
-
-    async fn stream_logs(&self, _criterias: Criterias) -> Result<(), crate::Error> {
-        todo!()
+    async fn get_logs(&self, criteria: Criteria) -> Result<Vec<Log>, crate::Error> {
+        Ok(self
+            .inner
+            .get_logs(&Filter::from(&criteria))
+            .await
+            .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?
+            .into_iter()
+            .map(Log::from)
+            .collect::<Vec<Log>>())
     }
 }

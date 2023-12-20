@@ -279,8 +279,7 @@ mod tests {
     use super::*;
     use crate::storage::Storage;
 
-    use sqlx::{postgres::PgPoolOptions, Executor, Pool, Postgres};
-
+    use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
     use uuid::Uuid;
 
     async fn setup_test_db() -> std::result::Result<(Pool<Postgres>, String), sqlx::Error> {

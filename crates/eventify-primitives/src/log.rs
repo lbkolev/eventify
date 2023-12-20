@@ -1,7 +1,11 @@
-use std::{fs, str::FromStr};
+use std::{
+    fs,
+    ops::{Deref, DerefMut},
+    str::FromStr,
+};
 
 use ethers_core::{
-    types::{Address, Bytes, Filter, ValueOrArray, H256, U256, U64},
+    types::{Address, BlockNumber, Bytes, Filter, ValueOrArray, H256, U256, U64},
     utils::keccak256,
 };
 use serde::{Deserialize, Serialize};
@@ -42,36 +46,22 @@ impl From<crate::ETHLog> for Log {
     }
 }
 
-// add strategy; e.g. from-to blocks, number of events etc
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct Criteria {
     pub name: String,
-    pub events: Vec<String>,
-    pub addresses: Vec<Address>,
+    pub src_block: Option<BlockNumber>,
+    pub dst_block: Option<BlockNumber>,
+    pub addresses: Option<Vec<Address>>,
+
+    pub events_signatures: Option<Vec<String>>, // aka filter0
+    pub filter1: Option<Vec<String>>,
+    pub filter2: Option<Vec<String>>,
+    pub filter3: Option<Vec<String>>,
 }
 
 impl Criteria {
-    pub fn new(name: String, events: Vec<String>, addresses: Vec<Address>) -> Self {
-        Self {
-            name,
-            events,
-            addresses,
-        }
-    }
-
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    pub fn events(&self) -> &Vec<String> {
-        &self.events
-    }
-
-    pub fn addresses(&self) -> &Vec<Address> {
-        &self.addresses
-    }
-
-    pub fn read_criteria_from_file(file_path: &str) -> crate::Result<Criteria> {
+    pub fn from_file(file_path: &str) -> crate::Result<Criteria> {
         let contents = fs::read_to_string(file_path)
             .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
 
@@ -82,21 +72,33 @@ impl Criteria {
     }
 
     pub fn hashed_events(&self) -> Vec<H256> {
-        self.events
+        self.events_signatures
             .clone()
+            .unwrap_or_default()
             .into_iter()
             .map(|event| H256::from(keccak256(event)))
+            .collect()
+    }
+
+    pub fn filter_as_h256(&self) -> Vec<H256> {
+        self.filter1
+            .clone()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|f| H256::from_str(&f).unwrap())
             .collect()
     }
 }
 
 /// Set of events and addresses
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Criterias(pub Vec<Criteria>);
-
 impl Criterias {
-    pub fn new(criterias: Vec<Criteria>) -> Self {
-        Self(criterias)
+    pub fn new(criterias: Option<Vec<Criteria>>) -> Self {
+        match criterias {
+            Some(criterias) => Self(criterias),
+            None => Self::default(),
+        }
     }
 
     pub fn criterias(&self) -> &Vec<Criteria> {
@@ -111,6 +113,28 @@ impl Criterias {
             .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
 
         Ok(criterias)
+    }
+}
+
+impl Iterator for Criterias {
+    type Item = Criteria;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop()
+    }
+}
+
+impl Deref for Criterias {
+    type Target = Vec<Criteria>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Criterias {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -131,8 +155,39 @@ impl From<&str> for Criterias {
 impl From<&Criteria> for Filter {
     fn from(criteria: &Criteria) -> Self {
         Filter::new()
+            .address(ValueOrArray::Array(
+                criteria.addresses.clone().unwrap_or_default(),
+            ))
             .topic0(ValueOrArray::Array(criteria.hashed_events()))
-            .address(ValueOrArray::Array(criteria.addresses.clone()))
+            .topic1(ValueOrArray::Array(
+                criteria
+                    .clone()
+                    .filter1
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|f| H256::from_str(&f).unwrap())
+                    .collect(),
+            ))
+            .topic2(ValueOrArray::Array(
+                criteria
+                    .clone()
+                    .filter2
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|f| H256::from_str(&f).unwrap())
+                    .collect(),
+            ))
+            .topic3(ValueOrArray::Array(
+                criteria
+                    .clone()
+                    .filter3
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|f| H256::from_str(&f).unwrap())
+                    .collect(),
+            ))
+            .from_block(criteria.src_block.unwrap_or(BlockNumber::Earliest))
+            .to_block(criteria.dst_block.unwrap_or(BlockNumber::Latest))
     }
 }
 
@@ -162,7 +217,7 @@ mod tests {
             }
         );
 
-        serde_json::from_value::<Log>(json).unwrap();
+        assert!(serde_json::from_value::<Log>(json).is_ok());
     }
 
     #[test]
@@ -172,25 +227,34 @@ mod tests {
         assert!(serde_json::from_value::<Log>(json).is_err());
     }
 
-    //#[test]
-    //fn test_from_file() {
-    //    let criterias = Criterias::from_file("tests/criterias.json").unwrap();
+    #[test]
+    fn test_deserialize_criteria() {
+        let json = serde_json::json!(
+        {
+            "name": "test",
+            "src_block": 1,
+            "dst_block": 2,
+            "addresses": ["0x0000000000000000000000000000000000000001", "0x0000000000000000000000000000000000000002"],
+            "events_signatures": ["Transfer(address,address,uint256)"],
+            "filter1": ["0x000000"],
+            "filter2": ["0x000000"],
+            "filter3": ["0x000000"]
+        });
+        assert!(serde_json::from_value::<Criteria>(json).is_ok());
 
-    //    assert_eq!(criterias.criterias().len(), 2);
-    //    assert_eq!(criterias.criterias()[0].name(), "test1");
-    //    assert_eq!(criterias.criterias()[0].events().len(), 2);
-    //    assert_eq!(criterias.criterias()[0].addresses().len(), 2);
-    //    assert_eq!(criterias.criterias()[1].name(), "test2");
-    //    assert_eq!(criterias.criterias()[1].events().len(), 1);
-    //    assert_eq!(criterias.criterias()[1].addresses().len(), 1);
-    //}
+        let json = serde_json::json!(
+        {
+            "name": "test",
+            "src_block": 1,
+            "dst_block": 2,
+        });
+        assert!(serde_json::from_value::<Criteria>(json).is_ok());
+    }
 
-    //#[test]
-    //fn test_read_criteria_from_file() {
-    //    let criteria = Criteria::read_criteria_from_file("tests/criteria.json").unwrap();
+    #[test]
+    fn test_deserialize_empty_criteria() {
+        let json = serde_json::json!({});
 
-    //    assert_eq!(criteria.name(), "test1");
-    //    assert_eq!(criteria.events().len(), 2);
-    //    assert_eq!(criteria.addresses().len(), 2);
-    //}
+        assert!(serde_json::from_value::<Criteria>(json).is_err());
+    }
 }
