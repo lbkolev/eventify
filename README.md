@@ -39,5 +39,3 @@ Include the following:
 - [eventify-http-client](.crates//eventify-http-client) - Provides an OpenAPI generated client for the exposed API.
 - [eventify-middleware](./crates/eventify-middleware) - Holds the traits/types necessary to implement a middleware interface.
 - [eventify-primitives](./crates/eventify-primitives) - Contains types shared between the different workspace crates.
-
-## License
