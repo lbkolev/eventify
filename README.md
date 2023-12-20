@@ -1,6 +1,6 @@
 <div align="center">
     <a href="https://github.com/lbkolev/fieri">
-        <img width="750px" height="180px" src=".github/logo.png">
+        <img width="500px" height="150px" src=".github/logo.png">
     </a>
 </div>
 
