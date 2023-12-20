@@ -100,7 +100,7 @@ async fn main() -> Result<()> {
                 match Url::parse(&settings.node_url)?.scheme() {
                     "http" | "https" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<_, _, Error>(
+                            Manager::run::<_, _, Error>(
                                 Collector::new(
                                     EthHttp::new(&settings.node_url).await?,
                                     Postgres::new(settings.database_url()),
@@ -114,7 +114,7 @@ async fn main() -> Result<()> {
                     }
                     "ws" | "wss" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<_, _, Error>(
+                            Manager::run::<_, _, Error>(
                                 Collector::new(
                                     EthWs::new(&settings.node_url).await?,
                                     Postgres::new(settings.database_url()),
@@ -128,7 +128,7 @@ async fn main() -> Result<()> {
                     }
                     "ipc" => {
                         handles.push(tokio::spawn(
-                            Manager::run_par::<_, _, Error>(
+                            Manager::run::<_, _, Error>(
                                 Collector::new(
                                     EthIpc::new(&settings.node_url).await?,
                                     Postgres::new(settings.database_url()),

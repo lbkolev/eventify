@@ -1,7 +1,7 @@
 use alloy_primitives::BlockNumber;
 
 use crate::{types::provider::NodeProvider, Result};
-use eventify_primitives::{Block, Criterias, Log, Storage, Transaction};
+use eventify_primitives::{Criteria, Storage};
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S>
@@ -35,22 +35,15 @@ where
             .get_block(block)
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch block: {}", e)))?;
-        self.storage.store_block(&Block::from(block)).await?;
+        self.storage.store_block(&block).await?;
 
         Ok(())
     }
 
-    pub async fn fetch_blocks(&self, from: BlockNumber, to: BlockNumber) -> Result<()> {
+    pub async fn fetch_blocks_from_range(&self, from: BlockNumber, to: BlockNumber) -> Result<()> {
         for block in from..=to {
             self.fetch_block(block).await?;
         }
-
-        Ok(())
-    }
-
-    pub async fn fetch_blocks_from(&self, from: BlockNumber) -> Result<()> {
-        let to = self.node.get_block_number().await?;
-        self.fetch_blocks(from, to).await?;
 
         Ok(())
     }
@@ -61,16 +54,17 @@ where
         })?;
 
         for tx in transactions {
-            self.storage
-                .store_transaction(&Transaction::from(tx))
-                .await?;
+            self.storage.store_transaction(&tx).await?;
         }
 
         Ok(())
     }
 
-    pub async fn fetch_transactions_from(&self, from: BlockNumber) -> Result<()> {
-        let to = self.node.get_block_number().await?;
+    pub async fn fetch_transactions_from_range(
+        &self,
+        from: BlockNumber,
+        to: BlockNumber,
+    ) -> Result<()> {
         for block in from..=to {
             self.fetch_transactions(block).await?;
         }
@@ -78,11 +72,11 @@ where
         Ok(())
     }
 
-    pub async fn fetch_logs(&self, criterias: Criterias, block: BlockNumber) -> Result<()> {
-        let log = self.node.get_logs(criterias, block).await?;
+    pub async fn fetch_logs(&self, criteria: Criteria) -> Result<()> {
+        let log = self.node.get_logs(criteria).await?;
 
         for log in log {
-            self.storage.store_log(&Log::from(log)).await?;
+            self.storage.store_log(&log).await?;
         }
 
         Ok(())
