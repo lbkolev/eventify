@@ -13,9 +13,9 @@ use eventify_idx as idx;
 use eventify_primitives as primitives;
 
 use crate::settings::Settings;
-use eventify_idx::types::NodeProvider;
 use idx::{
     providers::{storage::Postgres, EthHttp, EthIpc, EthWs},
+    types::NodeProvider,
     Collector, Manager, Run,
 };
 use primitives::{configs::ServerConfig, Criterias};
