@@ -27,7 +27,7 @@ eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1"
 eventify-idx = { path = "./crates/eventify-idx", version = "0.0.1" }
 eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
 eventify-client = { path = "./crates/eventify-http-client", version = "0.0.1" }
-eventify-extensions = { path = "./crates/eventify-middleware", version = "0.0.1" }
+eventify-extensions = { path = "./crates/eventify-extensions", version = "0.0.1" }
 
 # async
 async-trait = "0.1.72"
