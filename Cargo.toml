@@ -13,10 +13,10 @@ repository = "https://github.com/lbkolev/eventify"
 [workspace]
 members = [
     "crates/eventify",
+    "crates/eventify-extensions",
     "crates/eventify-http-client",
     "crates/eventify-http-server",
     "crates/eventify-idx",
-    "crates/eventify-middleware",
     "crates/eventify-primitives"
 ]
 resolver = "2"
@@ -27,7 +27,7 @@ eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1"
 eventify-idx = { path = "./crates/eventify-idx", version = "0.0.1" }
 eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
 eventify-client = { path = "./crates/eventify-http-client", version = "0.0.1" }
-eventify-middleware = { path = "./crates/eventify-middleware", version = "0.0.1" }
+eventify-extensions = { path = "./crates/eventify-extensions", version = "0.0.1" }
 
 # async
 async-trait = "0.1.72"
@@ -48,10 +48,10 @@ ethers-providers = { version = "2.0.11", features = ["ipc", "ws"] }
 
 # auxiliary
 clap = "4.3.12"
-log = "0.4.19"
 num_cpus = "1.16.0"
 secrecy = { version = "0.8.0", features = ["serde"] }
 thiserror = "1.0.44"
 utoipa = { version = "4.1.0", features = ["actix_extras"] }
 uuid = { version = "1.4.0", features = ["v4"] }
 url = "2.4.0"
+tracing = "0.1.37"

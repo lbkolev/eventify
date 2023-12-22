@@ -1,5 +1,5 @@
 [package]
-name = "eventify-middleware"
+name = "eventify-extensions"
 
 authors.workspace = true
 description.workspace = true

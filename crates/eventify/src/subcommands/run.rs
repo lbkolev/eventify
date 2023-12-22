@@ -4,7 +4,7 @@ use secrecy::{ExposeSecret, Secret};
 
 use eventify_primitives as types;
 use types::{
-    config::{ApplicationConfig, DatabaseConfig, ServerConfig},
+    configs::{ApplicationConfig, DatabaseConfig, ServerConfig},
     Criterias,
 };
 

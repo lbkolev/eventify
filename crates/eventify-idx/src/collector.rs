@@ -1,10 +1,10 @@
 use alloy_primitives::BlockNumber;
 
 use crate::{
-    types::{collect::Collect, provider::NodeProvider},
+    types::{Collect, NodeProvider, Storage},
     Result,
 };
-use eventify_primitives::{Block, Criteria, Storage};
+use eventify_primitives::Criteria;
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S>
@@ -12,8 +12,8 @@ where
     N: NodeProvider<crate::Error>,
     S: Storage,
 {
-    pub node: N,
-    pub storage: S,
+    node: N,
+    storage: S,
 }
 
 impl<N, S> Collector<N, S>

@@ -1,5 +1,5 @@
 use alloy_primitives::BlockNumber;
-use eventify_primitives::{Block, Criteria};
+use eventify_primitives::Criteria;
 
 /// `Collect` Trait
 ///

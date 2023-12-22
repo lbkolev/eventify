@@ -2,8 +2,11 @@ use std::error::Error;
 
 use alloy_primitives::BlockNumber;
 
-use crate::{types::provider::NodeProvider, Collector};
-use eventify_primitives::{Criterias, Storage};
+use crate::{
+    types::{NodeProvider, Storage},
+    Collector,
+};
+use eventify_primitives::Criterias;
 
 #[async_trait::async_trait]
 pub trait Run {

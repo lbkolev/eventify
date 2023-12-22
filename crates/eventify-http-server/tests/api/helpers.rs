@@ -2,6 +2,8 @@ use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 
+use eventify_primitives::configs::{ApplicationConfig, DatabaseConfig, ServerConfig};
+
 pub struct TestApp {
     pub address: String,
     pub port: u16,
@@ -15,13 +17,13 @@ pub async fn spawn_app() -> TestApp {
     // Randomise configuration to ensure test isolation
     let configuration = {
         //let mut c = get_configuration().expect("Failed to read configuration.");
-        let mut c = eventify_primitives::config::ServerConfig {
-            application: eventify_primitives::config::ApplicationConfig {
+        let mut c = ServerConfig {
+            application: ApplicationConfig {
                 host: String::from("localhost"),
                 port: 0,
                 worker_threads: 1,
             },
-            database: eventify_primitives::config::DatabaseConfig {
+            database: DatabaseConfig {
                 host: String::from("localhost"),
                 port: 5432,
                 username: String::from("postgres"),
@@ -56,7 +58,7 @@ pub async fn spawn_app() -> TestApp {
     }
 }
 
-async fn configure_database(config: &eventify_primitives::config::DatabaseConfig) -> PgPool {
+async fn configure_database(config: &DatabaseConfig) -> PgPool {
     // Create database
     let mut connection = PgConnection::connect_with(&config.without_db())
         .await

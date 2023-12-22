@@ -9,16 +9,17 @@ pub mod subcommands;
 
 use error::Error;
 use eventify_http_server as server;
-use eventify_idx as indexer;
-use eventify_primitives as types;
+use eventify_idx as idx;
+use eventify_primitives as primitives;
 
 use crate::settings::Settings;
-use indexer::{
-    providers::{EthHttp, EthIpc, EthWs},
-    types::provider::NodeProvider,
+use idx::{
+    providers::{storage::Postgres, EthHttp, EthIpc, EthWs},
+    types::NodeProvider,
     Collector, Manager, Run,
 };
-use types::{config::ServerConfig, storage::Postgres, Criterias};
+use primitives::{configs::ServerConfig, Criterias};
+use tracing::info;
 
 pub type Result<T> = std::result::Result<T, Error>;
 //----
@@ -28,31 +29,8 @@ use std::path::Path;
 use clap::Parser;
 use futures::TryFutureExt;
 use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
-use tracing::{subscriber::set_global_default, Subscriber};
-use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
-use tracing_log::LogTracer;
-use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
+use tracing_subscriber::EnvFilter;
 use url::Url;
-
-fn get_subscriber<Sink>(
-    name: String,
-    env_filter: String,
-    sink: Sink,
-) -> impl Subscriber + Sync + Send
-where
-    Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
-{
-    let env_filter = EnvFilter::new(env_filter);
-    Registry::default()
-        .with(env_filter)
-        .with(JsonStorageLayer)
-        .with(BunyanFormattingLayer::new(name, sink))
-}
-
-fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
-    LogTracer::init().expect("Failed to set logger");
-    set_global_default(subscriber).expect("Failed to set subscriber");
-}
 
 async fn run_migrations(url: &str) -> Result<()> {
     let migrator = Migrator::new(Path::new("./migrations/rdms/postgres")).await?;
@@ -66,14 +44,12 @@ async fn run_migrations(url: &str) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let settings = Settings::parse();
-    let subscriber = get_subscriber(
-        "eventify".into(),
-        settings.log_level.as_str().into(),
-        std::io::stdout,
-    );
-    init_subscriber(subscriber);
-    log::info!("{:#?}", settings);
+    tracing_subscriber::fmt()
+        .with_thread_ids(true)
+        .with_env_filter(EnvFilter::builder().from_env_lossy())
+        .init();
 
+    info!(target:"eventify::cli", ?settings);
     match settings.cmd {
         settings::SubCommand::Run(settings) => {
             run_migrations(settings.database_url()).await?;

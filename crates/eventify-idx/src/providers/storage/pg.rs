@@ -1,14 +1,15 @@
 #![allow(clippy::option_map_unit_fn)]
-
 use std::ops::{Deref, DerefMut};
 
 use ethers_core::types::{H64, U64};
 use sqlx::{pool::PoolOptions, Pool};
+use tracing::debug;
 
 use crate::{
-    storage::{Auth, Storage},
-    Block, Contract, Error, Log, Result, Transaction,
+    types::storage::{Auth, Storage},
+    Error, Result,
 };
+use eventify_primitives::{Block, Contract, Log, Transaction};
 
 #[derive(Debug, Clone)]
 pub struct Postgres {
@@ -66,7 +67,6 @@ impl Auth for Postgres {
 #[async_trait::async_trait]
 impl Storage for Postgres {
     async fn store_block(&self, block: &Block) -> Result<()> {
-        println!("Inserting block: [{:?}]", block.hash);
         let sql = r#"INSERT INTO eth.block (
             hash,
             parent_hash,
@@ -128,8 +128,7 @@ impl Storage for Postgres {
             .execute(&self.inner)
             .await?;
 
-        log::info!("Inserted block: [{:?}]", block.hash);
-        println!("Inserted block: [{:?}]", block.hash);
+        debug!(target: "eventify::idx::block", hash=?block.hash, number=?block.number, "Insert");
         Ok(())
     }
 
@@ -201,7 +200,7 @@ impl Storage for Postgres {
             .execute(&self.inner)
             .await?;
 
-        log::debug!("Inserted transaction: [{:?}]", tx.hash);
+        debug!(target: "eventify::idx::tx", tx_hash=?tx.hash, block=?tx.block_number, "Insert");
         Ok(())
     }
 
@@ -221,7 +220,7 @@ impl Storage for Postgres {
             .execute(&self.inner)
             .await?;
 
-        log::debug!("Inserted contract [{:?}]", tx.transaction_hash);
+        debug!(target: "eventify::idx::contract", tx_hash=?tx.transaction_hash, tx_from=?tx.from, "Insert");
         Ok(())
     }
 
@@ -270,6 +269,7 @@ impl Storage for Postgres {
             .execute(&self.inner)
             .await?;
 
+        debug!(target: "eventify::idx::log", address=?log.address, block=?log.block_number, event=?log.topics.first().map(|h| format!("{:x}", h)) ,"Insert");
         Ok(())
     }
 }
@@ -277,7 +277,7 @@ impl Storage for Postgres {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::Storage;
+    use crate::types::storage::Storage;
 
     use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
     use uuid::Uuid;
@@ -406,9 +406,9 @@ mod tests {
             "input":"0x68656c6c6f21"
         });
 
-        let tx = serde_json::from_value::<Contract>(json).unwrap();
-        println!("{:?}", tx);
-        db.store_contract(&tx).await.unwrap();
+        let contract = serde_json::from_value::<Contract>(json).unwrap();
+        println!("{:?}", contract);
+        db.store_contract(&contract).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }
