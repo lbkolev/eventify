@@ -1,6 +1,6 @@
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct ServerConfig {
-    pub database: crate::config::DatabaseConfig,
+    pub database: crate::configs::DatabaseConfig,
     pub application: ApplicationConfig,
 }
 

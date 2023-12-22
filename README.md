@@ -37,5 +37,5 @@ Include the following:
 - [eventify-idx](./crates/eventify-idx) - Holds the Indexer implementation.
 - [eventify-http-server](./crates/eventify-http-server) - Exposes an HTTP server for the indexed data.
 - [eventify-http-client](.crates//eventify-http-client) - Provides an OpenAPI generated client for the exposed API.
-- [eventify-middleware](./crates/eventify-middleware) - Holds the traits/types necessary to implement a middleware interface.
+- [eventify-extensions](./crates/eventify-extensions) - Holds implementations for external queues like kafka/sqs.
 - [eventify-primitives](./crates/eventify-primitives) - Contains types shared between the different workspace crates.

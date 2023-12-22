@@ -4,7 +4,7 @@ use ethers_providers::Middleware;
 
 use crate::{
     providers::{EthHttp, EthIpc, EthWs},
-    types::provider::NodeProvider,
+    types::NodeProvider,
 };
 use eventify_primitives::{Block, Criteria, Log, Transaction};
 

@@ -14,7 +14,6 @@ repository.workspace = true
 
 [dependencies]
 # async
-async-trait.workspace = true
 tokio.workspace = true
 
 # core
@@ -23,18 +22,13 @@ serde-aux.workspace = true
 serde_json.workspace = true
 
 # eth
-alloy-primitives.workspace = true
 ethers-core.workspace = true
 
 # auxiliary
 clap.workspace = true
-log.workspace = true
+tracing.workspace = true
 secrecy.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 url.workspace = true
 utoipa.workspace = true
-
-[dev-dependencies]
-dotenv = "0.15.0"
-uuid.workspace = true

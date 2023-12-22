@@ -14,11 +14,9 @@ repository.workspace = true
 
 [features]
 default = [
-    "multi-thread",
     "eth",
     "http",
 ]
-multi-thread = []
 
 # chain
 eth = []
@@ -38,9 +36,9 @@ futures.workspace = true
 tokio.workspace = true
 
 # core
+serde.workspace = true
 serde-aux.workspace = true
 serde_derive.workspace = true
-serde.workspace = true
 sqlx.workspace = true
 
 # eth
@@ -49,8 +47,12 @@ ethers-providers.workspace = true
 ethers-core.workspace = true
 
 # auxiliary
-log.workspace = true
+tracing.workspace = true
 thiserror.workspace = true
 url.workspace = true
 rayon = { version = "1.7.0", optional = true }
-paste = "1.0.14"
+
+[dev-dependencies]
+dotenv = "0.15.0"
+serde_json.workspace = true
+uuid.workspace = true

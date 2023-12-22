@@ -1,10 +1,10 @@
 use alloy_primitives::BlockNumber;
 
 use crate::{
-    types::{collect::Collect, provider::NodeProvider},
+    types::{Collect, NodeProvider, Storage},
     Collector, Run,
 };
-use eventify_primitives::{Criterias, Storage};
+use eventify_primitives::Criterias;
 
 #[derive(Debug, Clone, Default)]
 pub struct Manager;
