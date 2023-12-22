@@ -1,6 +1,9 @@
 use alloy_primitives::BlockNumber;
 
-use crate::{types::provider::NodeProvider, Collector, Run};
+use crate::{
+    types::{collect::Collect, provider::NodeProvider},
+    Collector, Run,
+};
 use eventify_primitives::{Criterias, Storage};
 
 #[derive(Debug, Clone, Default)]
@@ -30,13 +33,11 @@ impl Run for Manager {
 
         let mut handles = vec![
             tokio::spawn(async move {
-                let _ = collector_block
-                    .fetch_blocks_from_range(src_block, dst_block)
-                    .await;
+                let _ = collector_block.process_blocks(src_block, dst_block).await;
             }),
             tokio::spawn(async move {
                 let _ = collector_tx
-                    .fetch_transactions_from_range(src_block, dst_block)
+                    .process_transactions_from_range(src_block, dst_block)
                     .await;
             }),
         ];
@@ -46,7 +47,7 @@ impl Run for Manager {
                 let collector_logs = collector.clone();
 
                 handles.push(tokio::spawn(async move {
-                    let _ = collector_logs.fetch_logs(criteria).await;
+                    let _ = collector_logs.process_logs(criteria).await;
                 }));
             }
         }

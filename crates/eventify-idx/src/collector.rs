@@ -1,7 +1,10 @@
 use alloy_primitives::BlockNumber;
 
-use crate::{types::provider::NodeProvider, Result};
-use eventify_primitives::{Criteria, Storage};
+use crate::{
+    types::{collect::Collect, provider::NodeProvider},
+    Result,
+};
+use eventify_primitives::{Block, Criteria, Storage};
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S>
@@ -28,8 +31,15 @@ where
             .await
             .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch latest block: {}", e)))
     }
+}
 
-    pub async fn fetch_block(&self, block: BlockNumber) -> Result<()> {
+#[async_trait::async_trait]
+impl<N, S> Collect<Criteria, crate::Error> for Collector<N, S>
+where
+    N: NodeProvider<crate::Error>,
+    S: Storage,
+{
+    async fn process_block(&self, block: BlockNumber) -> Result<()> {
         let block = self
             .node
             .get_block(block)
@@ -40,15 +50,15 @@ where
         Ok(())
     }
 
-    pub async fn fetch_blocks_from_range(&self, from: BlockNumber, to: BlockNumber) -> Result<()> {
+    async fn process_blocks(&self, from: BlockNumber, to: BlockNumber) -> Result<()> {
         for block in from..=to {
-            self.fetch_block(block).await?;
+            self.process_block(block).await?;
         }
 
         Ok(())
     }
 
-    pub async fn fetch_transactions(&self, block: BlockNumber) -> Result<()> {
+    async fn process_transactions(&self, block: BlockNumber) -> Result<()> {
         let transactions = self.node.get_transactions(block).await.map_err(|e| {
             crate::Error::FetchBlock(format!("Failed to fetch transactions: {}", e))
         })?;
@@ -60,22 +70,22 @@ where
         Ok(())
     }
 
-    pub async fn fetch_transactions_from_range(
+    async fn process_transactions_from_range(
         &self,
         from: BlockNumber,
         to: BlockNumber,
     ) -> Result<()> {
         for block in from..=to {
-            self.fetch_transactions(block).await?;
+            self.process_transactions(block).await?;
         }
 
         Ok(())
     }
 
-    pub async fn fetch_logs(&self, criteria: Criteria) -> Result<()> {
-        let log = self.node.get_logs(criteria).await?;
+    async fn process_logs(&self, c: Criteria) -> Result<()> {
+        let logs = self.node.get_logs(c).await?;
 
-        for log in log {
+        for log in logs {
             self.storage.store_log(&log).await?;
         }
 
