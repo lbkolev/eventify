@@ -1,15 +1,15 @@
 use ethers_core::types::{Address, Bytes, H256, U256, U64};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
     pub hash: H256,
     pub nonce: U256,
     pub block_hash: Option<H256>,
     pub block_number: Option<U64>,
-    pub transaction_index: Option<U64>,
     pub from: Address,
     pub to: Option<Address>,
     pub value: U256,
@@ -20,6 +20,7 @@ pub struct Transaction {
     pub r: U256,
     pub s: U256,
     pub transaction_type: Option<U64>,
+    pub transaction_index: Option<U64>,
     pub max_fee_per_gas: Option<U256>,
     pub max_priority_fee_per_gas: Option<U256>,
 }

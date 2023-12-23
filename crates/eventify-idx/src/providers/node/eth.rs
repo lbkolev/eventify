@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use alloy_primitives::BlockNumber;
 use ethers_core::types::{BlockId, Filter};
 use ethers_providers::Middleware;
@@ -17,7 +19,7 @@ impl NodeProvider<crate::Error> for EthHttp {
 
     async fn connect(url: &str) -> Result<Self, crate::Error> {
         Ok(Self {
-            inner: ethers_providers::Provider::<ethers_providers::Http>::try_from(url)?,
+            inner: Arc::new(ethers_providers::Provider::<ethers_providers::Http>::try_from(url)?),
         })
     }
 
@@ -51,20 +53,17 @@ impl NodeProvider<crate::Error> for EthHttp {
             .collect())
     }
 
-    async fn get_logs(&self, criteria: Criteria) -> Result<Vec<Log>, crate::Error> {
+    async fn get_logs(&self, criteria: &Criteria) -> Result<Vec<Log>, crate::Error> {
         Ok(self
             .inner
-            .get_logs(&Filter::from(&criteria))
+            .get_logs(&Filter::from(criteria))
             .await
             .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?
             .into_iter()
             .map(Log::from)
-            .collect::<Vec<Log>>())
+            .collect())
     }
 }
-
-#[cfg(all(feature = "eth", feature = "ws"))]
-impl EthWs {}
 
 #[cfg(all(feature = "eth", feature = "ws"))]
 #[async_trait::async_trait]
@@ -75,11 +74,11 @@ impl NodeProvider<crate::Error> for EthWs {
 
     async fn connect(url: &str) -> Result<Self, crate::Error> {
         Ok(Self {
-            inner: ethers_providers::Provider::new(
+            inner: Arc::new(ethers_providers::Provider::new(
                 ethers_providers::Ws::connect(url).await.map_err(|e| {
                     crate::Error::WsTransportCreationError(url.to_string(), e.to_string())
                 })?,
-            ),
+            )),
         })
     }
 
@@ -113,15 +112,15 @@ impl NodeProvider<crate::Error> for EthWs {
             .collect())
     }
 
-    async fn get_logs(&self, criteria: Criteria) -> Result<Vec<Log>, crate::Error> {
+    async fn get_logs(&self, criteria: &Criteria) -> Result<Vec<Log>, crate::Error> {
         Ok(self
             .inner
-            .get_logs(&Filter::from(&criteria))
+            .get_logs(&Filter::from(criteria))
             .await
             .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?
             .into_iter()
             .map(Log::from)
-            .collect::<Vec<Log>>())
+            .collect())
     }
 }
 
@@ -134,11 +133,11 @@ impl NodeProvider<crate::Error> for EthIpc {
 
     async fn connect(url: &str) -> Result<Self, crate::Error> {
         Ok(Self {
-            inner: ethers_providers::Provider::new(
+            inner: Arc::new(ethers_providers::Provider::new(
                 ethers_providers::Ipc::connect(url).await.map_err(|e| {
                     crate::Error::IpcTransportCreationError(url.to_string(), e.to_string())
                 })?,
-            ),
+            )),
         })
     }
 
@@ -172,14 +171,14 @@ impl NodeProvider<crate::Error> for EthIpc {
             .collect())
     }
 
-    async fn get_logs(&self, criteria: Criteria) -> Result<Vec<Log>, crate::Error> {
+    async fn get_logs(&self, criteria: &Criteria) -> Result<Vec<Log>, crate::Error> {
         Ok(self
             .inner
-            .get_logs(&Filter::from(&criteria))
+            .get_logs(&Filter::from(criteria))
             .await
             .map_err(|e| crate::Error::FetchLog(format!("Failed to fetch logs: {}", e)))?
             .into_iter()
             .map(Log::from)
-            .collect::<Vec<Log>>())
+            .collect())
     }
 }

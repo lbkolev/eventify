@@ -11,8 +11,9 @@ use ethers_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use sqlx::prelude::FromRow;
+use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, FromRow)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Log {
     pub address: Address,
@@ -46,7 +47,7 @@ impl From<crate::ETHLog> for Log {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct Criteria {
     pub name: String,
@@ -90,7 +91,6 @@ impl Criteria {
     }
 }
 
-/// Set of events and addresses
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Criterias(pub Vec<Criteria>);
 impl Criterias {
@@ -193,6 +193,8 @@ impl From<&Criteria> for Filter {
 
 #[cfg(test)]
 mod tests {
+    use ethers_core::types::{H160, U64};
+
     use super::*;
 
     #[test]
@@ -232,15 +234,32 @@ mod tests {
         let json = serde_json::json!(
         {
             "name": "test",
-            "src_block": 1,
-            "dst_block": 2,
+            "srcBlock": "1",
+            "dstBlock": "2",
             "addresses": ["0x0000000000000000000000000000000000000001", "0x0000000000000000000000000000000000000002"],
-            "events_signatures": ["Transfer(address,address,uint256)"],
+            "eventsSignatures": ["Transfer(address,address,uint256)"],
             "filter1": ["0x000000"],
             "filter2": ["0x000000"],
             "filter3": ["0x000000"]
         });
-        assert!(serde_json::from_value::<Criteria>(json).is_ok());
+        let res = serde_json::from_value::<Criteria>(json).unwrap();
+        assert_eq!(res.name, "test");
+        assert_eq!(res.src_block, Some(BlockNumber::Number(U64::from(1))));
+        assert_eq!(res.dst_block, Some(BlockNumber::Number(U64::from(2))));
+        assert_eq!(
+            res.addresses,
+            Some(vec![
+                H160::from_str("0x0000000000000000000000000000000000000001").unwrap(),
+                H160::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+            ]),
+        );
+        assert_eq!(
+            res.events_signatures,
+            Some(vec!["Transfer(address,address,uint256)".to_string()]),
+        );
+        assert_eq!(res.filter1, Some(vec!["0x000000".to_string()]));
+        assert_eq!(res.filter2, Some(vec!["0x000000".to_string()]));
+        assert_eq!(res.filter3, Some(vec!["0x000000".to_string()]));
 
         let json = serde_json::json!(
         {

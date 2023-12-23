@@ -1,9 +1,9 @@
 #[macro_export]
-macro_rules! provider {
+macro_rules! node_provider {
     ($name:ident, $transport:ty) => {
         #[derive(Debug, Clone)]
         pub struct $name {
-            inner: $transport,
+            inner: std::sync::Arc<$transport>,
         }
 
         impl std::ops::Deref for $name {
@@ -14,15 +14,11 @@ macro_rules! provider {
             }
         }
 
-        impl std::ops::DerefMut for $name {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.inner
-            }
-        }
-
         impl From<$transport> for $name {
             fn from(inner: $transport) -> Self {
-                Self { inner }
+                Self {
+                    inner: std::sync::Arc::new(inner),
+                }
             }
         }
 
@@ -38,7 +34,9 @@ macro_rules! provider {
             }
 
             pub fn with_inner(&self, inner: $transport) -> Self {
-                Self { inner }
+                Self {
+                    inner: std::sync::Arc::new(inner),
+                }
             }
         }
     };

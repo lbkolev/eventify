@@ -3,7 +3,7 @@ use std::error::Error;
 use alloy_primitives::BlockNumber;
 
 use crate::{
-    types::{NodeProvider, Storage},
+    types::{NodeProvider, StorageProvider},
     Collector,
 };
 use eventify_primitives::Criterias;
@@ -12,6 +12,8 @@ use eventify_primitives::Criterias;
 pub trait Run {
     async fn run<N, S, E>(
         processor: Collector<N, S>,
+        skip_transactions: bool,
+        skip_blocks: bool,
         src_block: BlockNumber,
         dst_block: BlockNumber,
         criterias: Option<Criterias>,
@@ -19,5 +21,5 @@ pub trait Run {
     where
         E: Error + Send + Sync,
         N: NodeProvider<crate::Error>,
-        S: Storage;
+        S: StorageProvider;
 }

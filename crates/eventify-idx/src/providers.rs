@@ -1,13 +1,16 @@
 pub mod node;
 pub mod storage;
 
-use crate::provider;
+use crate::node_provider;
 
 #[cfg(all(feature = "eth", feature = "http"))]
-provider!(EthHttp, ethers_providers::Provider<ethers_providers::Http>);
+node_provider!(EthHttp, ethers_providers::Provider<ethers_providers::Http>);
 
 #[cfg(all(feature = "eth", feature = "ws"))]
-provider!(EthWs, ethers_providers::Provider<ethers_providers::Ws>);
+node_provider!(EthWs, ethers_providers::Provider<ethers_providers::Ws>);
 
 #[cfg(all(feature = "eth", feature = "ipc"))]
-provider!(EthIpc, ethers_providers::Provider<ethers_providers::Ipc>);
+node_provider!(EthIpc, ethers_providers::Provider<ethers_providers::Ipc>);
+
+//#[cfg(feature = "postgres")]
+//storage_provider!(Postgres, sqlx::postgres::PgPool);

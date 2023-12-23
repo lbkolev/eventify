@@ -50,6 +50,7 @@ async fn main() -> Result<()> {
         .init();
 
     info!(target:"eventify::cli", ?settings);
+
     match settings.cmd {
         settings::SubCommand::Run(settings) => {
             run_migrations(settings.database_url()).await?;
@@ -81,6 +82,8 @@ async fn main() -> Result<()> {
                                     EthHttp::new(&settings.node_url).await?,
                                     Postgres::new(settings.database_url()),
                                 ),
+                                settings.skip_transactions(),
+                                settings.skip_blocks(),
                                 settings.src_block(),
                                 settings.dst_block(),
                                 criterias,
@@ -95,6 +98,8 @@ async fn main() -> Result<()> {
                                     EthWs::new(&settings.node_url).await?,
                                     Postgres::new(settings.database_url()),
                                 ),
+                                settings.skip_transactions(),
+                                settings.skip_blocks(),
                                 settings.src_block(),
                                 settings.dst_block(),
                                 criterias,
@@ -109,6 +114,8 @@ async fn main() -> Result<()> {
                                     EthIpc::new(&settings.node_url).await?,
                                     Postgres::new(settings.database_url()),
                                 ),
+                                settings.skip_transactions(),
+                                settings.skip_blocks(),
                                 settings.src_block(),
                                 settings.dst_block(),
                                 criterias,

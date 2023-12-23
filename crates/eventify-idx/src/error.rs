@@ -50,4 +50,10 @@ pub enum Error {
 
     #[error(transparent)]
     Url(#[from] url::ParseError),
+
+    #[error("{0}")]
+    InvalidChain(String),
+
+    #[error("{0}")]
+    InvalidDatabase(String),
 }

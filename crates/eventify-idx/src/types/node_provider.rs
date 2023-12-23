@@ -13,5 +13,5 @@ where
     async fn get_block_number(&self) -> Result<u64, E>;
     async fn get_block(&self, block: BlockNumber) -> Result<Block, E>;
     async fn get_transactions(&self, block: BlockNumber) -> Result<Vec<Transaction>, E>;
-    async fn get_logs(&self, criterias: Criteria) -> Result<Vec<Log>, E>;
+    async fn get_logs(&self, criterias: &Criteria) -> Result<Vec<Log>, E>;
 }
