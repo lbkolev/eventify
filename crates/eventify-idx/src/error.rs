@@ -1,5 +1,3 @@
-use eventify_primitives::Criteria;
-
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -52,5 +50,5 @@ pub enum NodeClientError {
     GetTransactions(u64),
 
     #[error("Failed to get logs for criteria {0}")]
-    GetLogs(Criteria),
+    GetLogs(String),
 }

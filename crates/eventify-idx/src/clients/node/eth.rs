@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use alloy_primitives::BlockNumber;
 use ethers_core::types::{BlockId, Filter};
@@ -68,7 +68,7 @@ impl NodeClient for EthHttp {
             .inner
             .get_logs(&Filter::from(criteria))
             .await
-            .map_err(|_| NodeClientError::GetLogs(criteria.clone()))?
+            .map_err(|_| NodeClientError::GetLogs(criteria.name.clone()))?
             .into_iter()
             .map(Log::from)
             .collect())
@@ -132,7 +132,7 @@ impl NodeClient for EthWs {
             .inner
             .get_logs(&Filter::from(criteria))
             .await
-            .map_err(|_| NodeClientError::GetLogs(criteria.clone()))?
+            .map_err(|_| NodeClientError::GetLogs(criteria.name.clone()))?
             .into_iter()
             .map(Log::from)
             .collect())
@@ -196,7 +196,7 @@ impl NodeClient for EthIpc {
             .inner
             .get_logs(&Filter::from(criteria))
             .await
-            .map_err(|_| NodeClientError::GetLogs(criteria.clone()))?
+            .map_err(|_| NodeClientError::GetLogs(criteria.name.clone()))?
             .into_iter()
             .map(Log::from)
             .collect())

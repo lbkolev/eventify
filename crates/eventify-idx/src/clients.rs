@@ -1,10 +1,7 @@
 pub mod node;
 pub mod storage;
 
-use std::ops::{Deref, DerefMut};
-
-use crate::{node_provider, types::NodeClient, Result};
-use url::Url;
+use crate::node_provider;
 
 #[cfg(all(feature = "eth", feature = "http"))]
 node_provider!(EthHttp, ethers_providers::Provider<ethers_providers::Http>);
