@@ -8,8 +8,8 @@ use crate::{
 };
 use eventify_primitives::Criterias;
 
-#[async_trait::async_trait]
-pub trait Run {
+#[trait_variant::make(Run: Send)]
+pub trait LocalRun {
     async fn run<N, S, E>(
         processor: Collector<N, S>,
         skip_transactions: bool,

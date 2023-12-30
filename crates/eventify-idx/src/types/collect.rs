@@ -8,7 +8,7 @@ use eventify_primitives::Criteria;
 /// parsing, and storing data asynchronously. The trait provides a flexible
 /// interface for different kinds of data processing activities, allowing
 /// implementers to define the specifics of these activities.
-#[async_trait::async_trait]
+
 pub trait Collect<T, E>
 where
     T: Into<Criteria>,

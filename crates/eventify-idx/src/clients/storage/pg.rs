@@ -42,9 +42,8 @@ impl DerefMut for Postgres {
     }
 }
 
-#[async_trait::async_trait]
 impl Auth for Postgres {
-    async fn connect(&mut self, url: &str) -> Self {
+    fn connect(&mut self, url: &str) -> Self {
         Self {
             inner: PoolOptions::new()
                 .acquire_timeout(std::time::Duration::from_secs(2))
@@ -64,7 +63,6 @@ impl Auth for Postgres {
     }
 }
 
-#[async_trait::async_trait]
 impl StorageClient for Postgres {
     async fn store_block(&self, block: &Block) -> Result<()> {
         let sql = r#"INSERT INTO eth.block (

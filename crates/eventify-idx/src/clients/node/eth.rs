@@ -12,7 +12,6 @@ use crate::{
 use eventify_primitives::{Block, Criteria, Log, Transaction};
 
 #[cfg(all(feature = "eth", feature = "http"))]
-#[async_trait::async_trait]
 impl NodeClient for EthHttp {
     async fn new(url: &str) -> Result<Self, NodeClientError> {
         Self::connect(url).await
@@ -76,7 +75,6 @@ impl NodeClient for EthHttp {
 }
 
 #[cfg(all(feature = "eth", feature = "ws"))]
-#[async_trait::async_trait]
 impl NodeClient for EthWs {
     async fn new(url: &str) -> Result<Self, NodeClientError> {
         Self::connect(url).await
@@ -140,7 +138,6 @@ impl NodeClient for EthWs {
 }
 
 #[cfg(all(feature = "eth", feature = "ipc"))]
-#[async_trait::async_trait]
 impl NodeClient for EthIpc {
     async fn new(url: &str) -> Result<Self, NodeClientError> {
         Self::connect(url).await
