@@ -4,7 +4,7 @@ use alloy_primitives::BlockNumber;
 use tracing::info;
 
 use crate::{
-    types::{Collect, NodeProvider, StorageProvider},
+    types::{Collect, NodeClient, StorageClient},
     Result,
 };
 use eventify_primitives::Criteria;
@@ -12,8 +12,8 @@ use eventify_primitives::Criteria;
 #[derive(Debug, Clone)]
 pub struct Collector<N, S>
 where
-    N: NodeProvider<crate::Error>,
-    S: StorageProvider,
+    N: NodeClient,
+    S: StorageClient,
 {
     node: N,
     storage: S,
@@ -21,8 +21,8 @@ where
 
 impl<N, S> Collector<N, S>
 where
-    N: NodeProvider<crate::Error>,
-    S: StorageProvider,
+    N: NodeClient,
+    S: StorageClient,
 {
     pub fn new(node: N, storage: S) -> Self {
         Self { node, storage }
@@ -30,13 +30,13 @@ where
 
     // todo
     //    pub async fn new_with_url(
-    //        node_type: Chain,
+    //        node_type: ChainKind,
     //        node_url: &str,
     //        storage_type: Database,
     //        storage_url: &str,
     //    ) -> Result<Self> {
-    //        let node: Box<dyn NodeProvider<crate::Error>> = match node_type {
-    //            Chain::Ethereum => match Url::parse(node_url)?.scheme() {
+    //        let node: Box<dyn NodeClient<crate::Error>> = match node_type {
+    //            ChainKind::Ethereum => match Url::parse(node_url)?.scheme() {
     //                "http" => Box::new(EthHttp::new(node_url).await?),
     //                "ws" => Box::new(EthWs::new(node_url).await?),
     //                "ipc" => Box::new(EthIpc::new(node_url).await?),
@@ -52,25 +52,18 @@ where
     //    }
     //
     pub async fn get_latest_block(&self) -> Result<BlockNumber> {
-        self.node
-            .get_block_number()
-            .await
-            .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch latest block: {}", e)))
+        self.node.get_block_number().await.map_err(Into::into)
     }
 }
 
 #[async_trait::async_trait]
 impl<N, S> Collect<Criteria, crate::Error> for Collector<N, S>
 where
-    N: NodeProvider<crate::Error>,
-    S: StorageProvider,
+    N: NodeClient,
+    S: StorageClient,
 {
     async fn process_block(&self, block: BlockNumber) -> Result<()> {
-        let block = self
-            .node
-            .get_block(block)
-            .await
-            .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch block: {}", e)))?;
+        let block = self.node.get_block(block).await?;
         self.storage.store_block(&block).await?;
 
         Ok(())
@@ -84,7 +77,7 @@ where
             self.process_block(block).await?;
 
             if block % 30 == 0 {
-                info!(target: "eventify::idx", processed=?true, latest=?block, elapsed=?now.elapsed(), "Processed {} blocks {}..{} |", block - from, from, to);
+                info!(target: "eventify::idx", processed=?true, latest=?block, elapsed=?now.elapsed(), "{} blocks {}..{} |", block - from, from, to);
             }
         }
 
@@ -92,16 +85,14 @@ where
     }
 
     async fn process_transactions(&self, block: BlockNumber) -> Result<()> {
-        let transactions = self.node.get_transactions(block).await.map_err(|e| {
-            crate::Error::FetchBlock(format!("Failed to fetch transactions: {}", e))
-        })?;
-        let count = transactions.len();
         let now = Instant::now();
+        let transactions = self.node.get_transactions(block).await?;
+        let tx_count = transactions.len();
 
         for tx in transactions {
             self.storage.store_transaction(&tx).await?;
         }
-        info!(target: "eventify::idx", processed=?true, tx_count=?count, block=?block, elapsed=?now.elapsed());
+        info!(target: "eventify::idx", processed=?true, tx_count=?tx_count, block=?block, elapsed=?now.elapsed());
 
         Ok(())
     }
@@ -121,15 +112,16 @@ where
     }
 
     async fn process_logs(&self, c: Criteria) -> Result<()> {
+        let now = Instant::now();
         let logs = self.node.get_logs(&c).await?;
-        let mut count = 0;
+        let mut log_count = 0;
 
         for log in logs {
             self.storage.store_log(&log).await?;
-            count += 1;
+            log_count += 1;
 
-            if count % 100 == 0 {
-                info!(target: "eventify::idx", processed=?true, log_count=?count, criteria_name=?c.name, latest_log=?log);
+            if log_count % 100 == 0 {
+                info!(target: "eventify::idx", processed=?true, log_count=?log_count, criteria_name=?c.name, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
             }
         }
 

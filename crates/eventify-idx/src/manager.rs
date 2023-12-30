@@ -2,7 +2,7 @@ use alloy_primitives::BlockNumber;
 use tracing::{error, info};
 
 use crate::{
-    types::{Collect, NodeProvider, StorageProvider},
+    types::{Collect, NodeClient, StorageClient},
     Collector, Run,
 };
 use eventify_primitives::Criterias;
@@ -28,8 +28,8 @@ impl Run for Manager {
     ) -> std::result::Result<(), E>
     where
         E: std::error::Error + Send + Sync,
-        N: NodeProvider<crate::Error>,
-        S: StorageProvider,
+        N: NodeClient,
+        S: StorageClient,
     {
         let mut handles = vec![];
         if !skip_transactions {

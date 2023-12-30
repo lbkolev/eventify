@@ -7,6 +7,9 @@ pub enum Error {
     IndexerError(#[from] eventify_idx::Error),
 
     #[error(transparent)]
+    NodeClientError(#[from] eventify_idx::NodeClientError),
+
+    #[error(transparent)]
     ServerError(#[from] eventify_http_server::Error),
 
     #[error(transparent)]

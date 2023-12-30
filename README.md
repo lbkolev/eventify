@@ -1,8 +1,4 @@
-<div align="center">
-    <a href="https://github.com/lbkolev/fieri">
-        <img width="500px" height="150px" src=".github/logo.png">
-    </a>
-</div>
+# <p align="center">Eventify</p>
 
 <p align="center">
     <a href="https://github.com/lbkolev/eventify/blob/master/LICENSE-MIT">
@@ -30,9 +26,7 @@ Eventify is an event listener and indexer designed with the following objectives
 - Implementing an efficient event propagation mechanism.
 
 ## Crates
-
 Include the following:
-
 - [eventify (binary)](./crates/eventify/) - Provides a CLI interface implementation for the server/indexer.
 - [eventify-idx](./crates/eventify-idx) - Holds the Indexer implementation.
 - [eventify-http-server](./crates/eventify-http-server) - Exposes an HTTP server for the indexed data.

@@ -5,12 +5,10 @@
 ```mermaid
 graph TD
     Manager --> Collector
-    Collector --> NodeProvider
-    Collector --> StorageProvider
-
-    NodeProvider --> Ethereum
-    NodeProvider --> Starkware
-    NodeProvider --> Zksync
-
-    StorageProvider --> Postgres
+    Collector --> NodeClient
+    Collector --> StorageClient
+    NodeClient --> Ethereum
+    NodeClient --> Starkware
+    NodeClient --> Zksync
+    StorageClient --> Postgres
 ```

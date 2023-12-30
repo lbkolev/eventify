@@ -14,8 +14,8 @@ use eventify_primitives as primitives;
 
 use crate::settings::Settings;
 use idx::{
-    providers::{storage::Postgres, EthHttp, EthIpc, EthWs},
-    types::NodeProvider,
+    clients::{storage::Postgres, EthHttp, EthIpc, EthWs},
+    types::NodeClient,
     Collector, Manager, Run,
 };
 use primitives::{configs::ServerConfig, Criterias};
@@ -111,7 +111,7 @@ async fn main() -> Result<()> {
                         handles.push(tokio::spawn(
                             Manager::run::<_, _, Error>(
                                 Collector::new(
-                                    EthIpc::new(&settings.node_url).await?,
+                                    <EthIpc as NodeClient>::new(&settings.node_url).await?,
                                     Postgres::new(settings.database_url()),
                                 ),
                                 settings.skip_transactions(),

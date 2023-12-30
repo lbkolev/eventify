@@ -1,34 +1,10 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Fetching block failed {0}")]
-    FetchBlock(String),
-
-    #[error("Fetching events failed {0}")]
-    FetchLog(String),
-
-    #[error("Missing transport node")]
-    MissingTransportNode,
-
-    #[error("Fetching block failed {0}")]
-    FetchBlockNumberError(String),
+    #[error(transparent)]
+    NodeClient(#[from] NodeClientError),
 
     #[error("Failed to parse URL '{0}': {1}")]
     UrlParseError(String, String),
-
-    #[error("Failed to create IPC transport with URL '{0}': {1}")]
-    IpcTransportCreationError(String, String),
-
-    #[error("Failed to create WebSocket transport with URL '{0}': {1}")]
-    WsTransportCreationError(String, String),
-
-    #[error("Missing transport storage")]
-    MissingTransportStorage,
-
-    #[error("{0}")]
-    SubscriptionNewBlock(String),
-
-    #[error("{0}")]
-    SubscriptionNewLog(String),
 
     #[error(transparent)]
     JoinTask(#[from] tokio::task::JoinError),
@@ -52,8 +28,27 @@ pub enum Error {
     Url(#[from] url::ParseError),
 
     #[error("{0}")]
-    InvalidChain(String),
+    InvalidChainKind(String),
 
     #[error("{0}")]
     InvalidDatabase(String),
+}
+
+#[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
+pub enum NodeClientError {
+    #[error("failed to connect to node")]
+    Connect,
+
+    #[error("failed to get the latest block number")]
+    GetLatestBlock,
+
+    #[error("failed to get block {0}")]
+    GetBlock(u64),
+
+    #[error("failed to get transactions from block {0}")]
+    GetTransactions(u64),
+
+    #[error("Failed to get logs for criteria {0}")]
+    GetLogs(String),
 }
