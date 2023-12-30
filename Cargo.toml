@@ -6,7 +6,7 @@ edition = "2021"
 homepage = "https://github.com/lbkolev/eventify"
 license = "MIT OR Apache-2.0"
 version = "0.0.1"
-rust-version = "1.75.0"
+rust-version = "1.74.0"
 readme = "README.md"
 repository = "https://github.com/lbkolev/eventify"
 
