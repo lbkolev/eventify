@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![allow(async_fn_in_trait)]
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 

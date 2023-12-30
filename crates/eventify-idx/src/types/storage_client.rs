@@ -12,9 +12,9 @@ impl Insertable for Transaction {}
 impl Insertable for Log {}
 impl Insertable for Contract {}
 
-#[async_trait::async_trait]
-pub trait StorageClient:
-    'static + Sized + Send + Sync + Debug + Deref + DerefMut + Auth + Clone
+#[trait_variant::make(StorageClient: Send)]
+pub trait LocalStorageClient:
+    Auth + Clone + Debug + Deref + DerefMut + Sized + Sync + 'static
 {
     async fn store_block(&self, block: &Block) -> Result<()>;
     async fn store_transaction(&self, transaction: &Transaction) -> Result<()>;
@@ -22,11 +22,11 @@ pub trait StorageClient:
     async fn store_contract(&self, contract: &Contract) -> Result<()>;
 }
 
-#[async_trait::async_trait]
-pub trait Auth {
+#[trait_variant::make(Auth: Send)]
+pub trait LocalAuth {
     /// The derived implementation should create a new connection pool with the given connection URL
     /// and immediately establish one connection.
-    async fn connect(&mut self, url: &str) -> Self;
+    fn connect(&mut self, url: &str) -> Self;
 
     /// The derived implementation should be using this method to create a new pool configuration
     /// and not establish connections until needed.

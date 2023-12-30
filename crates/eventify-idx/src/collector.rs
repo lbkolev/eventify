@@ -56,7 +56,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<N, S> Collect<Criteria, crate::Error> for Collector<N, S>
 where
     N: NodeClient,

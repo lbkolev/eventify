@@ -16,7 +16,6 @@ impl Manager {
     }
 }
 
-#[async_trait::async_trait]
 impl Run for Manager {
     async fn run<N, S, E>(
         collector: Collector<N, S>,

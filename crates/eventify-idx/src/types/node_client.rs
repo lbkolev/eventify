@@ -3,8 +3,8 @@ use alloy_primitives::BlockNumber;
 use crate::error::NodeClientError;
 use eventify_primitives::{Block, Criteria, Log, Transaction};
 
-#[async_trait::async_trait]
-pub trait NodeClient: Send + Sync + Clone + 'static {
+#[trait_variant::make(NodeClient: Send)]
+pub trait LocalNodeClient: Sync + Clone + 'static {
     async fn new(url: &str) -> Result<Self, NodeClientError>;
     async fn connect(url: &str) -> Result<Self, NodeClientError>;
 
