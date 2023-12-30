@@ -3,7 +3,7 @@ use std::error::Error;
 use alloy_primitives::BlockNumber;
 
 use crate::{
-    types::{NodeProvider, StorageProvider},
+    types::{NodeClient, StorageClient},
     Collector,
 };
 use eventify_primitives::Criterias;
@@ -20,6 +20,6 @@ pub trait Run {
     ) -> Result<(), E>
     where
         E: Error + Send + Sync,
-        N: NodeProvider<crate::Error>,
-        S: StorageProvider;
+        N: NodeClient<crate::Error>,
+        S: StorageClient;
 }

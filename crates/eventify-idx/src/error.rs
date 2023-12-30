@@ -57,3 +57,20 @@ pub enum Error {
     #[error("{0}")]
     InvalidDatabase(String),
 }
+
+#[derive(Debug, Display, Error)]
+#[non_exhaustive]
+enum NodeProviderError {
+    #[error("Failed to fetch block number")]
+    FetchBlockNumber,
+
+    #[error("Failed to fetch block")]
+    FetchBlock,
+
+    #[error("Failed to fetch transactions")]
+    FetchTransactions,
+
+    #[error("Failed to fetch logs")]
+    FetchLogs,
+
+}

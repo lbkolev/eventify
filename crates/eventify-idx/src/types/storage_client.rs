@@ -13,7 +13,7 @@ impl Insertable for Log {}
 impl Insertable for Contract {}
 
 #[async_trait::async_trait]
-pub trait StorageProvider:
+pub trait StorageClient:
     'static + Sized + Send + Sync + Debug + Deref + DerefMut + Auth + Clone
 {
     async fn store_block(&self, block: &Block) -> Result<()>;

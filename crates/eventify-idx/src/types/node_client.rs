@@ -3,9 +3,9 @@ use alloy_primitives::BlockNumber;
 use eventify_primitives::{Block, Criteria, Log, Transaction};
 
 #[async_trait::async_trait]
-pub trait NodeProvider<E>: Send + Sync + Clone + 'static
+pub trait NodeClient<E>: Send + Sync + Clone + 'static
 where
-    E: std::error::Error + Send + Sync,
+    E: Send + Sync,
 {
     async fn new(url: &str) -> Result<Self, E>;
     async fn connect(url: &str) -> Result<Self, E>;

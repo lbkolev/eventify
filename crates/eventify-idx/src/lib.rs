@@ -6,7 +6,7 @@ pub mod collector;
 pub mod error;
 pub mod macros;
 pub mod manager;
-pub mod providers;
+pub mod clients;
 pub mod types;
 
 use std::fmt::Display;

@@ -1,0 +1,10 @@
+[
+    {
+        "name": "RocketPool-ERC20",
+        "addresses": [
+            "0xb4efd85c19999d84251304bda99e90b92300bd93"
+        ],
+        "srcBlock": "18600000",
+        "dstBlock": "18679056"
+    }
+]

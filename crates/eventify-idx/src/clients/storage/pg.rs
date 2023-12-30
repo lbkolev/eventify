@@ -6,7 +6,7 @@ use sqlx::{pool::PoolOptions, Pool};
 use tracing::debug;
 
 use crate::{
-    types::storage_provider::{Auth, StorageProvider},
+    types::storage_client::{Auth, StorageClient},
     Error, Result,
 };
 use eventify_primitives::{Block, Contract, Log, Transaction};
@@ -65,7 +65,7 @@ impl Auth for Postgres {
 }
 
 #[async_trait::async_trait]
-impl StorageProvider for Postgres {
+impl StorageClient for Postgres {
     async fn store_block(&self, block: &Block) -> Result<()> {
         let sql = r#"INSERT INTO eth.block (
             hash,
@@ -277,7 +277,7 @@ impl StorageProvider for Postgres {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::storage_provider::StorageProvider;
+    use crate::types::storage_client::StorageClient;
 
     use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
     use uuid::Uuid;
