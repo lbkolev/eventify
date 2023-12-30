@@ -20,6 +20,6 @@ pub trait Run {
     ) -> Result<(), E>
     where
         E: Error + Send + Sync,
-        N: NodeClient<crate::Error>,
+        N: NodeClient,
         S: StorageClient;
 }

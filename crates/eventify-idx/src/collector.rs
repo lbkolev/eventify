@@ -12,7 +12,7 @@ use eventify_primitives::Criteria;
 #[derive(Debug, Clone)]
 pub struct Collector<N, S>
 where
-    N: NodeClient<crate::Error>,
+    N: NodeClient,
     S: StorageClient,
 {
     node: N,
@@ -21,7 +21,7 @@ where
 
 impl<N, S> Collector<N, S>
 where
-    N: NodeClient<crate::Error>,
+    N: NodeClient,
     S: StorageClient,
 {
     pub fn new(node: N, storage: S) -> Self {
@@ -30,13 +30,13 @@ where
 
     // todo
     //    pub async fn new_with_url(
-    //        node_type: Chain,
+    //        node_type: ChainKind,
     //        node_url: &str,
     //        storage_type: Database,
     //        storage_url: &str,
     //    ) -> Result<Self> {
     //        let node: Box<dyn NodeClient<crate::Error>> = match node_type {
-    //            Chain::Ethereum => match Url::parse(node_url)?.scheme() {
+    //            ChainKind::Ethereum => match Url::parse(node_url)?.scheme() {
     //                "http" => Box::new(EthHttp::new(node_url).await?),
     //                "ws" => Box::new(EthWs::new(node_url).await?),
     //                "ipc" => Box::new(EthIpc::new(node_url).await?),
@@ -52,25 +52,18 @@ where
     //    }
     //
     pub async fn get_latest_block(&self) -> Result<BlockNumber> {
-        self.node
-            .get_block_number()
-            .await
-            .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch latest block: {}", e)))
+        self.node.get_block_number().await.map_err(Into::into)
     }
 }
 
 #[async_trait::async_trait]
 impl<N, S> Collect<Criteria, crate::Error> for Collector<N, S>
 where
-    N: NodeClient<crate::Error>,
+    N: NodeClient,
     S: StorageClient,
 {
     async fn process_block(&self, block: BlockNumber) -> Result<()> {
-        let block = self
-            .node
-            .get_block(block)
-            .await
-            .map_err(|e| crate::Error::FetchBlock(format!("Failed to fetch block: {}", e)))?;
+        let block = self.node.get_block(block).await?;
         self.storage.store_block(&block).await?;
 
         Ok(())
@@ -93,9 +86,7 @@ where
 
     async fn process_transactions(&self, block: BlockNumber) -> Result<()> {
         let now = Instant::now();
-        let transactions = self.node.get_transactions(block).await.map_err(|e| {
-            crate::Error::FetchBlock(format!("Failed to fetch transactions: {}", e))
-        })?;
+        let transactions = self.node.get_transactions(block).await?;
         let tx_count = transactions.len();
 
         for tx in transactions {

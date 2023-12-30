@@ -177,10 +177,10 @@ pub(crate) struct Cmd {
     //    long,
     //    env = "EVENTIFY_CHAIN",
     //    help = "The chain to index",
-    //    default_value_t = EVENTIFY_idx::Chain::Ethereum,
-    //    value_parser = EVENTIFY_idx::Chain::from_str,
+    //    default_value_t = EVENTIFY_idx::ChainKind::Ethereum,
+    //    value_parser = EVENTIFY_idx::ChainKind::from_str,
     //)]
-    //pub(crate) chain: EVENTIFY_idx::Chain,
+    //pub(crate) chain: EVENTIFY_idx::ChainKind,
 
     //#[arg(
     //    long,

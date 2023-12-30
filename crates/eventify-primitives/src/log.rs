@@ -1,4 +1,5 @@
 use std::{
+    fmt::{Display, Formatter},
     fs,
     ops::{Deref, DerefMut},
     str::FromStr,
@@ -91,6 +92,12 @@ impl Criteria {
     }
 }
 
+impl Display for Criteria {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string(&self).unwrap())
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Criterias(pub Vec<Criteria>);
 impl Criterias {
@@ -113,6 +120,12 @@ impl Criterias {
             .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
 
         Ok(criterias)
+    }
+}
+
+impl Display for Criterias {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string(&self.0).unwrap())
     }
 }
 

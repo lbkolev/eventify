@@ -28,7 +28,7 @@ impl Run for Manager {
     ) -> std::result::Result<(), E>
     where
         E: std::error::Error + Send + Sync,
-        N: NodeClient<crate::Error>,
+        N: NodeClient,
         S: StorageClient,
     {
         let mut handles = vec![];

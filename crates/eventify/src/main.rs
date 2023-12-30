@@ -111,7 +111,7 @@ async fn main() -> Result<()> {
                         handles.push(tokio::spawn(
                             Manager::run::<_, _, Error>(
                                 Collector::new(
-                                    <EthIpc as NodeClient<eventify_idx::Error>>::new(
+                                    <EthIpc as NodeClient>::new(
                                         &settings.node_url,
                                     )
                                     .await?,
