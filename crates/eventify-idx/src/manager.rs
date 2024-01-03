@@ -2,7 +2,8 @@ use alloy_primitives::BlockNumber;
 use tracing::{error, info};
 
 use crate::{
-    types::{Collect, NodeClient, StorageClient},
+    clients::{NodeClient, StorageClient},
+    types::Collect,
     Collector, Run,
 };
 use eventify_primitives::Criterias;

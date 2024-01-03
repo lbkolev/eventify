@@ -6,7 +6,7 @@ use sqlx::{pool::PoolOptions, Pool};
 use tracing::debug;
 
 use crate::{
-    types::storage_client::{Auth, StorageClient},
+    clients::storage::{Auth, StorageClient},
     Error, Result,
 };
 use eventify_primitives::{Block, Contract, Log, Transaction};
@@ -17,14 +17,8 @@ pub struct Postgres {
 }
 
 impl Postgres {
-    pub fn new(url: &str) -> Self {
-        Self {
-            inner: PoolOptions::new()
-                .acquire_timeout(std::time::Duration::from_secs(2))
-                .connect_lazy(url)
-                .map_err(Error::from)
-                .expect("Failed to connect to Postgres"),
-        }
+    pub async fn new(url: &str) -> Self {
+        Self::connect(url).await
     }
 }
 
@@ -44,19 +38,10 @@ impl DerefMut for Postgres {
 
 #[async_trait::async_trait]
 impl Auth for Postgres {
-    async fn connect(&mut self, url: &str) -> Self {
+    async fn connect(url: &str) -> Self {
         Self {
             inner: PoolOptions::new()
                 .acquire_timeout(std::time::Duration::from_secs(2))
-                .connect_lazy(url)
-                .map_err(Error::from)
-                .expect("Failed to connect to Postgres"),
-        }
-    }
-
-    fn connect_lazy(&mut self, url: &str) -> Self {
-        Self {
-            inner: PoolOptions::new()
                 .connect_lazy(url)
                 .map_err(Error::from)
                 .expect("Failed to connect to Postgres"),
