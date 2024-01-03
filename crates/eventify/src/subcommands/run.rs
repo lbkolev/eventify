@@ -5,7 +5,7 @@ use clap::{self, Parser};
 use secrecy::{ExposeSecret, Secret};
 
 use crate::settings::{IdxSettings, ServerSettings};
-use eventify_idx::ChainKind;
+use eventify_idx::clients::NodeKind;
 use eventify_primitives::{
     configs::{ApplicationConfig, DatabaseConfig, ServerConfig},
     Criterias,
@@ -46,12 +46,12 @@ pub(crate) struct Cmd {
 
     #[arg(
         long,
-        env = "EVENTIFY_CHAIN",
-        help = "The type of chain to index",
-        default_value_t = ChainKind::Ethereum,
-        value_parser = ChainKind::from_str,
+        env = "EVENTIFY_NODE",
+        help = "The type of blockchain node to index",
+        default_value_t = NodeKind::Ethereum,
+        value_parser = NodeKind::from_str,
     )]
-    pub(crate) chain: ChainKind,
+    pub(crate) node: NodeKind,
 }
 
 impl From<Cmd> for ServerConfig {

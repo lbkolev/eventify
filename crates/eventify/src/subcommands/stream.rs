@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use clap::Parser;
 
-use eventify_idx::ChainKind;
+use eventify_idx::clients::NodeKind;
 
 // TODO: implement the stream subcmd
 #[derive(Clone, Debug, Parser)]
@@ -12,10 +12,10 @@ pub(crate) struct Cmd {
         long,
         env = "EVENTIFY_CHAIN",
         help = "The type of chain to index",
-        default_value_t = ChainKind::Ethereum,
-        value_parser = ChainKind::from_str,
+        default_value_t = NodeKind::Ethereum,
+        value_parser = NodeKind::from_str,
     )]
-    pub(crate) chain: ChainKind,
+    pub(crate) chain: NodeKind,
 
     #[arg(
         long,

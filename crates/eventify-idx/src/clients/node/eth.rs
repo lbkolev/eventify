@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::clients::{node::Auth, EthHttp, EthIpc, EthWs};
+use crate::clients::node::{Auth, EthHttp, EthIpc, EthWs};
 
 #[cfg(all(feature = "eth", feature = "http"))]
 #[async_trait::async_trait]

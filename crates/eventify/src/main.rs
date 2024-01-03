@@ -2,7 +2,6 @@
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 
-pub use ethers_providers::{Middleware, StreamExt};
 //-- crate-specific
 pub mod cmd;
 pub mod settings;
@@ -14,13 +13,17 @@ use eventify_primitives as primitives;
 
 use crate::cmd::Cmd;
 use idx::{
-    clients::{storage::Postgres, EthHttp, EthIpc, EthWs, NodeClientKind},
-    ChainKind, Collector, Manager, Run,
+    clients::{
+        node::{NodeClientKind, NodeKind},
+        storage::{Postgres, StorageClientKind, StorageKind},
+        EthHttp, EthIpc, EthWs,
+    },
+    Collector, Manager, Run,
 };
 use primitives::{configs::ServerConfig, Criterias};
 //--
 
-use std::path::Path;
+use std::{path::Path, str::FromStr};
 
 use clap::Parser;
 use eyre::Result;
@@ -29,8 +32,8 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 use url::Url;
 
-async fn run_migrations(url: &str) -> Result<()> {
-    let migrator = Migrator::new(Path::new("./migrations/rdms/postgres")).await?;
+async fn run_migrations(url: &str, kind: StorageKind) -> Result<()> {
+    let migrator = Migrator::new(Path::new(&format!("./migrations/rdms/{}", kind))).await?;
     let pool = PgPoolOptions::new().max_connections(1).connect(url).await?;
 
     migrator.run(&pool).await?;
@@ -47,10 +50,13 @@ async fn main() -> Result<()> {
         .init();
 
     info!(target:"eventify::cli", ?cmd);
-
     match cmd.subcmd {
         cmd::SubCommand::Run(cmd) => {
-            run_migrations(cmd.database_url()).await?;
+            run_migrations(
+                cmd.database_url(),
+                StorageKind::from_str(Url::parse(cmd.database_url())?.scheme())?,
+            )
+            .await?;
             if cmd.only_migrations {
                 return Ok(());
             }
@@ -69,16 +75,23 @@ async fn main() -> Result<()> {
                     .transpose()?
                     .or_else(|| cmd.criterias_json());
 
-                let node_client = match cmd.chain {
-                    ChainKind::Ethereum => match Url::parse(&cmd.node_url)?.scheme() {
+                let node_client = match cmd.node {
+                    NodeKind::Ethereum => match Url::parse(&cmd.node_url)?.scheme() {
                         "ipc" => NodeClientKind::EthIpc(EthIpc::new(&cmd.node_url).await),
                         "ws" | "wss" => NodeClientKind::EthWs(EthWs::new(&cmd.node_url).await),
                         _ => NodeClientKind::EthHttp(EthHttp::new(&cmd.node_url).await),
                     },
                 };
 
+                let storage_client =
+                    match StorageKind::from_str(Url::parse(cmd.database_url())?.scheme())? {
+                        StorageKind::Postgres => {
+                            StorageClientKind::Postgres(Postgres::new(cmd.database_url()).await)
+                        }
+                    };
+
                 handles.push(tokio::spawn(Manager::run::<_, _, _>(
-                    Collector::new(node_client, Postgres::new(cmd.database_url()).await),
+                    Collector::new(node_client, storage_client),
                     cmd.skip_transactions(),
                     cmd.skip_blocks(),
                     cmd.src_block(),
