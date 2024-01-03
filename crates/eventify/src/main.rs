@@ -2,33 +2,30 @@
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 
-//----
-pub mod error;
+pub use ethers_providers::{Middleware, StreamExt};
+//-- crate-specific
+pub mod cmd;
 pub mod settings;
 pub mod subcommands;
 
-use error::Error;
 use eventify_http_server as server;
 use eventify_idx as idx;
 use eventify_primitives as primitives;
 
-use crate::settings::Settings;
+use crate::cmd::Cmd;
 use idx::{
-    clients::{storage::Postgres, EthHttp, EthIpc, EthWs},
-    types::NodeClient,
-    Collector, Manager, Run,
+    clients::{storage::Postgres, EthHttp, EthIpc, EthWs, NodeClientKind},
+    ChainKind, Collector, Manager, Run,
 };
 use primitives::{configs::ServerConfig, Criterias};
-use tracing::info;
-
-pub type Result<T> = std::result::Result<T, Error>;
-//----
+//--
 
 use std::path::Path;
 
 use clap::Parser;
-use futures::TryFutureExt;
+use eyre::Result;
 use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
+use tracing::info;
 use tracing_subscriber::EnvFilter;
 use url::Url;
 
@@ -43,100 +40,65 @@ async fn run_migrations(url: &str) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let settings = Settings::parse();
+    let cmd = Cmd::parse();
     tracing_subscriber::fmt()
         .with_thread_ids(true)
         .with_env_filter(EnvFilter::builder().from_env_lossy())
         .init();
 
-    info!(target:"eventify::cli", ?settings);
+    info!(target:"eventify::cli", ?cmd);
 
-    match settings.cmd {
-        settings::SubCommand::Run(settings) => {
-            run_migrations(settings.database_url()).await?;
-            if settings.only_migrations {
+    match cmd.subcmd {
+        cmd::SubCommand::Run(cmd) => {
+            run_migrations(cmd.database_url()).await?;
+            if cmd.only_migrations {
                 return Ok(());
             }
 
             let mut handles = vec![];
 
-            if settings.server_enabled() {
-                handles.push(tokio::spawn(
-                    server::run(ServerConfig::from(settings.clone())).map_err(Error::from),
-                ));
+            if cmd.server_enabled() {
+                handles.push(tokio::spawn(server::run(ServerConfig::from(cmd.clone()))));
             }
 
-            if settings.indexer_enabled() {
+            if cmd.indexer_enabled() {
                 // event criterias
-                let criterias = settings
+                let criterias = cmd
                     .criterias_file()
                     .map(|file| Criterias::from_file(file.as_str()))
                     .transpose()?
-                    .or_else(|| settings.criterias_json());
+                    .or_else(|| cmd.criterias_json());
 
-                match Url::parse(&settings.node_url)?.scheme() {
-                    "http" | "https" => {
-                        handles.push(tokio::spawn(
-                            Manager::run::<_, _, Error>(
-                                Collector::new(
-                                    EthHttp::new(&settings.node_url).await?,
-                                    Postgres::new(settings.database_url()),
-                                ),
-                                settings.skip_transactions(),
-                                settings.skip_blocks(),
-                                settings.src_block(),
-                                settings.dst_block(),
-                                criterias,
-                            )
-                            .map_err(Error::from),
-                        ));
-                    }
-                    "ws" | "wss" => {
-                        handles.push(tokio::spawn(
-                            Manager::run::<_, _, Error>(
-                                Collector::new(
-                                    EthWs::new(&settings.node_url).await?,
-                                    Postgres::new(settings.database_url()),
-                                ),
-                                settings.skip_transactions(),
-                                settings.skip_blocks(),
-                                settings.src_block(),
-                                settings.dst_block(),
-                                criterias,
-                            )
-                            .map_err(Error::from),
-                        ));
-                    }
-                    "ipc" => {
-                        handles.push(tokio::spawn(
-                            Manager::run::<_, _, Error>(
-                                Collector::new(
-                                    <EthIpc as NodeClient>::new(&settings.node_url).await?,
-                                    Postgres::new(settings.database_url()),
-                                ),
-                                settings.skip_transactions(),
-                                settings.skip_blocks(),
-                                settings.src_block(),
-                                settings.dst_block(),
-                                criterias,
-                            )
-                            .map_err(Error::from),
-                        ));
-                    }
-                    _ => {
-                        return Err(Error::NodeURLScheme(settings.node_url));
-                    }
+                let node_client = match cmd.chain {
+                    ChainKind::Ethereum => match Url::parse(&cmd.node_url)?.scheme() {
+                        "ipc" => NodeClientKind::EthIpc(EthIpc::new(&cmd.node_url).await),
+                        "ws" | "wss" => NodeClientKind::EthWs(EthWs::new(&cmd.node_url).await),
+                        _ => NodeClientKind::EthHttp(EthHttp::new(&cmd.node_url).await),
+                    },
                 };
+
+                handles.push(tokio::spawn(Manager::run::<_, _, _>(
+                    Collector::new(node_client, Postgres::new(cmd.database_url()).await),
+                    cmd.skip_transactions(),
+                    cmd.skip_blocks(),
+                    cmd.src_block(),
+                    cmd.dst_block(),
+                    criterias,
+                )));
             }
 
             futures::future::join_all(handles).await;
         }
 
-        settings::SubCommand::Db(_) => {
+        cmd::SubCommand::Stream(_) => {
+            unimplemented!("Stream.")
+        }
+
+        cmd::SubCommand::Db(_) => {
             unimplemented!("Database management.")
         }
 
-        settings::SubCommand::Config(_) => {
+        cmd::SubCommand::Config(_) => {
             unimplemented!("Configuration management.")
         }
     }

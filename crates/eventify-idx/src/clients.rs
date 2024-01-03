@@ -1,111 +1,90 @@
 pub mod node;
 pub mod storage;
+pub use node::{Auth as NodeAuth, NodeClient};
+pub use storage::{Auth as StorageAuth, StorageClient};
 
-use crate::node_provider;
+use alloy_primitives::BlockNumber;
 
-#[cfg(all(feature = "eth", feature = "http"))]
-node_provider!(EthHttp, ethers_providers::Provider<ethers_providers::Http>);
+use crate::NodeClientError;
+use eventify_primitives::{Block, Criteria, Log, Transaction};
 
-#[cfg(all(feature = "eth", feature = "ws"))]
-node_provider!(EthWs, ethers_providers::Provider<ethers_providers::Ws>);
+#[cfg(feature = "eth")]
+pub mod eth {
+    use crate::{clients::NodeAuth as Auth, impl_eth, node_client};
+    use ethers_providers::{Middleware, Provider};
+
+    #[cfg(feature = "http")]
+    pub mod http {
+        use super::*;
+        use ethers_providers::Http;
+
+        node_client!(EthHttp, Provider<Http>);
+        impl_eth!(EthHttp);
+    }
+
+    #[cfg(feature = "ws")]
+    pub mod ws {
+        use super::*;
+        use ethers_providers::Ws;
+
+        node_client!(EthWs, Provider<Ws>);
+        impl_eth!(EthWs);
+    }
+
+    #[cfg(feature = "ipc")]
+    pub mod ipc {
+        use super::*;
+        use ethers_providers::Ipc;
+
+        node_client!(EthIpc, Provider<Ipc>);
+        impl_eth!(EthIpc);
+    }
+}
+
+pub use eth::{http::EthHttp, ipc::EthIpc, ws::EthWs};
 
 #[cfg(all(feature = "eth", feature = "ipc"))]
-node_provider!(EthIpc, ethers_providers::Provider<ethers_providers::Ipc>);
+#[derive(Debug, Clone)]
+pub enum NodeClientKind {
+    EthHttp(EthHttp),
+    EthWs(EthWs),
+    EthIpc(EthIpc),
+}
 
-//#[cfg(feature = "postgres")]
-//storage_provider!(Postgres, sqlx::postgres::PgPool);
+#[async_trait::async_trait]
+impl NodeClient for NodeClientKind {
+    async fn get_block_number(&self) -> Result<u64, NodeClientError> {
+        match self {
+            NodeClientKind::EthHttp(inner) => inner.get_block_number().await,
+            NodeClientKind::EthWs(inner) => inner.get_block_number().await,
+            NodeClientKind::EthIpc(inner) => inner.get_block_number().await,
+        }
+    }
 
-//#[derive(Debug, Default)]
-//pub struct NodeProvider<C>
-//where
-//    C: NodeClient<crate::Error>,
-//{
-//    client: C,
-//}
-//
-//impl<C> NodeProvider<C>
-//where
-//    C: NodeClient<crate::Error>,
-//{
-//    pub fn new(client: C) -> Self {
-//        Self { client }
-//    }
-//
-//    pub fn client(&self) -> &C {
-//        &self.client
-//    }
-//
-//    pub fn client_mut(&mut self) -> &mut C {
-//        &mut self.client
-//    }
-//
-//    pub fn into_client(self) -> C {
-//        self.client
-//    }
-//
-//    //pub async fn connect(url: &str) -> Result<Self> {
-//    //    let client = C::connect(url).await?;
-//
-//    //    Ok(Self::new(client))
-//    //}
-//
-//    pub async fn connect(url: &str) -> Result<Self> {
-//        let client = match Url::parse(url)?.scheme() {
-//            "http" => {
-//                #[cfg(feature = "http")]
-//                {
-//                    Self::new(EthHttp::connect(url).await?)
-//                }
-//                #[cfg(not(feature = "http"))]
-//                {
-//                    return Err(crate::Error::new("http feature is not enabled"));
-//                }
-//            }
-//            "ws" => {
-//                #[cfg(feature = "ws")]
-//                {
-//                    EthWs::connect(url).await?
-//                }
-//                #[cfg(not(feature = "ws"))]
-//                {
-//                    return Err(crate::Error::new("ws feature is not enabled"));
-//                }
-//            }
-//            "ipc" => {
-//                #[cfg(feature = "ipc")]
-//                {
-//                    EthIpc::connect(url).await?
-//                }
-//                #[cfg(not(feature = "ipc"))]
-//                {
-//                    return Err(crate::Error::new("ipc feature is not enabled"));
-//                }
-//            }
-//            _ => return Err(crate::Error::new("Invalid node url")),
-//        };
-//
-//        // Assuming C can be constructed from EthHttp, EthWs, EthIpc
-//        C::from_client(client).map(Self::new)
-//    }
-//}
-//
-//impl<C> Deref for NodeProvider<C>
-//where
-//    C: NodeClient<crate::Error>,
-//{
-//    type Target = C;
-//
-//    fn deref(&self) -> &Self::Target {
-//        &self.client
-//    }
-//}
-//
-//impl<C> DerefMut for NodeProvider<C>
-//where
-//    C: NodeClient<crate::Error>,
-//{
-//    fn deref_mut(&mut self) -> &mut Self::Target {
-//        &mut self.client
-//    }
-//}
-//
+    async fn get_block(&self, block: BlockNumber) -> Result<Block, NodeClientError> {
+        match self {
+            NodeClientKind::EthHttp(inner) => inner.get_block(block).await,
+            NodeClientKind::EthWs(inner) => inner.get_block(block).await,
+            NodeClientKind::EthIpc(inner) => inner.get_block(block).await,
+        }
+    }
+
+    async fn get_transactions(
+        &self,
+        block: BlockNumber,
+    ) -> Result<Vec<Transaction>, NodeClientError> {
+        match self {
+            NodeClientKind::EthHttp(inner) => inner.get_transactions(block).await,
+            NodeClientKind::EthWs(inner) => inner.get_transactions(block).await,
+            NodeClientKind::EthIpc(inner) => inner.get_transactions(block).await,
+        }
+    }
+
+    async fn get_logs(&self, criterias: &Criteria) -> Result<Vec<Log>, NodeClientError> {
+        match self {
+            NodeClientKind::EthHttp(inner) => inner.get_logs(criterias).await,
+            NodeClientKind::EthWs(inner) => inner.get_logs(criterias).await,
+            NodeClientKind::EthIpc(inner) => inner.get_logs(criterias).await,
+        }
+    }
+}

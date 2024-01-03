@@ -16,7 +16,6 @@ pub use error::{Error, NodeClientError};
 pub use manager::Manager;
 pub use types::run::Run;
 
-/// The Result used throughout the indexer
 type Result<T> = std::result::Result<T, error::Error>;
 
 // Supported chains
@@ -47,25 +46,25 @@ impl std::str::FromStr for ChainKind {
 
 // Supported storages
 #[derive(Clone, Copy, Debug, Default)]
-pub enum Database {
+pub enum StorageKind {
     #[default]
     Postgres,
 }
 
-impl Display for Database {
+impl Display for StorageKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Database::Postgres => write!(f, "postgres"),
+            StorageKind::Postgres => write!(f, "postgres"),
         }
     }
 }
 
-impl std::str::FromStr for Database {
+impl std::str::FromStr for StorageKind {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s.to_lowercase().as_str() {
-            "postgres" | "pg" => Ok(Database::Postgres),
+            "postgres" | "pg" => Ok(StorageKind::Postgres),
             _ => Err(Error::InvalidDatabase(s.to_string())),
         }
     }

@@ -4,7 +4,8 @@ use alloy_primitives::BlockNumber;
 use tracing::info;
 
 use crate::{
-    types::{Collect, NodeClient, StorageClient},
+    clients::{NodeClient, StorageClient},
+    types::Collect,
     Result,
 };
 use eventify_primitives::Criteria;
@@ -28,29 +29,6 @@ where
         Self { node, storage }
     }
 
-    // todo
-    //    pub async fn new_with_url(
-    //        node_type: ChainKind,
-    //        node_url: &str,
-    //        storage_type: Database,
-    //        storage_url: &str,
-    //    ) -> Result<Self> {
-    //        let node: Box<dyn NodeClient<crate::Error>> = match node_type {
-    //            ChainKind::Ethereum => match Url::parse(node_url)?.scheme() {
-    //                "http" => Box::new(EthHttp::new(node_url).await?),
-    //                "ws" => Box::new(EthWs::new(node_url).await?),
-    //                "ipc" => Box::new(EthIpc::new(node_url).await?),
-    //                _ => panic!("Invalid node url"),
-    //            },
-    //        };
-    //
-    //        let storage = match storage_type {
-    //            Database::Postgres => Postgres::new(storage_url),
-    //        };
-    //
-    //        Ok(Self::new(node, storage))
-    //    }
-    //
     pub async fn get_latest_block(&self) -> Result<BlockNumber> {
         self.node.get_block_number().await.map_err(Into::into)
     }
@@ -77,7 +55,7 @@ where
             self.process_block(block).await?;
 
             if block % 30 == 0 {
-                info!(target: "eventify::idx", processed=?true, latest=?block, elapsed=?now.elapsed(), "{} blocks {}..{} |", block - from, from, to);
+                info!(target: "eventify::idx::block", processed=?true, block_count=?block - from, latest=?block, elapsed=?now.elapsed());
             }
         }
 
@@ -92,7 +70,7 @@ where
         for tx in transactions {
             self.storage.store_transaction(&tx).await?;
         }
-        info!(target: "eventify::idx", processed=?true, tx_count=?tx_count, block=?block, elapsed=?now.elapsed());
+        info!(target: "eventify::idx::tx", processed=?true, tx_count=?tx_count, block=?block, elapsed=?now.elapsed());
 
         Ok(())
     }
@@ -102,7 +80,7 @@ where
         from: BlockNumber,
         to: BlockNumber,
     ) -> Result<()> {
-        info!(target: "eventify::idx", "Processing transactions from blocks {}..{}", from, to);
+        info!(target: "eventify::idx::tx", "Processing transactions from blocks {}..{}", from, to);
 
         for block in from..=to {
             self.process_transactions(block).await?;
@@ -121,7 +99,7 @@ where
             log_count += 1;
 
             if log_count % 100 == 0 {
-                info!(target: "eventify::idx", processed=?true, log_count=?log_count, criteria_name=?c.name, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
+                info!(target: "eventify::idx::logs", processed=?true, log_count=?log_count, criteria_name=?c.name, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
             }
         }
 

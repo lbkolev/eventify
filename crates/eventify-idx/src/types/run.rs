@@ -3,7 +3,7 @@ use std::error::Error;
 use alloy_primitives::BlockNumber;
 
 use crate::{
-    types::{NodeClient, StorageClient},
+    clients::{node::NodeClient, storage::StorageClient},
     Collector,
 };
 use eventify_primitives::Criterias;
