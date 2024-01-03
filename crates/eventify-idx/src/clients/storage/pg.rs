@@ -1,40 +1,15 @@
 #![allow(clippy::option_map_unit_fn)]
-use std::ops::{Deref, DerefMut};
 
 use ethers_core::types::{H64, U64};
-use sqlx::{pool::PoolOptions, Pool};
+use sqlx::pool::PoolOptions;
 use tracing::debug;
 
 use crate::{
-    clients::storage::{Auth, StorageClient},
-    Error, Result,
+    clients::storage::{Auth, Postgres, StorageClient},
+    error::StorageClientError,
+    Error,
 };
 use eventify_primitives::{Block, Contract, Log, Transaction};
-
-#[derive(Debug, Clone)]
-pub struct Postgres {
-    inner: Pool<sqlx::postgres::Postgres>,
-}
-
-impl Postgres {
-    pub async fn new(url: &str) -> Self {
-        Self::connect(url).await
-    }
-}
-
-impl Deref for Postgres {
-    type Target = Pool<sqlx::postgres::Postgres>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl DerefMut for Postgres {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
 
 #[async_trait::async_trait]
 impl Auth for Postgres {
@@ -49,9 +24,15 @@ impl Auth for Postgres {
     }
 }
 
+impl Postgres {
+    pub async fn new(url: &str) -> Self {
+        Self::connect(url).await
+    }
+}
+
 #[async_trait::async_trait]
 impl StorageClient for Postgres {
-    async fn store_block(&self, block: &Block) -> Result<()> {
+    async fn store_block(&self, block: &Block) -> Result<(), StorageClientError> {
         let sql = r#"INSERT INTO eth.block (
             hash,
             parent_hash,
@@ -111,13 +92,14 @@ impl StorageClient for Postgres {
             .bind(size_slice)
             .bind(block.nonce.unwrap_or(H64::zero()).as_bytes())
             .execute(&self.inner)
-            .await?;
+            .await
+            .map_err(|_| StorageClientError::StoreBlock(block.nonce.unwrap().to_low_u64_be()))?;
 
         debug!(target: "eventify::idx::block", hash=?block.hash, number=?block.number, "Insert");
         Ok(())
     }
 
-    async fn store_transaction(&self, tx: &Transaction) -> Result<()> {
+    async fn store_transaction(&self, tx: &Transaction) -> Result<(), StorageClientError> {
         let sql = r#"INSERT INTO eth.transaction (
             hash,
             nonce,
@@ -183,13 +165,14 @@ impl StorageClient for Postgres {
             .bind(max_fee_per_gas_slice)
             .bind(max_priority_fee_per_gas_slice)
             .execute(&self.inner)
-            .await?;
+            .await
+            .map_err(|_| StorageClientError::StoreTransaction(tx.hash))?;
 
         debug!(target: "eventify::idx::tx", tx_hash=?tx.hash, block=?tx.block_number, "Insert");
         Ok(())
     }
 
-    async fn store_contract(&self, tx: &Contract) -> Result<()> {
+    async fn store_contract(&self, tx: &Contract) -> Result<(), StorageClientError> {
         let sql = r#"INSERT INTO eth.contract (
             transaction_hash,
             "from",
@@ -203,13 +186,14 @@ impl StorageClient for Postgres {
             .bind(tx.from.as_ref())
             .bind(tx.input.0.as_ref())
             .execute(&self.inner)
-            .await?;
+            .await
+            .map_err(|_| StorageClientError::StoreContract(tx.transaction_hash))?;
 
         debug!(target: "eventify::idx::contract", tx_hash=?tx.transaction_hash, tx_from=?tx.from, "Insert");
         Ok(())
     }
 
-    async fn store_log(&self, log: &Log) -> Result<()> {
+    async fn store_log(&self, log: &Log) -> Result<(), StorageClientError> {
         let sql = r#"INSERT INTO eth.log (
             address,
             topic0,
@@ -252,7 +236,8 @@ impl StorageClient for Postgres {
             .bind(log.log_type.as_ref())
             .bind(log.removed)
             .execute(&self.inner)
-            .await?;
+            .await
+            .map_err(|_| StorageClientError::StoreLog(log.transaction_hash.unwrap()))?;
 
         debug!(target: "eventify::idx::log", address=?log.address, block=?log.block_number, event=?log.topics.first().map(|h| format!("{:x}", h)) ,"Insert");
         Ok(())

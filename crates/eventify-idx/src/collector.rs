@@ -5,10 +5,37 @@ use tracing::info;
 
 use crate::{
     clients::{NodeClient, StorageClient},
-    types::Collect,
     Result,
 };
 use eventify_primitives::Criteria;
+
+/// `Collect` Trait
+///
+/// An asynchronous trait designed for processing various types of data.
+/// Implementers of this trait typically handle tasks such as fetching,
+/// parsing, and storing data asynchronously. The trait provides a flexible
+/// interface for different kinds of data processing activities, allowing
+/// implementers to define the specifics of these activities.
+#[async_trait::async_trait]
+pub trait Collect<T, E>
+where
+    T: Into<Criteria>,
+    E: std::error::Error + Send + Sync,
+{
+    async fn process_logs(&self, c: T) -> std::result::Result<(), E>;
+    async fn process_block(&self, b: BlockNumber) -> std::result::Result<(), E>;
+    async fn process_blocks(
+        &self,
+        from: BlockNumber,
+        to: BlockNumber,
+    ) -> std::result::Result<(), E>;
+    async fn process_transactions(&self, b: BlockNumber) -> std::result::Result<(), E>;
+    async fn process_transactions_from_range(
+        &self,
+        from: BlockNumber,
+        to: BlockNumber,
+    ) -> std::result::Result<(), E>;
+}
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S>

@@ -3,10 +3,28 @@ use tracing::{error, info};
 
 use crate::{
     clients::{NodeClient, StorageClient},
-    types::Collect,
-    Collector, Run,
+    collector::Collect,
+    Collector,
 };
 use eventify_primitives::Criterias;
+
+use std::error::Error;
+
+#[async_trait::async_trait]
+pub trait Run {
+    async fn run<N, S, E>(
+        processor: Collector<N, S>,
+        skip_transactions: bool,
+        skip_blocks: bool,
+        src_block: BlockNumber,
+        dst_block: BlockNumber,
+        criterias: Option<Criterias>,
+    ) -> Result<(), E>
+    where
+        E: Error + Send + Sync,
+        N: NodeClient,
+        S: StorageClient;
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct Manager;
