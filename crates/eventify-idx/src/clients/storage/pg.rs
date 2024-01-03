@@ -262,7 +262,7 @@ impl StorageClient for Postgres {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::storage_client::StorageClient;
+    use crate::clients::StorageClient;
 
     use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
     use uuid::Uuid;

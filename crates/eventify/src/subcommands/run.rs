@@ -132,7 +132,6 @@ impl Cmd {
 mod tests {
     use super::*;
     use clap::Args;
-    use std::env::{remove_var, set_var};
 
     // as env vars are global resource and tests by default are ran in parallel
     // we need to make sure that we run them in serial mode so they don't interfere with one another
