@@ -1,6 +1,6 @@
 # Tools
 
-## [Function signatures](./../scripts/function_signatures.lua)
+## [Function signatures](./fn-sig.lua)
 
 It takes around ~130 minutes on a `Macbook air 2020, 16GB RAM, M1 chip` to _synchronously_ fetch all the publicly available ethereum function signtures (thanks https://4byte.directory) into a csv, that's inserted into `eth.function_signature` during the initial database setup.
 

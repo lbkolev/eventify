@@ -10,12 +10,12 @@ use eventify_idx::clients::NodeKind;
 pub(crate) struct Cmd {
     #[arg(
         long,
-        env = "EVENTIFY_CHAIN",
-        help = "The type of chain to index",
+        env = "EVENTIFY_NODE",
+        help = "The type of chain(node) to index",
         default_value_t = NodeKind::Ethereum,
         value_parser = NodeKind::from_str,
     )]
-    pub(crate) chain: NodeKind,
+    pub(crate) node: NodeKind,
 
     #[arg(
         long,

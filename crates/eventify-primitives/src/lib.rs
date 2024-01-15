@@ -4,6 +4,7 @@
 
 pub mod block;
 pub mod configs;
+pub mod consts;
 pub mod contract;
 pub mod error;
 pub mod log;

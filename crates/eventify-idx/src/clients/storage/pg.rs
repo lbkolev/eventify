@@ -174,7 +174,7 @@ impl StorageClient for Postgres {
 
     async fn store_contract(&self, tx: &Contract) -> Result<(), StorageClientError> {
         let sql = r#"INSERT INTO eth.contract (
-            transaction_hash,
+            tx_hash,
             "from",
             input
             ) VALUES (
@@ -203,9 +203,9 @@ impl StorageClient for Postgres {
             data,
             block_hash,
             block_number,
-            transaction_hash,
-            transaction_index,
-            transaction_log_index,
+            tx_hash,
+            tx_index,
+            tx_log_index,
             log_index,
             log_type,
             removed
@@ -268,9 +268,7 @@ mod tests {
 
         let pool = PgPoolOptions::new().connect(&db_url).await?;
 
-        sqlx::migrate!("../../migrations/rdms/postgres/")
-            .run(&pool)
-            .await?;
+        sqlx::migrate!("../../migrations").run(&pool).await?;
 
         Ok((pool, db_name))
     }

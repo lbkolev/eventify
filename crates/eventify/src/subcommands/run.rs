@@ -12,7 +12,7 @@ use eventify_primitives::{
 };
 
 #[derive(Clone, Debug, Parser)]
-#[command(about = "Index L1/L2s into a Postgresql database & serve it through an API.")]
+#[command(about = "L1/L2 Indexer & Event listener.")]
 pub(crate) struct Cmd {
     #[clap(flatten)]
     pub(crate) indexer: IdxSettings,
@@ -47,7 +47,7 @@ pub(crate) struct Cmd {
     #[arg(
         long,
         env = "EVENTIFY_NODE",
-        help = "The type of blockchain node to index",
+        help = "The type of chain(node) to index",
         default_value_t = NodeKind::Ethereum,
         value_parser = NodeKind::from_str,
     )]
