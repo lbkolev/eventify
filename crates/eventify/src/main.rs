@@ -2,7 +2,7 @@
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 
-//-- crate-specific
+//--
 pub mod cmd;
 pub mod settings;
 pub mod subcommands;
@@ -28,12 +28,12 @@ use std::{path::Path, str::FromStr};
 use clap::Parser;
 use eyre::Result;
 use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
-use tracing::info;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 use url::Url;
 
-async fn run_migrations(url: &str, kind: StorageKind) -> Result<()> {
-    let migrator = Migrator::new(Path::new(&format!("./migrations/rdms/{}", kind))).await?;
+async fn run_migrations(url: &str) -> Result<()> {
+    let migrator = Migrator::new(Path::new("./migrations")).await?;
     let pool = PgPoolOptions::new().max_connections(1).connect(url).await?;
 
     migrator.run(&pool).await?;
@@ -51,51 +51,51 @@ async fn main() -> Result<()> {
 
     info!(target:"eventify::cli", ?cmd);
     match cmd.subcmd {
-        cmd::SubCommand::Run(cmd) => {
-            run_migrations(
-                cmd.database_url(),
-                StorageKind::from_str(Url::parse(cmd.database_url())?.scheme())?,
-            )
-            .await?;
-            if cmd.only_migrations {
+        cmd::SubCommand::Run(args) => {
+            run_migrations(args.database_url()).await?;
+            if args.only_migrations {
                 return Ok(());
+            }
+
+            if !args.server_enabled() && !args.indexer_enabled() {
+                warn!("Neither server nor indexer enabled, skipping");
             }
 
             let mut handles = vec![];
 
-            if cmd.server_enabled() {
-                handles.push(tokio::spawn(server::run(ServerConfig::from(cmd.clone()))));
+            if args.server_enabled() {
+                handles.push(tokio::spawn(server::run(ServerConfig::from(args.clone()))));
             }
 
-            if cmd.indexer_enabled() {
+            if args.indexer_enabled() {
                 // event criterias
-                let criterias = cmd
+                let criterias = args
                     .criterias_file()
                     .map(|file| Criterias::from_file(file.as_str()))
                     .transpose()?
-                    .or_else(|| cmd.criterias_json());
+                    .or_else(|| args.criterias_json());
 
-                let node_client = match cmd.node {
-                    NodeKind::Ethereum => match Url::parse(&cmd.node_url)?.scheme() {
-                        "ipc" => NodeClientKind::EthIpc(EthIpc::new(&cmd.node_url).await),
-                        "ws" | "wss" => NodeClientKind::EthWs(EthWs::new(&cmd.node_url).await),
-                        _ => NodeClientKind::EthHttp(EthHttp::new(&cmd.node_url).await),
+                let node_client = match args.node {
+                    NodeKind::Ethereum => match Url::parse(&args.node_url)?.scheme() {
+                        "ipc" => NodeClientKind::EthIpc(EthIpc::new(&args.node_url).await),
+                        "ws" | "wss" => NodeClientKind::EthWs(EthWs::new(&args.node_url).await),
+                        _ => NodeClientKind::EthHttp(EthHttp::new(&args.node_url).await),
                     },
                 };
 
                 let storage_client =
-                    match StorageKind::from_str(Url::parse(cmd.database_url())?.scheme())? {
+                    match StorageKind::from_str(Url::parse(args.database_url())?.scheme())? {
                         StorageKind::Postgres => {
-                            StorageClientKind::Postgres(Postgres::new(cmd.database_url()).await)
+                            StorageClientKind::Postgres(Postgres::new(args.database_url()).await)
                         }
                     };
 
                 handles.push(tokio::spawn(Manager::run::<_, _, _>(
                     Collector::new(node_client, storage_client),
-                    cmd.skip_transactions(),
-                    cmd.skip_blocks(),
-                    cmd.src_block(),
-                    cmd.dst_block(),
+                    args.skip_transactions(),
+                    args.skip_blocks(),
+                    args.src_block(),
+                    args.dst_block(),
                     criterias,
                 )));
             }
