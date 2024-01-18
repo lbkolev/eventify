@@ -25,7 +25,7 @@ local parser = argparse("Fetch https://4byte.directory Function Signatures into 
 parser:option("-f --from-page", "Start from page", "1")
 parser:option("-t --to-page", "End at page", "10000000")
 parser:option("-o --output", "Output file",
-    string.format("%s../migrations/data/function_signatures.csv", script_directory()))
+    string.format("%s../etc/data/fn-sig.csv", script_directory()))
 local args = parser:parse()
 print(string.format("Fetching pages %s - %s into file '%s'.", args.from_page, args.to_page, args.output))
 
@@ -49,7 +49,7 @@ while true do
     ENDPOINT = json_data["next"]
 
     for _, v in pairs(json_data["results"]) do
-        -- as we're using the csv to import into postgres, convertion from 0x to \x is required
+        -- converting from 0x to \x is required to import csv into postgres
         file:write(string.format("%s,\"%s\"\n", v["hex_signature"]:gsub("^0x", "\\x"), v["text_signature"]))
     end
     file:close()

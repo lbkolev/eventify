@@ -1,21 +1,35 @@
+use chrono::prelude::*;
 use ethers_core::types::{Bloom, Bytes, Withdrawal, H160, H256, H64, U256, U64};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
+// Minimal Block
+//   -> L1Block
+//   -> ZksyncBlock
+//   -> StarkwareBlock
+//
+//
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {
+    pub author: Option<H160>,
+    pub number: Option<U64>,
     pub hash: Option<H256>,
     pub parent_hash: H256,
     pub uncles_hash: H256,
-    pub author: Option<H160>,
+
     pub state_root: H256,
     pub transactions_root: H256,
     pub receipts_root: H256,
-    pub number: Option<U64>,
+
     pub gas_used: U256,
     pub gas_limit: U256,
+    pub base_fee_per_gas: Option<U256>,
+    pub blob_gas_used: Option<U256>,
+    pub excess_blob_gas: Option<U256>,
+
     pub extra_data: Bytes,
     pub logs_bloom: Option<Bloom>,
     pub timestamp: U256,
@@ -26,12 +40,57 @@ pub struct Block {
     pub size: Option<U256>,
     pub mix_hash: Option<H256>,
     pub nonce: Option<H64>,
-    pub base_fee_per_gas: Option<U256>,
-    pub blob_gas_used: Option<U256>,
-    pub excess_blob_gas: Option<U256>,
-    pub withdrawals_root: Option<H256>,
-    pub withdrawals: Option<Vec<Withdrawal>>,
+    // those two are entirely consensus layer related, might be worth skipping
+    //pub withdrawals_root: Option<H256>,
+    //pub withdrawals: Option<Vec<Withdrawal>>,
 }
+
+/*
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
+pub struct StoredBlock {
+    pub hash: Vec<u8>,
+    pub parent_hash: Vec<u8>,
+    pub uncles_hash: Vec<u8>,
+    pub author: Vec<u8>,
+    pub state_root: Vec<u8>,
+    pub transaction_root: Vec<u8>,
+    pub receitps_root: Vec<u8>,
+    pub number: i64,
+    pub gas_used: [u8; 32],
+    pub gas_limit: [u8; 32],
+    pub extra_data: Vec<u8>,
+    pub logs_bloom: Vec<u8>,
+    pub timestamp: [u8; 32],
+    pub difficulty: [u8; 32],
+    pub total_difficulty: [u8; 32],
+    pub seal_fields: Vec<u8>,
+    pub uncles: Vec<u8>,
+    pub size: [u8; 32],
+    pub mix_hash: Vec<u8>,
+    pub nonce: Vec<u8>,
+    pub base_fee_per_gas: [u8; 32],
+    pub blob_gas_used: [u8; 32],
+    pub excess_blob_gas: [u8; 32],
+    pub withdrawals_root: Vec<u8>,
+}
+
+impl From<StoredBlock> for Block {
+    fn from(block: StoredBlock) -> Block {
+        Block {
+            hash: Some(H256::from_slice(&block.hash)),
+            parent_hash:
+        }
+    }
+}
+*/
+
+//impl From<Block> for StoredBlock {
+//    fn from(block: Block) -> StoredBlock {
+//        StoredBlock {
+//
+//        }
+//    }
+//}
 
 impl From<crate::ETHBlock<crate::ETHTransaction>> for Block {
     fn from(block: crate::ETHBlock<crate::ETHTransaction>) -> Self {
@@ -59,8 +118,8 @@ impl From<crate::ETHBlock<crate::ETHTransaction>> for Block {
             base_fee_per_gas: block.base_fee_per_gas,
             blob_gas_used: block.blob_gas_used,
             excess_blob_gas: block.excess_blob_gas,
-            withdrawals_root: block.withdrawals_root,
-            withdrawals: block.withdrawals,
+            //withdrawals_root: block.withdrawals_root,
+            //withdrawals: block.withdrawals,
         }
     }
 }

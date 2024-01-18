@@ -1,3 +1,5 @@
+use std::num::ParseIntError;
+
 use ethers_core::types::H256;
 
 #[derive(thiserror::Error, Debug)]
@@ -31,16 +33,19 @@ pub enum NodeClientError {
     Connect,
 
     #[error("failed to get the latest block number")]
-    GetLatestBlock,
+    LatestBlock,
 
     #[error("failed to get block {0}")]
-    GetBlock(u64),
+    Block(u64),
 
     #[error("failed to get transactions from block {0}")]
-    GetTransactions(u64),
+    Transactions(u64),
 
     #[error("Failed to get logs for criteria {0}")]
-    GetLogs(String),
+    Logs(String),
+
+    #[error(transparent)]
+    ParseInt(#[from] ParseIntError),
 }
 
 #[derive(thiserror::Error, Debug)]

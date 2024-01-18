@@ -80,6 +80,7 @@ impl StorageClient for Postgres {
             .bind(block.parent_hash.as_ref())
             .bind(block.uncles_hash.as_ref())
             .bind(block.author.as_ref().map(|h| h.as_bytes()))
+            //.bind(block.author)
             .bind(block.state_root.as_ref())
             .bind(block.transactions_root.as_ref())
             .bind(block.receipts_root.as_ref())
