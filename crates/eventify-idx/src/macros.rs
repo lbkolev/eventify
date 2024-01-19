@@ -60,7 +60,7 @@ macro_rules! impl_eth {
                     .get_block_number()
                     .await
                     .map(|n| n.as_u64())
-                    .map_err(|_| $crate::error::NodeClientError::GetLatestBlock)
+                    .map_err(|_| $crate::error::NodeClientError::LatestBlock)
             }
 
             async fn get_block(
@@ -71,9 +71,9 @@ macro_rules! impl_eth {
                 self.inner
                     .get_block_with_txs(ethers_core::types::BlockId::Number(block.into()))
                     .await
-                    .map_err(|_| $crate::error::NodeClientError::GetBlock(block))?
+                    .map_err(|_| $crate::error::NodeClientError::Block(block))?
                     .map(eventify_primitives::Block::from)
-                    .ok_or($crate::error::NodeClientError::GetBlock(block))
+                    .ok_or($crate::error::NodeClientError::Block(block))
             }
 
             async fn get_transactions(
@@ -84,8 +84,8 @@ macro_rules! impl_eth {
                     .inner
                     .get_block_with_txs(ethers_core::types::BlockId::Number(block.into()))
                     .await
-                    .map_err(|_| $crate::error::NodeClientError::GetTransactions(block))?
-                    .ok_or($crate::error::NodeClientError::GetTransactions(block))?
+                    .map_err(|_| $crate::error::NodeClientError::Transactions(block))?
+                    .ok_or($crate::error::NodeClientError::Transactions(block))?
                     .transactions
                     .into_iter()
                     .map(eventify_primitives::Transaction::from)
@@ -100,7 +100,7 @@ macro_rules! impl_eth {
                     .inner
                     .get_logs(&ethers_core::types::Filter::from(criteria))
                     .await
-                    .map_err(|_| $crate::error::NodeClientError::GetLogs(criteria.name.clone()))?
+                    .map_err(|_| $crate::error::NodeClientError::Logs(criteria.name.clone()))?
                     .into_iter()
                     .map(eventify_primitives::Log::from)
                     .collect())

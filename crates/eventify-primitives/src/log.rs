@@ -5,8 +5,9 @@ use std::{
     str::FromStr,
 };
 
+use alloy_primitives::{Address, Bytes, B256, U64};
 use ethers_core::{
-    types::{Address, BlockNumber, Bytes, Filter, ValueOrArray, H256, U256, U64},
+    types::{BlockNumber, H256},
     utils::keccak256,
 };
 use serde::{Deserialize, Serialize};
@@ -15,37 +16,21 @@ use sqlx::prelude::FromRow;
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct Log {
-    pub address: Address,
-    pub topics: Vec<H256>,
-    pub data: Bytes,
-    pub block_hash: Option<H256>,
-    pub block_number: Option<U64>,
-    pub transaction_hash: Option<H256>,
+pub struct EthLog {
+    pub removed: bool,
+    #[serde(rename = "logIndex")]
+    pub log_index: U64,
+    #[serde(rename = "transactionIndex")]
     pub transaction_index: Option<U64>,
-    pub transaction_log_index: Option<U256>,
-    pub log_index: Option<U256>,
-    pub log_type: Option<String>,
-    pub removed: Option<bool>,
-}
-
-impl From<crate::ETHLog> for Log {
-    fn from(log: crate::ETHLog) -> Self {
-        Self {
-            address: log.address,
-            topics: log.topics,
-            data: log.data,
-            block_hash: log.block_hash,
-            block_number: log.block_number,
-            transaction_hash: log.transaction_hash,
-            transaction_index: log.transaction_index,
-            transaction_log_index: log.transaction_log_index,
-            log_index: log.log_index,
-            log_type: log.log_type,
-            removed: log.removed,
-        }
-    }
+    #[serde(rename = "transactionHash")]
+    pub transaction_hash: Option<B256>,
+    #[serde(rename = "blockHash")]
+    pub block_hash: Option<B256>,
+    #[serde(rename = "blockNumber")]
+    pub block_number: Option<U64>,
+    pub address: Address,
+    pub data: Bytes,
+    pub topics: Vec<Option<B256>>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]
@@ -165,44 +150,44 @@ impl From<&str> for Criterias {
     }
 }
 
-impl From<&Criteria> for Filter {
-    fn from(criteria: &Criteria) -> Self {
-        Filter::new()
-            .address(ValueOrArray::Array(
-                criteria.addresses.clone().unwrap_or_default(),
-            ))
-            .topic0(ValueOrArray::Array(criteria.hashed_events()))
-            .topic1(ValueOrArray::Array(
-                criteria
-                    .clone()
-                    .filter1
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|f| H256::from_str(&f).unwrap())
-                    .collect(),
-            ))
-            .topic2(ValueOrArray::Array(
-                criteria
-                    .clone()
-                    .filter2
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|f| H256::from_str(&f).unwrap())
-                    .collect(),
-            ))
-            .topic3(ValueOrArray::Array(
-                criteria
-                    .clone()
-                    .filter3
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|f| H256::from_str(&f).unwrap())
-                    .collect(),
-            ))
-            .from_block(criteria.src_block.unwrap_or(BlockNumber::Earliest))
-            .to_block(criteria.dst_block.unwrap_or(BlockNumber::Latest))
-    }
-}
+//impl From<&Criteria> for Filter {
+//    fn from(criteria: &Criteria) -> Self {
+//        Filter::new()
+//            .address(ValueOrArray::Array(
+//                criteria.addresses.clone().unwrap_or_default(),
+//            ))
+//            .topic0(ValueOrArray::Array(criteria.hashed_events()))
+//            .topic1(ValueOrArray::Array(
+//                criteria
+//                    .clone()
+//                    .filter1
+//                    .unwrap_or_default()
+//                    .into_iter()
+//                    .map(|f| H256::from_str(&f).unwrap())
+//                    .collect(),
+//            ))
+//            .topic2(ValueOrArray::Array(
+//                criteria
+//                    .clone()
+//                    .filter2
+//                    .unwrap_or_default()
+//                    .into_iter()
+//                    .map(|f| H256::from_str(&f).unwrap())
+//                    .collect(),
+//            ))
+//            .topic3(ValueOrArray::Array(
+//                criteria
+//                    .clone()
+//                    .filter3
+//                    .unwrap_or_default()
+//                    .into_iter()
+//                    .map(|f| H256::from_str(&f).unwrap())
+//                    .collect(),
+//            ))
+//            .from_block(criteria.src_block.unwrap_or(BlockNumber::Earliest))
+//            .to_block(criteria.dst_block.unwrap_or(BlockNumber::Latest))
+//    }
+//}
 
 #[cfg(test)]
 mod tests {

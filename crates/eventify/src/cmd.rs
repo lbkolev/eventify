@@ -2,7 +2,10 @@ use crate::subcommands::{config, db, run, stream};
 
 #[derive(Clone, Debug, clap::Parser)]
 #[command(name = "eventify")]
-#[command(about = "Index Ethereum into a Postgres database & serve it through an API.")]
+#[command(about = "\
+    Stream/Propagate events From L1/L2s \
+    Index txs/blocks/events into a Postgres.
+")]
 #[command(color = clap::ColorChoice::Always)]
 pub(crate) struct Cmd {
     #[command(subcommand)]

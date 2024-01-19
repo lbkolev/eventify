@@ -1,68 +1,66 @@
-use ethers_core::types::{Bloom, Bytes, Withdrawal, H160, H256, H64, U256, U64};
+use alloy_primitives::{Address, Bloom, Bytes, B256, B64, U256, U64};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct Block {
-    pub hash: Option<H256>,
-    pub parent_hash: H256,
-    pub uncles_hash: H256,
-    pub author: Option<H160>,
-    pub state_root: H256,
-    pub transactions_root: H256,
-    pub receipts_root: H256,
-    pub number: Option<U64>,
-    pub gas_used: U256,
-    pub gas_limit: U256,
-    pub extra_data: Bytes,
-    pub logs_bloom: Option<Bloom>,
-    pub timestamp: U256,
+pub struct EthBlock {
+    // -- header
+    #[serde(rename = "parentHash")]
+    pub parent_hash: B256,
+    #[serde(rename = "sha3Uncles")]
+    pub uncle_hash: B256,
+    #[serde(rename = "miner")]
+    pub coinbase: Address,
+    #[serde(rename = "stateRoot")]
+    pub root: B256,
+    #[serde(rename = "transactionsRoot")]
+    pub tx_hash: B256,
+    #[serde(rename = "receiptsRoot")]
+    pub receipt_hash: B256,
+    #[serde(rename = "logsBloom")]
+    pub bloom: Option<Bloom>,
     pub difficulty: U256,
-    pub total_difficulty: Option<U256>,
-    pub seal_fields: Vec<Bytes>,
-    pub uncles: Vec<H256>,
-    pub size: Option<U256>,
-    pub mix_hash: Option<H256>,
-    pub nonce: Option<H64>,
-    pub base_fee_per_gas: Option<U256>,
-    pub blob_gas_used: Option<U256>,
-    pub excess_blob_gas: Option<U256>,
-    pub withdrawals_root: Option<H256>,
-    pub withdrawals: Option<Vec<Withdrawal>>,
-}
+    //#[serde(deserialize_with = "deserialize_hex_string")]
+    pub number: Option<U64>,
+    #[serde(rename = "gasLimit")]
+    pub gas_limit: U256,
+    #[serde(rename = "gasUsed")]
+    pub gas_used: U256,
+    #[serde(rename = "timestamp")]
+    pub time: U256,
+    #[serde(rename = "extraData")]
+    pub extra: Bytes,
+    #[serde(rename = "mixHash")]
+    pub mix_digest: B256,
+    pub nonce: Option<B64>,
 
-impl From<crate::ETHBlock<crate::ETHTransaction>> for Block {
-    fn from(block: crate::ETHBlock<crate::ETHTransaction>) -> Self {
-        Self {
-            hash: block.hash,
-            parent_hash: block.parent_hash,
-            uncles_hash: block.uncles_hash,
-            author: block.author,
-            state_root: block.state_root,
-            transactions_root: block.transactions_root,
-            receipts_root: block.receipts_root,
-            number: block.number,
-            gas_used: block.gas_used,
-            gas_limit: block.gas_limit,
-            extra_data: block.extra_data,
-            logs_bloom: block.logs_bloom,
-            timestamp: block.timestamp,
-            difficulty: block.difficulty,
-            total_difficulty: block.total_difficulty,
-            seal_fields: block.seal_fields,
-            uncles: block.uncles,
-            size: block.size,
-            mix_hash: block.mix_hash,
-            nonce: block.nonce,
-            base_fee_per_gas: block.base_fee_per_gas,
-            blob_gas_used: block.blob_gas_used,
-            excess_blob_gas: block.excess_blob_gas,
-            withdrawals_root: block.withdrawals_root,
-            withdrawals: block.withdrawals,
-        }
-    }
+    /// added by EIP-1559
+    #[serde(rename = "baseFeePerGas")]
+    pub base_fee: Option<U256>,
+
+    /// added by EIP-4788
+    #[serde(rename = "parentBeaconBlockRoot")]
+    pub parent_beacon_root: Option<B256>,
+
+    /// added by EIP-4844
+    #[serde(rename = "blobGasUsed")]
+    pub blob_gas_used: Option<U256>,
+
+    /// added by EIP-4844
+    #[serde(rename = "blobGasUsed")]
+    pub excess_blob_gas: Option<U256>,
+
+    /// added by EIP-4895
+    #[serde(rename = "withdrawalsHash")]
+    pub withdrawals_hash: Option<B256>,
+    // --
+
+    // -- body
+    // list of tx hashes
+    pub transactions: Vec<B256>,
+    pub hash: Option<B256>,
+    // --
 }
 
 #[cfg(test)]

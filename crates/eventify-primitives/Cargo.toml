@@ -23,6 +23,7 @@ serde_json.workspace = true
 
 # eth
 ethers-core.workspace = true
+alloy-primitives.workspace = true
 
 # auxiliary
 clap.workspace = true
@@ -32,3 +33,4 @@ sqlx.workspace = true
 thiserror.workspace = true
 url.workspace = true
 utoipa.workspace = true
+chrono = "0.4.31"

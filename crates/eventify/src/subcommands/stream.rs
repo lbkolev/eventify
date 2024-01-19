@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use clap::Parser;
 
-use eventify_idx::clients::NodeKind;
+use eventify_idx::provider::NodeKind;
 
 // TODO: implement the stream subcmd
 #[derive(Clone, Debug, Parser)]

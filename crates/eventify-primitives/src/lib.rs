@@ -10,15 +10,11 @@ pub mod error;
 pub mod log;
 pub mod transaction;
 
-pub use block::Block;
+pub use block::EthBlock;
 pub use configs::database::DatabaseConfig;
 pub use contract::Contract;
 pub use error::Error;
-pub use log::{Criteria, Criterias, Log};
-pub use transaction::Transaction;
+pub use log::{Criteria, Criterias, EthLog};
+pub use transaction::{EthTransaction, TransactionResponse};
 
 type Result<T> = std::result::Result<T, error::Error>;
-
-pub(crate) use ethers_core::types::{
-    Block as ETHBlock, Log as ETHLog, Transaction as ETHTransaction,
-};
