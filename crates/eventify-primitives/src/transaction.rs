@@ -1,57 +1,38 @@
-use ethers_core::types::{Address, Bytes, H256, U256, U64};
+use alloy_primitives::{Address, Bytes, B256, U256, U64};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct Transaction {
-    pub hash: H256,
-    pub nonce: U256,
-    pub block_hash: Option<H256>,
+pub struct TransactionResponse {
+    pub transactions: Vec<EthTransaction>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
+pub struct EthTransaction {
+    #[serde(rename = "blockHash")]
+    pub block_hash: Option<B256>,
+    #[serde(rename = "blockNumber")]
     pub block_number: Option<U64>,
     pub from: Address,
-    pub to: Option<Address>,
-    pub value: U256,
-    pub gas_price: Option<U256>,
     pub gas: U256,
+    #[serde(rename = "gasPrice")]
+    pub gas_price: U256,
+    pub hash: B256,
     pub input: Bytes,
-    pub v: U64,
+    pub nonce: U256,
+    pub to: Option<Address>,
+    #[serde(rename = "transactionIndex")]
+    pub transaction_index: Option<U64>,
+    pub value: U256,
+    pub v: U256,
     pub r: U256,
     pub s: U256,
-    pub transaction_type: Option<U64>,
-    pub transaction_index: Option<U64>,
-    pub max_fee_per_gas: Option<U256>,
-    pub max_priority_fee_per_gas: Option<U256>,
 }
 
-impl Transaction {
+impl EthTransaction {
     pub fn contract_creation(&self) -> bool {
         self.to.is_none()
-    }
-}
-
-impl From<crate::ETHTransaction> for Transaction {
-    fn from(tx: crate::ETHTransaction) -> Self {
-        Self {
-            hash: tx.hash,
-            nonce: tx.nonce,
-            block_hash: tx.block_hash,
-            block_number: tx.block_number,
-            transaction_index: tx.transaction_index,
-            from: tx.from,
-            to: tx.to,
-            value: tx.value,
-            gas_price: tx.gas_price,
-            gas: tx.gas,
-            input: tx.input,
-            v: tx.v,
-            r: tx.r,
-            s: tx.s,
-            transaction_type: tx.transaction_type,
-            max_fee_per_gas: tx.max_fee_per_gas,
-            max_priority_fee_per_gas: tx.max_priority_fee_per_gas,
-        }
     }
 }
 

@@ -1,28 +1,18 @@
-use ethers_core::types::{Bytes, H160, H256};
+use alloy_primitives::{Address, Bytes, B256};
 use serde::{Deserialize, Serialize};
 
-use crate::Transaction;
+use crate::EthTransaction;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Contract {
-    pub transaction_hash: H256,
-    pub from: H160,
+    pub transaction_hash: B256,
+    pub from: Address,
     pub input: Bytes,
 }
 
-impl From<Transaction> for Contract {
-    fn from(transaction: Transaction) -> Self {
-        Self {
-            transaction_hash: transaction.hash,
-            from: transaction.from,
-            input: transaction.input,
-        }
-    }
-}
-
-impl From<crate::ETHTransaction> for Contract {
-    fn from(tx: crate::ETHTransaction) -> Self {
+impl From<EthTransaction> for Contract {
+    fn from(tx: EthTransaction) -> Self {
         Self {
             transaction_hash: tx.hash,
             from: tx.from,

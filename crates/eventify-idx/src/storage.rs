@@ -2,15 +2,15 @@ pub mod pg;
 
 use std::fmt::{Debug, Display};
 
-use crate::error::{Error, StorageClientError};
-use eventify_primitives::{Block, Contract, Log, Transaction};
+use crate::error::Error;
+use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
 
 #[async_trait::async_trait]
 pub trait StorageClient: 'static + Clone + Debug + Send + Sync {
-    async fn store_block(&self, block: &Block) -> Result<(), StorageClientError>;
-    async fn store_transaction(&self, transaction: &Transaction) -> Result<(), StorageClientError>;
-    async fn store_log(&self, log: &Log) -> Result<(), StorageClientError>;
-    async fn store_contract(&self, contract: &Contract) -> Result<(), StorageClientError>;
+    async fn store_block(&self, block: &EthBlock) -> Result<(), Error>;
+    async fn store_transaction(&self, transaction: &EthTransaction) -> Result<(), Error>;
+    async fn store_log(&self, log: &EthLog) -> Result<(), Error>;
+    async fn store_contract(&self, contract: &Contract) -> Result<(), Error>;
 }
 
 #[async_trait::async_trait]
@@ -61,25 +61,25 @@ pub enum StorageClientKind {
 
 #[async_trait::async_trait]
 impl StorageClient for StorageClientKind {
-    async fn store_block(&self, block: &Block) -> Result<(), StorageClientError> {
+    async fn store_block(&self, block: &EthBlock) -> Result<(), Error> {
         match self {
             StorageClientKind::Postgres(inner) => inner.store_block(block).await,
         }
     }
 
-    async fn store_transaction(&self, transaction: &Transaction) -> Result<(), StorageClientError> {
+    async fn store_transaction(&self, transaction: &EthTransaction) -> Result<(), Error> {
         match self {
             StorageClientKind::Postgres(inner) => inner.store_transaction(transaction).await,
         }
     }
 
-    async fn store_log(&self, log: &Log) -> Result<(), StorageClientError> {
+    async fn store_log(&self, log: &EthLog) -> Result<(), Error> {
         match self {
             StorageClientKind::Postgres(inner) => inner.store_log(log).await,
         }
     }
 
-    async fn store_contract(&self, contract: &Contract) -> Result<(), StorageClientError> {
+    async fn store_contract(&self, contract: &Contract) -> Result<(), Error> {
         match self {
             StorageClientKind::Postgres(inner) => inner.store_contract(contract).await,
         }

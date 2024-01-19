@@ -5,14 +5,14 @@ use clap::{self, Parser};
 use secrecy::{ExposeSecret, Secret};
 
 use crate::settings::{IdxSettings, ServerSettings};
-use eventify_idx::clients::NodeKind;
+use eventify_idx::provider::NodeKind;
 use eventify_primitives::{
     configs::{ApplicationConfig, DatabaseConfig, ServerConfig},
     Criterias,
 };
 
 #[derive(Clone, Debug, Parser)]
-#[command(about = "L1/L2 Indexer & Event listener.")]
+#[command(about = "")]
 pub(crate) struct Cmd {
     #[clap(flatten)]
     pub(crate) indexer: IdxSettings,

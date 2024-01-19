@@ -5,22 +5,26 @@ CREATE SCHEMA IF NOT EXISTS eth;
 
 --- raw block
 CREATE TABLE IF NOT EXISTS eth.block (
-    hash BYTEA,
     parent_hash BYTEA,
     uncles_hash BYTEA,
-    author BYTEA,
-    state_root BYTEA,
-    transactions_root BYTEA,
-    receipts_root BYTEA,
-    number BIGSERIAL,
-    gas_used BYTEA,
-    gas_limit BYTEA,
-    base_fee_per_gas BYTEA,
-    timestamp BIGSERIAL,
+    coinbase BYTEA,
+    root BYTEA,
+    tx_hash BYTEA,
+    receipt_hash BYTEA,
     difficulty BYTEA,
-    total_difficulty BYTEA,
-    size BYTEA,
+    number BIGINT,
+    gas_limit BYTEA,
+    gas_used BYTEA,
+    time BIGINT,
+    extra BYTEA,
+    mix_digest BYTEA,
     nonce BYTEA,
+    base_fee BIGINT,
+    parent_beacon_root BYTEA,
+    blob_gas_used BIGINT,
+    excess_blob_gas BIGINT,
+    withdraws_hash BYTEA,
+    hash BYTEA,
 
     PRIMARY KEY(hash)
 );
@@ -28,33 +32,32 @@ comment on table eth.block is 'Indexed blocks';
 comment on column eth.block.hash is 'Hash of execution block';
 comment on column eth.block.parent_hash is 'Hash of the parent block';
 comment on column eth.block.uncles_hash is 'Uncle blocks are created when two or more miners create blocks at nearly the same time. Only one block can be mined and accepted as canonical on the blockchain. The others are uncle blocks, which are not included but still provide a reward to their miners for the work done.';
-comment on column eth.block.author is 'Address of the miner who created the block';
-comment on column eth.block.state_root is 'root hash for the global state after applying changes in this block';
-comment on column eth.block.transactions_root is 'root hash of the transactions in the payload';
-comment on column eth.block.receipts_root is 'hash of the transaction receipts trie';
-comment on column eth.block.gas_used is 'Total amount of gas used by all transactions in this block';
+comment on column eth.block.root is 'root hash for the global state after applying changes in this block';
+comment on column eth.block.tx_hash is 'root hash of the transactions in the payload';
+comment on column eth.block.receipt_hash is 'hash of the transaction receipts trie';
 comment on column eth.block.gas_limit is 'Maximum amount of gas that can be used by all transactions in this block';
-comment on column eth.block.base_fee_per_gas is 'The base fee value';
+comment on column eth.block.gas_used is 'Total amount of gas used by all transactions in this block';
+comment on column eth.block.base_fee is 'The base fee value';
 
 --- raw transaction
 CREATE TABLE IF NOT EXISTS eth.transaction (
-    hash BYTEA,
-    nonce BYTEA,
+    block_hash BYTEA,
+    block_number BIGINT,
+    "from" BYTEA,
     gas BYTEA,
     gas_price BYTEA,
-    max_fee_per_gas BYTEA,
-    max_priority_fee_per_gas BYTEA,
-    block_hash BYTEA,
-    block_number BIGSERIAL,
-    transaction_index INTEGER,
-    transaction_type INTEGER,
+    hash BYTEA,
     input BYTEA,
-    v INTEGER,
+    nonce BYTEA,
+    "to" BYTEA,
+    transaction_index INTEGER,
+    value BYTEA,
+    v BYTEA,
     r BYTEA,
     s BYTEA,
-    "from" BYTEA NOT NULL,
-    "to" BYTEA,
-    value BYTEA,
+    --max_fee_per_gas BYTEA,
+    --max_priority_fee_per_gas BYTEA,
+    --transaction_type INTEGER,
 
     PRIMARY KEY(hash)
 );
@@ -72,7 +75,7 @@ CREATE TABLE IF NOT EXISTS eth.log (
     topic3 BYTEA,
     data BYTEA NOT NULL,
     block_hash BYTEA,
-    block_number BIGSERIAL,
+    block_number BIGINT,
     tx_hash BYTEA,
     tx_index INTEGER,
     tx_log_index BYTEA,
@@ -114,7 +117,7 @@ CREATE TABLE IF NOT EXISTS eth.transfer (
     tx_hash BYTEA,
     "from" BYTEA,
     "to" BYTEA,
-    "value" BIGSERIAL,
+    "value" BIGINT,
 
     PRIMARY KEY(tx_hash)
 );
@@ -126,7 +129,7 @@ CREATE TABLE IF NOT EXISTS eth.approval (
     tx_hash BYTEA,
     "owner" BYTEA,
     spender BYTEA,
-    "value" BIGSERIAL,
+    "value" BIGINT,
 
     PRIMARY KEY(tx_hash)
 );
@@ -157,7 +160,7 @@ CREATE TABLE IF NOT EXISTS eth."sent" (
     operator BYTEA,
     "from" BYTEA,
     "to" BYTEA,
-    amount BIGSERIAL,
+    amount BIGINT,
     "data" BYTEA,
     operator_data BYTEA,
 
@@ -177,7 +180,7 @@ CREATE TABLE IF NOT EXISTS eth.minted (
     tx_hash BYTEA,
     operator BYTEA,
     "to" BYTEA,
-    amount BIGSERIAL,
+    amount BIGINT,
     "data" BYTEA,
     operator_data BYTEA,
 
@@ -196,7 +199,7 @@ CREATE TABLE IF NOT EXISTS eth.burned (
     tx_hash BYTEA,
     operator BYTEA,
     "from" BYTEA,
-    amount BIGSERIAL,
+    amount BIGINT,
     "data" BYTEA,
     operator_data BYTEA,
 
@@ -242,8 +245,8 @@ CREATE TABLE IF NOT EXISTS eth.transfer_single (
     operator BYTEA,
     "from" BYTEA,
     "to" BYTEA,
-    id BIGSERIAL,
-    "value" BIGSERIAL,
+    id BIGINT,
+    "value" BIGINT,
 
     PRIMARY KEY(tx_hash)
 );
@@ -278,7 +281,7 @@ comment on column eth.transfer_batch.values is 'contain the number of token to b
 CREATE TABLE IF NOT EXISTS eth.uri (
     tx_hash BYTEA,
     "value" TEXT,
-    id BIGSERIAL,
+    id BIGINT,
 
     PRIMARY KEY(tx_hash)
 );
@@ -292,8 +295,8 @@ CREATE TABLE IF NOT EXISTS eth.deposit (
     tx_hash BYTEA,
     sender BYTEA,
     "owner" BYTEA,
-    "assets" BIGSERIAL,
-    shares BIGSERIAL,
+    "assets" BIGINT,
+    shares BIGINT,
 
     PRIMARY KEY(tx_hash)
 );
@@ -306,8 +309,8 @@ CREATE TABLE IF NOT EXISTS eth.withdraw (
     sender BYTEA,
     "receiver" BYTEA,
     "owner" BYTEA,
-    "assets" BIGSERIAL,
-    shares BIGSERIAL,
+    "assets" BIGINT,
+    shares BIGINT,
 
     PRIMARY KEY(tx_hash)
 );

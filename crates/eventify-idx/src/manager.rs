@@ -1,11 +1,7 @@
 use alloy_primitives::BlockNumber;
 use tracing::{error, info};
 
-use crate::{
-    clients::{NodeClient, StorageClient},
-    collector::Collect,
-    Collector,
-};
+use crate::{collector::Collect, provider::NodeClient, storage::StorageClient, Collector};
 use eventify_primitives::Criterias;
 
 use std::error::Error;

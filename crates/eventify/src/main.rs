@@ -13,11 +13,8 @@ use eventify_primitives as primitives;
 
 use crate::cmd::Cmd;
 use idx::{
-    clients::{
-        node::{NodeClientKind, NodeKind},
-        storage::{Postgres, StorageClientKind, StorageKind},
-        EthHttp, EthIpc, EthWs,
-    },
+    provider::{eth::Eth, NodeKind},
+    storage::{Postgres, StorageClientKind, StorageKind},
     Collector, Manager, Run,
 };
 use primitives::{configs::ServerConfig, Criterias};
@@ -76,11 +73,7 @@ async fn main() -> Result<()> {
                     .or_else(|| args.criterias_json());
 
                 let node_client = match args.node {
-                    NodeKind::Ethereum => match Url::parse(&args.node_url)?.scheme() {
-                        "ipc" => NodeClientKind::EthIpc(EthIpc::new(&args.node_url).await),
-                        "ws" | "wss" => NodeClientKind::EthWs(EthWs::new(&args.node_url).await),
-                        _ => NodeClientKind::EthHttp(EthHttp::new(&args.node_url).await),
-                    },
+                    NodeKind::Ethereum => Eth::new(args.node_url.clone()).await?,
                 };
 
                 let storage_client =

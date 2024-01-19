@@ -46,7 +46,7 @@ serde_derive.workspace = true
 sqlx.workspace = true
 
 # eth
-alloy-primitives.workspace = true
+alloy-primitives = { workspace = true, features = ["postgres"]}
 ethers-providers.workspace = true
 ethers-core.workspace = true
 

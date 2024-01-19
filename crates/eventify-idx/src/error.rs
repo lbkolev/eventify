@@ -1,5 +1,6 @@
 use std::num::ParseIntError;
 
+use alloy_primitives::B256;
 use ethers_core::types::H256;
 
 #[derive(thiserror::Error, Debug)]
@@ -61,5 +62,5 @@ pub enum StorageClientError {
     StoreLog(H256),
 
     #[error("failed to store contract {0}")]
-    StoreContract(H256),
+    StoreContract(B256),
 }

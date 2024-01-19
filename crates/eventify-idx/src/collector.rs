@@ -3,10 +3,7 @@ use std::time::Instant;
 use alloy_primitives::BlockNumber;
 use tracing::info;
 
-use crate::{
-    clients::{NodeClient, StorageClient},
-    Result,
-};
+use crate::{provider::NodeClient, storage::StorageClient, Result};
 use eventify_primitives::Criteria;
 
 /// `Collect` Trait
@@ -118,6 +115,8 @@ where
 
     async fn process_logs(&self, c: Criteria) -> Result<()> {
         let now = Instant::now();
+
+        // TODO: cleanup
         let logs = self.node.get_logs(&c).await?;
         let mut log_count = 0;
 

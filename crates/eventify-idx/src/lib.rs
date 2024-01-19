@@ -2,12 +2,12 @@
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 
-pub mod cc;
-pub mod clients;
 pub mod collector;
 pub mod error;
 pub mod macros;
 pub mod manager;
+pub mod provider;
+pub mod storage;
 
 pub use collector::{Collect, Collector};
 pub use error::{Error, NodeClientError, StorageClientError};
