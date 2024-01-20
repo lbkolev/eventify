@@ -1,4 +1,4 @@
-## eventify-idx
+## eventify-core
 
 > <p align="center"> 🚧 work in progress 🚧<p>
 

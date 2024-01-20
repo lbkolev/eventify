@@ -1,5 +1,5 @@
 [package]
-name = "eventify-idx"
+name = "eventify-core"
 
 authors.workspace = true
 description.workspace = true
@@ -44,6 +44,7 @@ serde.workspace = true
 serde-aux.workspace = true
 serde_derive.workspace = true
 sqlx.workspace = true
+redis = "0.24.0"
 
 # eth
 alloy-primitives = { workspace = true, features = ["postgres"]}

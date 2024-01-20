@@ -1,6 +1,6 @@
 [workspace.package]
 authors = ["eventify contributors"]
-description = "Ethereum Indexer/Event listener"
+description = "Ethereum L1/L2 event listener, propagator & indexer"
 documentation = "https://docs.rs/eventify"
 edition = "2021"
 homepage = "https://github.com/lbkolev/eventify"
@@ -13,10 +13,9 @@ repository = "https://github.com/lbkolev/eventify"
 [workspace]
 members = [
     "crates/eventify",
-    "crates/eventify-extensions",
     "crates/eventify-http-client",
     "crates/eventify-http-server",
-    "crates/eventify-idx",
+    "crates/eventify-core",
     "crates/eventify-primitives"
 ]
 resolver = "2"
@@ -24,10 +23,10 @@ resolver = "2"
 [workspace.dependencies]
 # internal
 eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1" }
-eventify-idx = { path = "./crates/eventify-idx", version = "0.0.1" }
+eventify-core = { path = "./crates/eventify-core", version = "0.0.1" }
 eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
 eventify-client = { path = "./crates/eventify-http-client", version = "0.0.1" }
-eventify-extensions = { path = "./crates/eventify-extensions", version = "0.0.1" }
+eventify-mid = { path = "./crates/eventify-mid", version = "0.0.1" }
 
 # async
 async-trait = "0.1.72"

@@ -1,4 +1,4 @@
-# Default values for eventify-idx.
+# Default values for eventify-core.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -52,16 +52,18 @@ indexer:
   endBlock: 999999999
 
 # -- A list of potential additional arguments.
-# Passed directly to the eventify-idxer
+# Passed directly to the eventify-coreer
 # and take precedence over environment variables
 additionalArguments: []
 
 podAnnotations: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  {}
   # fsGroup: 2000
 
-securityContext: {}
+securityContext:
+  {}
   # capabilities:
   #   drop:
   #   - ALL

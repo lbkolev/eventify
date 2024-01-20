@@ -7,8 +7,8 @@ pub mod cmd;
 pub mod settings;
 pub mod subcommands;
 
+use eventify_core as idx;
 use eventify_http_server as server;
-use eventify_idx as idx;
 use eventify_primitives as primitives;
 
 use crate::cmd::Cmd;
