@@ -4,7 +4,7 @@ use crate::{provider::NodeClient, NodeClientError};
 use alloy_primitives::BlockNumber;
 use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction, TransactionResponse};
 use jsonrpsee::{
-    core::client::ClientT,
+    core::client::{ClientT, Subscription, SubscriptionClientT},
     rpc_params,
     ws_client::{WsClient, WsClientBuilder},
 };
@@ -78,5 +78,17 @@ impl NodeClient for Eth {
             .request("eth_getLogs", rpc_params!(filter))
             .await
             .map_err(|_| NodeClientError::Logs("".to_string()))
+    }
+
+    async fn stream_blocks(&self) -> Result<Subscription<EthBlock>, NodeClientError> {
+        self.inner
+            .subscribe("eth_subscribe", rpc_params!["newHeads"], "eth_unsubscribe")
+            .await
+            .map_err(|_| {
+                NodeClientError::SubscribeBlockFailed(
+                    "eth_subscribe".to_string(),
+                    "newHeads".to_string(),
+                )
+            })
     }
 }

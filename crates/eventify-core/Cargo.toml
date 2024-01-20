@@ -15,20 +15,12 @@ repository.workspace = true
 [features]
 default = [
     "eth",
-    "http",
-    "postgres",
 ]
 
 # chain
 eth = []
-
-# provider
-http = []
-ws = []
-ipc = []
-
-# database
-postgres = []
+zksync = []
+starknet = []
 
 [dependencies]
 # internal
@@ -48,8 +40,6 @@ redis = "0.24.0"
 
 # eth
 alloy-primitives = { workspace = true, features = ["postgres"]}
-ethers-providers.workspace = true
-ethers-core.workspace = true
 
 # auxiliary
 tracing.workspace = true

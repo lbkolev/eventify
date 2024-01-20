@@ -217,14 +217,14 @@ mod tests {
             }
         );
 
-        assert!(serde_json::from_value::<Log>(json).is_ok());
+        assert!(serde_json::from_value::<EthLog>(json).is_ok());
     }
 
     #[test]
     fn test_deserialize_empty_log() {
         let json = serde_json::json!({});
 
-        assert!(serde_json::from_value::<Log>(json).is_err());
+        assert!(serde_json::from_value::<EthLog>(json).is_err());
     }
 
     #[test]

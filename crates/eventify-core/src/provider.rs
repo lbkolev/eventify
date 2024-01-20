@@ -5,6 +5,7 @@ use std::fmt::Display;
 use crate::{Error, NodeClientError};
 use alloy_primitives::BlockNumber;
 use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction};
+use jsonrpsee::core::client::Subscription;
 
 #[async_trait::async_trait]
 pub trait Auth {
@@ -22,6 +23,8 @@ pub trait NodeClient: 'static + Clone + Send + Sync {
     ) -> Result<Vec<EthTransaction>, NodeClientError>;
     // TODO: move away from Filter
     async fn get_logs(&self, filter: &Criteria) -> Result<Vec<EthLog>, NodeClientError>;
+
+    async fn stream_blocks(&self) -> Result<Subscription<EthBlock>, NodeClientError>;
 }
 
 // Supported chains

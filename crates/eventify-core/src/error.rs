@@ -1,7 +1,6 @@
 use std::num::ParseIntError;
 
 use alloy_primitives::B256;
-use ethers_core::types::H256;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -45,6 +44,9 @@ pub enum NodeClientError {
     #[error("Failed to get logs for criteria {0}")]
     Logs(String),
 
+    #[error("Failed to get block from sub {0}, with params {1}")]
+    SubscribeBlockFailed(String, String),
+
     #[error(transparent)]
     ParseInt(#[from] ParseIntError),
 }
@@ -56,10 +58,10 @@ pub enum StorageClientError {
     StoreBlock(u64),
 
     #[error("failed to store transaction {0}")]
-    StoreTransaction(H256),
+    StoreTransaction(B256),
 
     #[error("failed to store log {0}")]
-    StoreLog(H256),
+    StoreLog(B256),
 
     #[error("failed to store contract {0}")]
     StoreContract(B256),

@@ -2,8 +2,9 @@ pub mod pg;
 
 use std::fmt::{Debug, Display};
 
-use crate::error::Error;
+use crate::{error::Error, storage_client};
 use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
+use sqlx::Pool;
 
 #[async_trait::async_trait]
 pub trait StorageClient: 'static + Clone + Debug + Send + Sync {
@@ -18,15 +19,7 @@ pub trait Auth {
     async fn connect(url: &str) -> Self;
 }
 
-#[cfg(feature = "postgres")]
-pub mod postgres_client {
-    use crate::storage_client;
-    use sqlx::Pool;
-
-    storage_client!(Postgres, Pool<sqlx::postgres::Postgres>);
-}
-
-pub use postgres_client::Postgres;
+storage_client!(Postgres, Pool<sqlx::postgres::Postgres>);
 
 // Supported storages
 #[derive(Debug, Default, Clone, Copy)]

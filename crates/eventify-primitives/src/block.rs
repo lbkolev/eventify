@@ -58,7 +58,7 @@ pub struct EthBlock {
 
     // -- body
     // list of tx hashes
-    pub transactions: Vec<B256>,
+    pub transactions: Option<Vec<B256>>,
     pub hash: Option<B256>,
     // --
 }
