@@ -34,3 +34,4 @@ thiserror.workspace = true
 url.workspace = true
 utoipa.workspace = true
 chrono = "0.4.31"
+trait-variant.workspace = true

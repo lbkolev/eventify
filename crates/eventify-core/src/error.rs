@@ -1,11 +1,12 @@
 use std::num::ParseIntError;
 
+use crate::NodeProviderError;
 use alloy_primitives::B256;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    NodeClient(#[from] NodeClientError),
+    NodeProvider(#[from] NodeProviderError),
 
     #[error(transparent)]
     StorageClient(#[from] StorageClientError),
@@ -24,31 +25,9 @@ pub enum Error {
 
     #[error("{0}")]
     InvalidDatabase(String),
-}
 
-#[derive(thiserror::Error, Debug)]
-#[non_exhaustive]
-pub enum NodeClientError {
-    #[error("failed to connect to node")]
-    Connect,
-
-    #[error("failed to get the latest block number")]
-    LatestBlock,
-
-    #[error("failed to get block {0}")]
-    Block(u64),
-
-    #[error("failed to get transactions from block {0}")]
-    Transactions(u64),
-
-    #[error("Failed to get logs for criteria {0}")]
-    Logs(String),
-
-    #[error("Failed to get block from sub {0}, with params {1}")]
-    SubscribeBlockFailed(String, String),
-
-    #[error(transparent)]
-    ParseInt(#[from] ParseIntError),
+    #[error("rpc error: {0:?}")]
+    RpcError(#[from] eyre::Report),
 }
 
 #[derive(thiserror::Error, Debug)]

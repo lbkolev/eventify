@@ -3,41 +3,13 @@ use std::time::Instant;
 use alloy_primitives::BlockNumber;
 use tracing::info;
 
-use crate::{provider::NodeClient, storage::StorageClient, Result};
+use crate::{provider::NodeProvider, Collect, StorageClient};
 use eventify_primitives::Criteria;
-
-/// `Collect` Trait
-///
-/// An asynchronous trait designed for processing various types of data.
-/// Implementers of this trait typically handle tasks such as fetching,
-/// parsing, and storing data asynchronously. The trait provides a flexible
-/// interface for different kinds of data processing activities, allowing
-/// implementers to define the specifics of these activities.
-#[async_trait::async_trait]
-pub trait Collect<T, E>
-where
-    T: Into<Criteria>,
-    E: std::error::Error + Send + Sync,
-{
-    async fn process_logs(&self, c: T) -> std::result::Result<(), E>;
-    async fn process_block(&self, b: BlockNumber) -> std::result::Result<(), E>;
-    async fn process_blocks(
-        &self,
-        from: BlockNumber,
-        to: BlockNumber,
-    ) -> std::result::Result<(), E>;
-    async fn process_transactions(&self, b: BlockNumber) -> std::result::Result<(), E>;
-    async fn process_transactions_from_range(
-        &self,
-        from: BlockNumber,
-        to: BlockNumber,
-    ) -> std::result::Result<(), E>;
-}
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S>
 where
-    N: NodeClient,
+    N: NodeProvider,
     S: StorageClient,
 {
     node: N,
@@ -46,32 +18,31 @@ where
 
 impl<N, S> Collector<N, S>
 where
-    N: NodeClient,
+    N: NodeProvider,
     S: StorageClient,
 {
     pub fn new(node: N, storage: S) -> Self {
         Self { node, storage }
     }
 
-    pub async fn get_latest_block(&self) -> Result<BlockNumber> {
+    pub async fn get_latest_block(&self) -> crate::Result<BlockNumber> {
         self.node.get_block_number().await.map_err(Into::into)
     }
 }
 
-#[async_trait::async_trait]
 impl<N, S> Collect<Criteria, crate::Error> for Collector<N, S>
 where
-    N: NodeClient,
+    N: NodeProvider,
     S: StorageClient,
 {
-    async fn process_block(&self, block: BlockNumber) -> Result<()> {
+    async fn process_block(&self, block: BlockNumber) -> crate::Result<()> {
         let block = self.node.get_block(block).await?;
         self.storage.store_block(&block).await?;
 
         Ok(())
     }
 
-    async fn process_blocks(&self, from: BlockNumber, to: BlockNumber) -> Result<()> {
+    async fn process_blocks(&self, from: BlockNumber, to: BlockNumber) -> crate::Result<()> {
         info!(target: "eventify::idx", from_block=?from, to_block=?to, "Processing blocks");
         let now = Instant::now();
 
@@ -86,7 +57,7 @@ where
         Ok(())
     }
 
-    async fn process_transactions(&self, block: BlockNumber) -> Result<()> {
+    async fn process_transactions(&self, block: BlockNumber) -> crate::Result<()> {
         let now = Instant::now();
         let transactions = self.node.get_transactions(block).await?;
         let tx_count = transactions.len();
@@ -103,7 +74,7 @@ where
         &self,
         from: BlockNumber,
         to: BlockNumber,
-    ) -> Result<()> {
+    ) -> crate::Result<()> {
         info!(target: "eventify::idx::tx", "Processing transactions from blocks {}..{}", from, to);
 
         for block in from..=to {
@@ -113,7 +84,7 @@ where
         Ok(())
     }
 
-    async fn process_logs(&self, c: Criteria) -> Result<()> {
+    async fn process_logs(&self, c: Criteria) -> crate::Result<()> {
         let now = Instant::now();
 
         // TODO: cleanup

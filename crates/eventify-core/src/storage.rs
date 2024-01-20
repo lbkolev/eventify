@@ -2,22 +2,9 @@ pub mod pg;
 
 use std::fmt::{Debug, Display};
 
-use crate::{error::Error, storage_client};
+use crate::{error::Error, storage_client, StorageClient};
 use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
 use sqlx::Pool;
-
-#[async_trait::async_trait]
-pub trait StorageClient: 'static + Clone + Debug + Send + Sync {
-    async fn store_block(&self, block: &EthBlock) -> Result<(), Error>;
-    async fn store_transaction(&self, transaction: &EthTransaction) -> Result<(), Error>;
-    async fn store_log(&self, log: &EthLog) -> Result<(), Error>;
-    async fn store_contract(&self, contract: &Contract) -> Result<(), Error>;
-}
-
-#[async_trait::async_trait]
-pub trait Auth {
-    async fn connect(url: &str) -> Self;
-}
 
 storage_client!(Postgres, Pool<sqlx::postgres::Postgres>);
 
@@ -52,7 +39,6 @@ pub enum StorageClientKind {
     Postgres(Postgres),
 }
 
-#[async_trait::async_trait]
 impl StorageClient for StorageClientKind {
     async fn store_block(&self, block: &EthBlock) -> Result<(), Error> {
         match self {

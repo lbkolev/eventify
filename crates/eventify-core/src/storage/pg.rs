@@ -3,14 +3,9 @@
 use sqlx::pool::PoolOptions;
 use tracing::debug;
 
-use crate::{
-    error::StorageClientError,
-    storage::{Auth, Postgres, StorageClient},
-    Error,
-};
+use crate::{error::StorageClientError, storage::Postgres, Auth, Error, StorageClient};
 use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
 
-#[async_trait::async_trait]
 impl Auth for Postgres {
     async fn connect(url: &str) -> Self {
         Self {
@@ -29,7 +24,6 @@ impl Postgres {
     }
 }
 
-#[async_trait::async_trait]
 impl StorageClient for Postgres {
     async fn store_block(&self, block: &EthBlock) -> Result<(), Error> {
         let sql = r#"INSERT INTO eth.block (
