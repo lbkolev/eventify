@@ -1,0 +1,1 @@
+../crates/eventify-core/README.md
