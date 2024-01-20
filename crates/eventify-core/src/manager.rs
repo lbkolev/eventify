@@ -1,13 +1,13 @@
 use alloy_primitives::BlockNumber;
 use tracing::{error, info};
 
-use crate::{collector::Collect, provider::NodeClient, storage::StorageClient, Collector};
+use crate::{collector::Collector, provider::NodeProvider, Collect, StorageClient};
 use eventify_primitives::Criterias;
 
 use std::error::Error;
 
-#[async_trait::async_trait]
-pub trait Run {
+#[trait_variant::make(Run: Send)]
+pub trait LocalRun {
     async fn run<N, S, E>(
         processor: Collector<N, S>,
         skip_transactions: bool,
@@ -18,7 +18,7 @@ pub trait Run {
     ) -> Result<(), E>
     where
         E: Error + Send + Sync,
-        N: NodeClient,
+        N: NodeProvider,
         S: StorageClient;
 }
 
@@ -31,7 +31,6 @@ impl Manager {
     }
 }
 
-#[async_trait::async_trait]
 impl Run for Manager {
     async fn run<N, S, E>(
         collector: Collector<N, S>,
@@ -43,7 +42,7 @@ impl Run for Manager {
     ) -> std::result::Result<(), E>
     where
         E: std::error::Error + Send + Sync,
-        N: NodeClient,
+        N: NodeProvider,
         S: StorageClient,
     {
         let mut handles = vec![];

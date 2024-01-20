@@ -1,21 +1,21 @@
 [workspace.package]
 authors = ["eventify contributors"]
-description = "Ethereum L1/L2 event listener, propagator & indexer"
+description = "Ethereum L1/L2 block|tx|event listener, propagator & indexer"
 documentation = "https://docs.rs/eventify"
 edition = "2021"
 homepage = "https://github.com/lbkolev/eventify"
 license = "MIT OR Apache-2.0"
 version = "0.0.1"
-rust-version = "1.74.0"
+rust-version = "1.75.0"
 readme = "README.md"
 repository = "https://github.com/lbkolev/eventify"
 
 [workspace]
 members = [
     "crates/eventify",
+    "crates/eventify-core",
     "crates/eventify-http-client",
     "crates/eventify-http-server",
-    "crates/eventify-core",
     "crates/eventify-primitives"
 ]
 resolver = "2"
@@ -26,7 +26,6 @@ eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1"
 eventify-core = { path = "./crates/eventify-core", version = "0.0.1" }
 eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
 eventify-client = { path = "./crates/eventify-http-client", version = "0.0.1" }
-eventify-mid = { path = "./crates/eventify-mid", version = "0.0.1" }
 
 # async
 async-trait = "0.1.72"
@@ -53,3 +52,5 @@ utoipa = { version = "4.1.0", features = ["actix_extras"] }
 uuid = { version = "1.4.0", features = ["v4"] }
 url = "2.4.0"
 tracing = "0.1.37"
+eyre = "0.6.11"
+trait-variant = "0.1.1"
