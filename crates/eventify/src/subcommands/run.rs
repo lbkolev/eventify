@@ -5,11 +5,9 @@ use clap::{self, Parser};
 use secrecy::{ExposeSecret, Secret};
 
 use crate::settings::{IdxSettings, ServerSettings};
+use eventify_configs::configs::{ApplicationConfig, DatabaseConfig, ServerConfig};
 use eventify_core::provider::NodeKind;
-use eventify_primitives::{
-    configs::{ApplicationConfig, DatabaseConfig, ServerConfig},
-    Criterias,
-};
+use eventify_primitives::Criterias;
 
 #[derive(Clone, Debug, Parser)]
 #[command(about = "")]

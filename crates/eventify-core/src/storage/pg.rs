@@ -132,7 +132,7 @@ impl StorageClient for Postgres {
             .bind(tx.input.0.to_vec())
             .execute(&self.inner)
             .await
-            .map_err(|_| StorageClientError::StoreContract(tx.transaction_hash))?;
+            .map_err(|_| StorageClientError::StoreContractFailed(tx.transaction_hash))?;
 
         debug!(target: "eventify::idx::contract", tx_hash=?tx.transaction_hash, tx_from=?tx.from, "Insert");
         Ok(())
@@ -192,7 +192,6 @@ impl StorageClient for Postgres {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::clients::StorageClient;
 
     use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
     use uuid::Uuid;
@@ -274,7 +273,7 @@ mod tests {
 
         let block = serde_json::from_value::<EthBlock>(json).unwrap();
         println!("{:?}", block);
-        db.store_block(&block).await?;
+        db.store_block(&block).await.unwrap();
 
         teardown_test_db(db.inner, &db_name).await.unwrap();
     }

@@ -9,23 +9,24 @@ const CHANNEL_ZKSYNC_BLOCKS: &str = "zksync:blocks";
 const CHANNEL_ZKSYNC_TXS: &str = "zksync:txs";
 const CHANNEL_ZKSYNC_EVENTS: &str = "zksync:events";
 
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use redis::{Commands, RedisResult};
-
-    use crate::MyStruct;
-
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct MyStruct {
-        field1: String,
-        field2: i32,
-    }
+    use serde::{Deserialize, Serialize};
 
     #[test]
     fn test_redis() {
         let client = redis::Client::open("redis://127.0.0.1/").unwrap();
         let mut con = client.get_connection().unwrap();
+
+        #[derive(Debug, Deserialize, Serialize)]
+        pub struct MyStruct {
+            field1: String,
+            field2: i32,
+        }
 
         let my_data = MyStruct {
             field1: String::from("rand"),

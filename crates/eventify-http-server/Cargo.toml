@@ -15,6 +15,7 @@ repository.workspace = true
 [dependencies]
 # internal
 eventify-primitives.workspace = true
+eventify-configs.workspace = true
 
 # core
 actix-web = "4.3.1"

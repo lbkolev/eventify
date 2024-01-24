@@ -13,6 +13,7 @@ repository = "https://github.com/lbkolev/eventify"
 [workspace]
 members = [
     "crates/eventify",
+    "crates/eventify-configs",
     "crates/eventify-core",
     "crates/eventify-http-client",
     "crates/eventify-http-server",
@@ -25,10 +26,10 @@ resolver = "2"
 eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1" }
 eventify-core = { path = "./crates/eventify-core", version = "0.0.1" }
 eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
+eventify-configs = { path = "./crates/eventify-configs", version = "0.0.1" }
 eventify-client = { path = "./crates/eventify-http-client", version = "0.0.1" }
 
 # async
-async-trait = "0.1.72"
 futures = "0.3.28"
 tokio = { version = "1.29.1", features = ["macros", "full"] }
 

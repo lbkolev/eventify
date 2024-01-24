@@ -7,17 +7,20 @@ pub mod cmd;
 pub mod settings;
 pub mod subcommands;
 
-use eventify_core as idx;
+use eventify_configs as configs;
+use eventify_core as core;
 use eventify_http_server as server;
 use eventify_primitives as primitives;
 
 use crate::cmd::Cmd;
-use idx::{
+use configs::configs::ServerConfig;
+use core::{
     provider::{eth::Eth, NodeKind},
     storage::{Postgres, StorageClientKind, StorageKind},
     Collector, Manager, Run,
 };
-use primitives::{configs::ServerConfig, Criterias};
+use primitives::Criterias;
+
 //--
 
 use std::{path::Path, str::FromStr};

@@ -21,6 +21,7 @@ name = "eventify"
 eventify-core = { workspace = true, features = ["eth", "zksync", "starknet"] }
 eventify-http-server.workspace = true
 eventify-primitives.workspace = true
+eventify-configs.workspace = true
 
 # async
 futures.workspace = true

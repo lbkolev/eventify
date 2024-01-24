@@ -3,6 +3,7 @@
 #![deny(unused_must_use, rust_2018_idioms)]
 
 pub mod collector;
+pub mod emit;
 pub mod error;
 pub mod macros;
 pub mod manager;
@@ -36,13 +37,6 @@ pub trait LocalAuth {
     async fn connect(url: &str) -> Self;
 }
 
-/// `Collect` Trait
-///
-/// An asynchronous trait designed for processing various types of data.
-/// Implementers of this trait typically handle tasks such as fetching,
-/// parsing, and storing data asynchronously. The trait provides a flexible
-/// interface for different kinds of data processing activities, allowing
-/// implementers to define the specifics of these activities.
 #[trait_variant::make(Collect: Send)]
 pub trait LocalCollect<T, E>
 where

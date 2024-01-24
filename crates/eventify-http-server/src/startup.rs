@@ -7,7 +7,7 @@ use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-use eventify_primitives::configs::{DatabaseConfig, ServerConfig};
+use eventify_configs::configs::{DatabaseConfig, ServerConfig};
 
 use crate::{
     api::{self, block, log, transaction},

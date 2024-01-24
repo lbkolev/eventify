@@ -114,3 +114,76 @@ impl NodeProvider for Eth {
             })
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_eth_get_block_number() {
+        let client = Eth::new("wss://eth.llamarpc.com".to_string())
+            .await
+            .unwrap();
+
+        assert!(client.get_block_number().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_eth_get_block() {
+        let client = Eth::new("wss://eth.llamarpc.com".to_string())
+            .await
+            .unwrap();
+
+        let block = client.get_block(1911151).await;
+        println!("{:#?}", block);
+        assert!(block.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_eth_get_transactions() {
+        let client = Eth::new("wss://eth.llamarpc.com".to_string())
+            .await
+            .unwrap();
+
+        let tx = client.get_transactions(1911151).await;
+        println!("{:#?}", tx);
+        assert!(tx.is_ok());
+    }
+
+    //#[tokio::test]
+    //async fn test_eth_get_log() {
+    //    let client = Eth::new("wss://eth.llamarpc.com".to_string())
+    //        .await
+    //        .unwrap();
+
+    //    let filter = Filter::new().select(1911151..1911152);
+    //    let criteria: Criteria = filter.into();
+    //    let logs = client.get_logs(&filter).await;
+
+    //    println!("{:#?}", logs);
+    //    assert!(logs.is_ok());
+    //}
+
+    #[tokio::test]
+    async fn test_eth_latest_block() {
+        let client = Eth::new("wss://eth.llamarpc.com".to_string())
+            .await
+            .unwrap();
+
+        let block = client
+            .get_block(client.get_block_number().await.unwrap())
+            .await;
+        println!("{:#?}", block);
+        assert!(block.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_zksync_get_block_number() {
+        let client = Eth::new("wss://sepolia.era.zksync.dev/ws".to_string())
+            .await
+            .unwrap();
+
+        assert!(client.get_block_number().await.is_ok());
+    }
+}

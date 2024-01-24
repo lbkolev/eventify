@@ -33,15 +33,15 @@ pub enum Error {
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
 pub enum StorageClientError {
-    #[error("failed to store block {0}")]
-    StoreBlock(u64),
+    #[error("Failed to store block {0}")]
+    StoreBlockFailed(u64),
 
-    #[error("failed to store transaction {0}")]
-    StoreTransaction(B256),
+    #[error("Failed to store transaction {0}")]
+    StoreTransactionFailed(B256),
 
-    #[error("failed to store log {0}")]
-    StoreLog(B256),
+    #[error("Failed to store log {0}")]
+    StoreLogFailed(B256),
 
-    #[error("failed to store contract {0}")]
-    StoreContract(B256),
+    #[error("Failed to store contract {0}")]
+    StoreContractFailed(B256),
 }
