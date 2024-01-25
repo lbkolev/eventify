@@ -1,90 +1,156 @@
-use alloy_primitives::BlockNumber;
+use tokio::task::JoinHandle;
 use tracing::{error, info};
 
 use crate::{collector::Collector, provider::NodeProvider, Collect, StorageClient};
-use eventify_primitives::Criterias;
+use eventify_configs::configs::ManagerConfig;
 
-use std::error::Error;
-
-#[trait_variant::make(Run: Send)]
-pub trait LocalRun {
-    async fn run<N, S, E>(
-        processor: Collector<N, S>,
-        skip_transactions: bool,
-        skip_blocks: bool,
-        src_block: BlockNumber,
-        dst_block: BlockNumber,
-        criterias: Option<Criterias>,
-    ) -> Result<(), E>
-    where
-        E: Error + Send + Sync,
-        N: NodeProvider,
-        S: StorageClient;
+#[derive(Debug, Clone)]
+pub struct Manager<N, S>
+where
+    N: NodeProvider,
+    S: StorageClient,
+{
+    pub config: ManagerConfig,
+    pub collector: Collector<N, S>,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct Manager;
-
-impl Manager {
-    pub fn new() -> Self {
-        Self
+impl<N, S> Manager<N, S>
+where
+    N: NodeProvider,
+    S: StorageClient,
+{
+    pub fn new(config: ManagerConfig, collector: Collector<N, S>) -> Self {
+        Self { config, collector }
     }
 }
 
-impl Run for Manager {
-    async fn run<N, S, E>(
-        collector: Collector<N, S>,
-        skip_transactions: bool,
-        skip_blocks: bool,
-        src_block: BlockNumber,
-        dst_block: BlockNumber,
-        criterias: Option<Criterias>,
-    ) -> std::result::Result<(), E>
-    where
-        E: std::error::Error + Send + Sync,
-        N: NodeProvider,
-        S: StorageClient,
-    {
-        let mut handles = vec![];
-        if !skip_transactions {
-            let collector_tx = collector.clone();
-            info!(target: "eventify::idx", src_block=?src_block, dst_block=?dst_block, "Spawning a transaction-processing thread");
-            handles.push(tokio::spawn(async move {
-                match collector_tx.process_transactions_from_range(src_block, dst_block).await {
-                    Ok(_) => info!(target: "eventify::idx", src_block=?src_block, dst_block=?dst_block, "Transaction-processing thread finished"),
-                    Err(e) => error!(target: "eventify::idx", src_block=?src_block, dst_block=?dst_block, "Transaction-processing thread failed: {}", e),
-                }
-            }));
+impl<N, S> Manager<N, S>
+where
+    N: NodeProvider,
+    S: StorageClient,
+{
+    pub async fn get_blocks_task(&self) -> crate::Result<JoinHandle<()>> {
+        if self.config.skip_blocks {
+            return Ok(tokio::spawn(async move {}));
         }
 
-        if !skip_blocks {
-            let collector_block = collector.clone();
-            info!(target: "eventify::idx", src_block=?src_block, dst_block=?dst_block, "Spawning a block-processing thread");
-            handles.push(tokio::spawn(async move {
-                match collector_block.process_blocks(src_block, dst_block).await {
-                    Ok(_) => info!(target: "eventify::idx", src_block=?src_block, dst_block=?dst_block, "Block-processing thread finished"),
-                    Err(e) => error!(target: "eventify::idx", src_block=?src_block, dst_block=?dst_block, "Block-processing thread failed: {}", e),
-                }
-            }));
-        }
-
-        if let Some(criterias) = criterias {
-            for criteria in criterias {
-                let collector_logs = collector.clone();
-                info!(target: "eventify::idx", criteria=?criteria, "Spawning a log-processing thread");
-
-                handles.push(tokio::spawn(async move {
-                    match collector_logs.process_logs(criteria).await {
-                        Ok(_) => info!(target: "eventify::idx", "Log-processing thread finished"),
-                        Err(e) => {
-                            error!(target: "eventify::idx", "Log-processing thread failed: {}", e)
-                        }
+        if let Some(range) = self.config.range.clone() {
+            let collector_block = self.collector.clone();
+            info!(target: "eventify::core::manager::get_blocks_task", "Spawning a block-getting thread");
+            Ok(tokio::spawn(async move {
+                match collector_block.process_blocks(range.src, range.dst).await {
+                    Ok(_) => {
+                        info!(target: "eventify::core::manager::get_blocks_task", "Block-getting thread finished")
                     }
-                }));
-            }
+                    Err(e) => {
+                        error!(target: "eventify::core::manager::get_blocks_task", "Block-getting thread failed: {}", e)
+                    }
+                }
+            }))
+        } else {
+            Ok(tokio::spawn(async move {}))
+        }
+    }
+
+    pub async fn get_transactions_task(&self) -> crate::Result<JoinHandle<()>> {
+        if self.config.skip_transactions {
+            return Ok(tokio::spawn(async move {}));
         }
 
-        futures::future::join_all(handles).await;
-        Ok(())
+        if let Some(range) = self.config.range.clone() {
+            let collector_tx = self.collector.clone();
+            info!(target: "eventify::core::manager::get_transactions_task", "Spawning a transaction-getting thread");
+            Ok(tokio::spawn(async move {
+                match collector_tx
+                    .process_transactions_from_range(range.src, range.dst)
+                    .await
+                {
+                    Ok(_) => {
+                        info!(target: "eventify::core::manager::get_transactions_task", "Transaction-getting thread finished")
+                    }
+                    Err(e) => {
+                        error!(target: "eventify::core::manager::get_transactions_task", "Transaction-getting thread failed: {}", e)
+                    }
+                }
+            }))
+        } else {
+            Ok(tokio::spawn(async move {}))
+        }
+    }
+
+    pub async fn get_logs_task(&self) -> crate::Result<JoinHandle<()>> {
+        if self.config.skip_logs {
+            return Ok(tokio::spawn(async move {}));
+        }
+
+        if let Some(criteria) = self.config.criteria.clone() {
+            let collector_logs = self.collector.clone();
+            info!(target: "eventify::core::manager::get_logs_task", "Spawning a log-getting thread");
+            Ok(tokio::spawn(async move {
+                match collector_logs.process_logs(&criteria).await {
+                    Ok(_) => {
+                        info!(target: "eventify::core::manager::get_logs_task", "Log-getting thread finished")
+                    }
+                    Err(e) => {
+                        error!(target: "eventify::core::manager::get_logs_task", "Log-getting thread failed: {}", e)
+                    }
+                }
+            }))
+        } else {
+            Ok(tokio::spawn(async move {}))
+        }
+    }
+
+    pub async fn stream_blocks_task(&self) -> crate::Result<JoinHandle<()>> {
+        if !self.config.skip_blocks {
+            let collector_block = self.collector.clone();
+            info!(target: "eventify::core::manager::stream_blocks_task", "Spawning a block-streaming thread");
+            Ok(tokio::spawn(async move {
+                match collector_block.stream_blocks().await {
+                    Ok(_) => {
+                        info!(target: "eventify::core::manager::stream_blocks_task", "Block-streaming thread finished")
+                    }
+                    Err(e) => {
+                        error!(target: "eventify::core::manager::stream_blocks_task", "Block-streaming thread failed: {}", e)
+                    }
+                }
+            }))
+        } else {
+            Ok(tokio::spawn(async move {}))
+        }
+    }
+
+    pub async fn stream_transactions_task(&self) -> crate::Result<JoinHandle<()>> {
+        if !self.config.skip_transactions {
+            let collector_tx = self.collector.clone();
+            info!(target: "eventify::core::manager::stream_transactions_task", "Spawning a transaction-streaming thread");
+            Ok(tokio::spawn(async move {
+                match collector_tx.stream_transactions().await {
+                    Ok(_) => {
+                        info!(target: "eventify::core::manager::stream_transactions_task", "Transaction-streaming thread finished")
+                    }
+                    Err(e) => {
+                        error!(target: "eventify::core::manager::stream_transactions_task", "Transaction-streaming thread failed: {}", e)
+                    }
+                }
+            }))
+        } else {
+            Ok(tokio::spawn(async move {}))
+        }
+    }
+
+    pub async fn stream_logs_task(&self) -> crate::Result<JoinHandle<()>> {
+        let collector_logs = self.collector.clone();
+        info!(target: "eventify::core::manager::stream_logs_task", "Spawning a log-streaming thread");
+        Ok(tokio::spawn(async move {
+            match collector_logs.stream_logs().await {
+                Ok(_) => {
+                    info!(target: "eventify::core::manager::stream_logs_task", "Log-streaming thread finished")
+                }
+                Err(e) => {
+                    error!(target: "eventify::core::manager::stream_logs_task", "Log-streaming thread failed: {}", e)
+                }
+            }
+        }))
     }
 }

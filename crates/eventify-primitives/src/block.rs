@@ -4,7 +4,7 @@ use sqlx::FromRow;
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
-pub struct EthBlock {
+pub struct EthBlock<T> {
     // -- header
     #[serde(rename = "parentHash")]
     pub parent_hash: B256,
@@ -57,8 +57,8 @@ pub struct EthBlock {
     // --
 
     // -- body
-    // list of tx hashes
-    pub transactions: Option<Vec<B256>>,
+    // either list of tx hashes or list of tx objects
+    pub transactions: Option<Vec<T>>,
     pub hash: Option<B256>,
     // --
 }

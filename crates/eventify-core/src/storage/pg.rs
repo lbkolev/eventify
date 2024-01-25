@@ -1,5 +1,6 @@
 #![allow(clippy::option_map_unit_fn)]
 
+use alloy_primitives::B256;
 use sqlx::pool::PoolOptions;
 use tracing::debug;
 
@@ -25,7 +26,7 @@ impl Postgres {
 }
 
 impl StorageClient for Postgres {
-    async fn store_block(&self, block: &EthBlock) -> Result<(), Error> {
+    async fn store_block(&self, block: &EthBlock<B256>) -> Result<(), Error> {
         let sql = r#"INSERT INTO eth.block (
                 parent_hash,
                 uncles_hash,

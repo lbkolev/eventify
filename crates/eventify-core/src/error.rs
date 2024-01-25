@@ -1,5 +1,3 @@
-use std::num::ParseIntError;
-
 use crate::NodeProviderError;
 use alloy_primitives::B256;
 
@@ -28,6 +26,9 @@ pub enum Error {
 
     #[error("rpc error: {0:?}")]
     RpcError(#[from] eyre::Report),
+
+    #[error("jsonrpsee error: {0:?}")]
+    JsonRpsee(#[from] jsonrpsee::core::ClientError),
 }
 
 #[derive(thiserror::Error, Debug)]

@@ -13,12 +13,13 @@ pub trait LocalNodeProvider: 'static + Clone + Sync {
     async fn connect(host: String) -> Result<Self>;
 
     async fn get_block_number(&self) -> Result<BlockNumber>;
-    async fn get_block(&self, block: BlockNumber) -> Result<EthBlock>;
-    async fn get_transactions(&self, n: BlockNumber) -> Result<Vec<EthTransaction>>;
-    async fn get_logs(&self, filter: &Criteria) -> Result<Vec<EthLog>>;
 
-    async fn stream_blocks(&self) -> Result<Subscription<EthBlock>>;
-    async fn stream_transactions(&self) -> Result<Subscription<B256>>;
+    // block with tx hashes
+    async fn get_block(&self, block: BlockNumber) -> Result<EthBlock<B256>>;
+    async fn get_transactions(&self, n: BlockNumber) -> Result<Vec<EthTransaction>>;
+    async fn get_logs(&self, criteria: &Criteria) -> Result<Vec<EthLog>>;
+
+    async fn stream_blocks(&self) -> Result<Subscription<EthBlock<B256>>>;
     async fn stream_logs(&self) -> Result<Subscription<EthLog>>;
 }
 
@@ -28,26 +29,31 @@ pub enum NodeProviderError {
     #[error("Failed to connect to node: {0}")]
     ConnectionFailed(#[from] jsonrpsee::core::ClientError),
 
-    #[error("Failed to get the latest block number")]
-    GetLatestBlockFailed,
+    #[error("Failed to get the latest block number. {err}")]
+    GetLatestBlockFailed { err: String },
 
-    #[error("failed to get block {0}")]
-    GetBlockFailed(u64),
+    #[error("failed to get block #{n}. {err}")]
+    GetBlockFailed { n: u64, err: String },
 
-    #[error("failed to get transactions from block {0}")]
-    GetTransactionsFailed(u64),
+    #[error("failed to get transactions from block #{n}. {err}")]
+    GetTransactionsFailed { n: u64, err: String },
 
-    #[error("Failed to get logs for criteria {0}")]
-    Logs(String),
+    #[error("Failed to get logs. {err}")]
+    Logs { err: String },
 
-    #[error("Failed to get block from sub {0}, with params {1}")]
-    BlockSubscriptionFailed(String, String),
+    #[error("Failed to get block from sub {sub}, with params {params}. {err}")]
+    BlockSubscriptionFailed {
+        sub: String,
+        params: String,
+        err: String,
+    },
 
-    #[error("Failed to get transaction from sub {0}, with params {1}")]
-    TransactionSubscriptionFailed(String, String),
-
-    #[error("Failed to get log from sub {0}, with params {1}")]
-    LogSubscriptionFailed(String, String),
+    #[error("Failed to get log from sub {sub}, with params {params}. {err}")]
+    LogSubscriptionFailed {
+        sub: String,
+        params: String,
+        err: String,
+    },
 
     #[error(transparent)]
     ParseInt(#[from] ParseIntError),

@@ -1,5 +1,5 @@
-pub(crate) mod idx;
+pub(crate) mod core;
 pub(crate) mod server;
 
-pub(crate) use idx::IdxSettings;
+pub(crate) use core::CoreSettings;
 pub(crate) use server::ServerSettings;

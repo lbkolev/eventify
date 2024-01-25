@@ -3,6 +3,7 @@ pub mod pg;
 use std::fmt::{Debug, Display};
 
 use crate::{error::Error, storage_client, StorageClient};
+use alloy_primitives::B256;
 use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
 use sqlx::Pool;
 
@@ -40,7 +41,7 @@ pub enum StorageClientKind {
 }
 
 impl StorageClient for StorageClientKind {
-    async fn store_block(&self, block: &EthBlock) -> Result<(), Error> {
+    async fn store_block(&self, block: &EthBlock<B256>) -> Result<(), Error> {
         match self {
             StorageClientKind::Postgres(inner) => inner.store_block(block).await,
         }

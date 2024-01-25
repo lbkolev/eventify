@@ -1,30 +1,22 @@
 use std::str::FromStr;
 
 use alloy_primitives::BlockNumber;
-use clap::{self, Parser};
+use clap::Parser;
 use secrecy::{ExposeSecret, Secret};
 
-use crate::settings::{IdxSettings, ServerSettings};
+use crate::settings::{core::BlockRange, CoreSettings, ServerSettings};
 use eventify_configs::configs::{ApplicationConfig, DatabaseConfig, ServerConfig};
 use eventify_core::provider::NodeKind;
-use eventify_primitives::Criterias;
+use eventify_primitives::Criteria;
 
 #[derive(Clone, Debug, Parser)]
-#[command(about = "")]
+#[command(about = "Idx from range or stream directly from the tip of the chain")]
 pub(crate) struct Cmd {
     #[clap(flatten)]
-    pub(crate) indexer: IdxSettings,
+    pub(crate) core: CoreSettings,
 
     #[clap(flatten)]
     pub(crate) server: ServerSettings,
-
-    #[arg(
-        long = "only-migrations",
-        env = "EVENTIFY_DB_MIGRATIONS",
-        help = "Run only the database migrations and exit immediately after.",
-        action
-    )]
-    pub(crate) only_migrations: bool,
 
     #[arg(
         long,
@@ -36,73 +28,61 @@ pub(crate) struct Cmd {
 
     #[arg(
         long,
-        env = "EVENTIFY_NODE_URL",
-        help = "The node URL to connect to",
-        default_value = "wss://eth.llamarpc.com"
-    )]
-    pub(crate) node_url: String,
-
-    #[arg(
-        long,
         env = "EVENTIFY_NODE",
         help = "The type of chain(node) to index",
         default_value_t = NodeKind::Ethereum,
         value_parser = NodeKind::from_str,
     )]
     pub(crate) node: NodeKind,
-}
 
-impl From<Cmd> for ServerConfig {
-    fn from(settings: Cmd) -> Self {
-        Self {
-            database: DatabaseConfig::from(settings.database_url()),
-            application: ApplicationConfig {
-                host: settings.server.host,
-                port: settings.server.port,
-                worker_threads: settings.server.server_threads,
-            },
-        }
-    }
+    #[arg(
+        long,
+        env = "EVENTIFY_NODE_URL",
+        help = "The node URL to connect to",
+        default_value = "wss://eth.llamarpc.com"
+    )]
+    pub(crate) node_url: String,
 }
 
 impl Cmd {
-    #[allow(unused)]
-    pub(crate) fn indexer_enabled(&self) -> bool {
-        self.indexer.indexer_enabled
-    }
-
     pub(crate) fn skip_transactions(&self) -> bool {
-        self.indexer.skip_transactions
+        self.core.skip_transactions
     }
 
     pub(crate) fn skip_blocks(&self) -> bool {
-        self.indexer.skip_blocks
+        self.core.skip_blocks
     }
 
-    #[allow(unused)]
-    pub(crate) fn src_block(&self) -> BlockNumber {
-        if self.indexer.block.latest {
-            BlockNumber::MAX
-        } else {
-            self.indexer.block.block.src
-        }
+    pub(crate) fn skip_logs(&self) -> bool {
+        self.core.skip_logs
     }
 
-    #[allow(unused)]
-    pub(crate) fn dst_block(&self) -> BlockNumber {
-        if self.indexer.block.latest {
-            BlockNumber::MAX
-        } else {
-            self.indexer.block.block.dst
-        }
+    pub(crate) fn src_block(&self) -> Option<BlockNumber> {
+        self.core.block.block.as_ref().map(|block| block.src)
     }
 
-    pub(crate) fn criterias_file(&self) -> Option<String> {
-        self.indexer.events.criterias.criterias_file.clone()
+    pub(crate) fn dst_block(&self) -> Option<BlockNumber> {
+        self.core.block.block.as_ref().map(|block| block.dst)
     }
 
-    pub(crate) fn criterias_json(&self) -> Option<Criterias> {
-        self.indexer.events.criterias.criterias_json.clone()
+    pub(crate) fn block_step(&self) -> Option<BlockNumber> {
+        self.core.block.block.as_ref().map(|block| block.step)
+    }
+
+    pub(crate) fn from_latest(&self) -> bool {
+        self.core.block.from_latest
+    }
+
+    pub(crate) fn block_range(&self) -> Option<BlockRange> {
+        self.core.block.block.clone()
+    }
+
+    pub(crate) fn criteria_file(&self) -> Option<String> {
+        self.core.events.criteria.criteria_file.clone()
+    }
+
+    pub(crate) fn criteria_json(&self) -> Option<Criteria> {
+        self.core.events.criteria.criteria_json.clone()
     }
 
     #[allow(unused)]
@@ -123,6 +103,19 @@ impl Cmd {
     #[allow(unused)]
     pub(crate) fn node_url(&self) -> &str {
         &self.node_url
+    }
+}
+
+impl From<Cmd> for ServerConfig {
+    fn from(settings: Cmd) -> Self {
+        Self {
+            database: DatabaseConfig::from(settings.database_url()),
+            application: ApplicationConfig {
+                host: settings.server.host,
+                port: settings.server.port,
+                worker_threads: settings.server.server_threads,
+            },
+        }
     }
 }
 
@@ -148,7 +141,7 @@ mod tests {
         let args =
             CommandParser::<Cmd>::parse_from(["run", "--indexer.enabled", "--from-latest"]).args;
 
-        assert_eq!(args.src_block(), BlockNumber::MAX);
-        assert_eq!(args.dst_block(), BlockNumber::MAX);
+        assert_eq!(args.src_block(), None);
+        assert_eq!(args.dst_block(), None);
     }
 }

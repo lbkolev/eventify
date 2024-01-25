@@ -9,7 +9,7 @@ pub enum Error {
     InvalidTransactionFunctionSignature(String),
 
     #[error("unable to parse criteria file. {0}")]
-    InvalidCriteriasFile(String),
+    InvalidCriteriaFile(String),
 }
 
 impl From<Error> for clap::Error {

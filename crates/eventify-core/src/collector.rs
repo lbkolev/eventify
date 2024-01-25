@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use alloy_primitives::BlockNumber;
-use tracing::info;
+use tracing::{info, trace};
 
 use crate::{provider::NodeProvider, Collect, StorageClient};
 use eventify_primitives::Criteria;
@@ -30,7 +30,7 @@ where
     }
 }
 
-impl<N, S> Collect<Criteria, crate::Error> for Collector<N, S>
+impl<N, S> Collect<crate::Error> for Collector<N, S>
 where
     N: NodeProvider,
     S: StorageClient,
@@ -84,11 +84,10 @@ where
         Ok(())
     }
 
-    async fn process_logs(&self, c: Criteria) -> crate::Result<()> {
+    async fn process_logs(&self, criteria: &Criteria) -> crate::Result<()> {
         let now = Instant::now();
 
-        // TODO: cleanup
-        let logs = self.node.get_logs(&c).await?;
+        let logs = self.node.get_logs(criteria).await?;
         let mut log_count = 0;
 
         for log in logs {
@@ -96,8 +95,57 @@ where
             log_count += 1;
 
             if log_count % 100 == 0 {
-                info!(target: "eventify::idx::logs", processed=?true, log_count=?log_count, criteria_name=?c.name, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
+                info!(target: "eventify::idx::logs", processed=?true, log_count=?log_count, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
             }
+        }
+
+        Ok(())
+    }
+
+    async fn stream_blocks(&self) -> crate::Result<()> {
+        let mut stream = self.node.stream_blocks().await?;
+
+        while let Some(block) = stream.next().await {
+            trace!(target: "eventify::core::collector::stream_blocks", "{:#?}", block);
+            let block = block?;
+
+            info!(target: "eventify::core::collector::stream_blocks", block_number=?block.number.map(|x| x.to::<u64>()));
+            self.storage.store_block(&block).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn stream_transactions(&self) -> crate::Result<()> {
+        let mut stream = self.node.stream_blocks().await?;
+
+        while let Some(block) = stream.next().await {
+            trace!(target: "eventify::core::collector::stream_transactions", "{:#?}", block);
+            let block = block?;
+            let tx = self
+                .node
+                .get_transactions(block.number.expect("Invalid block number").to::<u64>())
+                .await?;
+            trace!(target: "eventify::core::collector::stream_transactions", "{:#?}", tx);
+
+            for tx in tx {
+                info!(target: "eventify::core::collector::stream_transactions", tx_hash=?tx.hash);
+                self.storage.store_transaction(&tx).await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn stream_logs(&self) -> crate::Result<()> {
+        let mut stream = self.node.stream_logs().await?;
+
+        while let Some(log) = stream.next().await {
+            trace!(target: "eventify::core::collector::stream_logs", "{:#?}", log);
+            let log = log?;
+
+            info!(target: "eventify::core::collector::stream_logs", address=?log.address, tx_hash=?log.transaction_hash);
+            self.storage.store_log(&log).await?;
         }
 
         Ok(())

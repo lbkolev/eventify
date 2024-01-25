@@ -50,10 +50,10 @@ pub struct Criteria {
 impl Criteria {
     pub fn from_file(file_path: &str) -> crate::Result<Criteria> {
         let contents = fs::read_to_string(file_path)
-            .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
+            .map_err(|e| crate::Error::InvalidCriteriaFile(e.to_string()))?;
 
         let criteria = serde_json::from_str(&contents)
-            .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
+            .map_err(|e| crate::Error::InvalidCriteriaFile(e.to_string()))?;
 
         Ok(criteria)
     }
@@ -83,111 +83,19 @@ impl Display for Criteria {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Criterias(pub Vec<Criteria>);
-impl Criterias {
-    pub fn new(criterias: Option<Vec<Criteria>>) -> Self {
-        match criterias {
-            Some(criterias) => Self(criterias),
-            None => Self::default(),
-        }
-    }
-
-    pub fn criterias(&self) -> &Vec<Criteria> {
-        &self.0
-    }
-
-    pub fn from_file(file_path: &str) -> crate::Result<Criterias> {
-        let contents = fs::read_to_string(file_path)
-            .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
-
-        let criterias = serde_json::from_str(&contents)
-            .map_err(|e| crate::Error::InvalidCriteriasFile(e.to_string()))?;
-
-        Ok(criterias)
-    }
-}
-
-impl Display for Criterias {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string(&self.0).unwrap())
-    }
-}
-
-impl Iterator for Criterias {
-    type Item = Criteria;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.pop()
-    }
-}
-
-impl Deref for Criterias {
-    type Target = Vec<Criteria>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Criterias {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl FromStr for Criterias {
+impl FromStr for Criteria {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(serde_json::from_str(s)?))
+        serde_json::from_str(s)
     }
 }
 
-impl From<&str> for Criterias {
+impl From<&str> for Criteria {
     fn from(s: &str) -> Self {
-        Self(serde_json::from_str(s).unwrap())
+        serde_json::from_str(s).expect("failed to parse criteria")
     }
 }
-
-//impl From<&Criteria> for Filter {
-//    fn from(criteria: &Criteria) -> Self {
-//        Filter::new()
-//            .address(ValueOrArray::Array(
-//                criteria.addresses.clone().unwrap_or_default(),
-//            ))
-//            .topic0(ValueOrArray::Array(criteria.hashed_events()))
-//            .topic1(ValueOrArray::Array(
-//                criteria
-//                    .clone()
-//                    .filter1
-//                    .unwrap_or_default()
-//                    .into_iter()
-//                    .map(|f| H256::from_str(&f).unwrap())
-//                    .collect(),
-//            ))
-//            .topic2(ValueOrArray::Array(
-//                criteria
-//                    .clone()
-//                    .filter2
-//                    .unwrap_or_default()
-//                    .into_iter()
-//                    .map(|f| H256::from_str(&f).unwrap())
-//                    .collect(),
-//            ))
-//            .topic3(ValueOrArray::Array(
-//                criteria
-//                    .clone()
-//                    .filter3
-//                    .unwrap_or_default()
-//                    .into_iter()
-//                    .map(|f| H256::from_str(&f).unwrap())
-//                    .collect(),
-//            ))
-//            .from_block(criteria.src_block.unwrap_or(BlockNumber::Earliest))
-//            .to_block(criteria.dst_block.unwrap_or(BlockNumber::Latest))
-//    }
-//}
 
 #[cfg(test)]
 mod tests {

@@ -44,6 +44,7 @@ url.workspace = true
 secrecy.workspace = true
 thiserror.workspace = true
 eyre.workspace = true
+either.workspace = true
 
 [dev-dependencies]
 temp-env = "0.3.6"

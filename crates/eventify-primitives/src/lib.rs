@@ -12,7 +12,7 @@ pub mod transaction;
 pub use block::EthBlock;
 pub use contract::Contract;
 pub use error::Error;
-pub use log::{Criteria, Criterias, EthLog};
+pub use log::{Criteria, EthLog};
 pub use transaction::{EthTransaction, TransactionResponse};
 
 type Result<T> = std::result::Result<T, error::Error>;

@@ -29,7 +29,7 @@ impl NodeProvider for Eth {
             .inner
             .request("eth_blockNumber", rpc_params![])
             .await
-            .map_err(|_| NodeProviderError::GetLatestBlockFailed.into());
+            .map_err(|e| NodeProviderError::GetLatestBlockFailed { err: e.to_string() }.into());
 
         match s {
             Ok(s) => Ok(BlockNumber::from_str_radix(s.trim_start_matches("0x"), 16)?),
@@ -37,14 +37,20 @@ impl NodeProvider for Eth {
         }
     }
 
-    async fn get_block(&self, n: BlockNumber) -> Result<EthBlock> {
+    async fn get_block(&self, n: BlockNumber) -> Result<EthBlock<B256>> {
         self.inner
             .request(
                 "eth_getBlockByNumber",
                 rpc_params![format!("0x{:x}", n), false],
             )
             .await
-            .map_err(|_| NodeProviderError::GetBlockFailed(n).into())
+            .map_err(|e| {
+                NodeProviderError::GetBlockFailed {
+                    n,
+                    err: e.to_string(),
+                }
+                .into()
+            })
     }
 
     async fn get_transactions(&self, n: BlockNumber) -> Result<Vec<EthTransaction>> {
@@ -55,7 +61,13 @@ impl NodeProvider for Eth {
                 rpc_params![format!("0x{:x}", n), true],
             )
             .await
-            .map_err(|_| NodeProviderError::GetTransactionsFailed(n).into());
+            .map_err(|e| {
+                NodeProviderError::GetTransactionsFailed {
+                    n,
+                    err: e.to_string(),
+                }
+                .into()
+            });
 
         match r {
             Ok(r) => Ok(r.transactions),
@@ -63,40 +75,23 @@ impl NodeProvider for Eth {
         }
     }
 
-    // TODO:
     async fn get_logs(&self, filter: &Criteria) -> Result<Vec<EthLog>> {
         self.inner
             .request("eth_getLogs", rpc_params!(filter))
             .await
-            .map_err(|_| NodeProviderError::Logs("".to_string()).into())
+            .map_err(|e| NodeProviderError::Logs { err: e.to_string() }.into())
     }
 
-    async fn stream_blocks(&self) -> Result<Subscription<EthBlock>> {
+    async fn stream_blocks(&self) -> Result<Subscription<EthBlock<B256>>> {
         self.inner
             .subscribe("eth_subscribe", rpc_params!["newHeads"], "eth_unsubscribe")
             .await
-            .map_err(|_| {
-                NodeProviderError::BlockSubscriptionFailed(
-                    "eth_subscribe".to_string(),
-                    "newHeads".to_string(),
-                )
-                .into()
-            })
-    }
-
-    async fn stream_transactions(&self) -> Result<Subscription<B256>> {
-        self.inner
-            .subscribe(
-                "eth_subscribe",
-                rpc_params!["newPendingTransactions"],
-                "eth_unsubscribe",
-            )
-            .await
-            .map_err(|_| {
-                NodeProviderError::TransactionSubscriptionFailed(
-                    "eth_subscribe".to_string(),
-                    "newPendingTransactions".to_string(),
-                )
+            .map_err(|e| {
+                NodeProviderError::BlockSubscriptionFailed {
+                    sub: "eth_subscribe".into(),
+                    params: "newHeads".into(),
+                    err: e.to_string(),
+                }
                 .into()
             })
     }
@@ -105,11 +100,12 @@ impl NodeProvider for Eth {
         self.inner
             .subscribe("eth_subscribe", rpc_params!["logs"], "eth_unsubscribe")
             .await
-            .map_err(|_| {
-                NodeProviderError::LogSubscriptionFailed(
-                    "eth_subscribe".to_string(),
-                    "logs".to_string(),
-                )
+            .map_err(|e| {
+                NodeProviderError::LogSubscriptionFailed {
+                    sub: "eth_subscribe".into(),
+                    params: "logs".into(),
+                    err: e.to_string(),
+                }
                 .into()
             })
     }
@@ -176,14 +172,5 @@ mod tests {
             .await;
         println!("{:#?}", block);
         assert!(block.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_zksync_get_block_number() {
-        let client = Eth::new("wss://sepolia.era.zksync.dev/ws".to_string())
-            .await
-            .unwrap();
-
-        assert!(client.get_block_number().await.is_ok());
     }
 }

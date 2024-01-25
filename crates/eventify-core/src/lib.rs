@@ -12,18 +12,18 @@ pub mod storage;
 
 pub use collector::Collector;
 pub use error::{Error, StorageClientError};
-pub use manager::{Manager, Run};
+pub use manager::Manager;
 pub use provider::{eth::Eth, NodeProvider, NodeProviderError};
 
 type Result<T> = std::result::Result<T, error::Error>;
 
-use alloy_primitives::BlockNumber;
+use alloy_primitives::{BlockNumber, B256};
 use eventify_primitives::{Contract, Criteria, EthBlock, EthLog, EthTransaction};
 use std::fmt::Debug;
 
 #[trait_variant::make(StorageClient: Send)]
 pub trait LocalStorageClient: 'static + Clone + Debug + Sync {
-    async fn store_block(&self, block: &EthBlock) -> std::result::Result<(), Error>;
+    async fn store_block(&self, block: &EthBlock<B256>) -> std::result::Result<(), Error>;
     async fn store_transaction(
         &self,
         transaction: &EthTransaction,
@@ -38,9 +38,8 @@ pub trait LocalAuth {
 }
 
 #[trait_variant::make(Collect: Send)]
-pub trait LocalCollect<T, E>
+pub trait LocalCollect<E>
 where
-    T: Into<Criteria>,
     E: std::error::Error + Send + Sync,
 {
     async fn process_block(&self, b: BlockNumber) -> std::result::Result<(), E>;
@@ -49,11 +48,15 @@ where
         from: BlockNumber,
         to: BlockNumber,
     ) -> std::result::Result<(), E>;
-    async fn process_logs(&self, c: T) -> std::result::Result<(), E>;
+    async fn process_logs(&self, criteria: &Criteria) -> std::result::Result<(), E>;
     async fn process_transactions(&self, b: BlockNumber) -> std::result::Result<(), E>;
     async fn process_transactions_from_range(
         &self,
         from: BlockNumber,
         to: BlockNumber,
     ) -> std::result::Result<(), E>;
+
+    async fn stream_blocks(&self) -> std::result::Result<(), E>;
+    async fn stream_transactions(&self) -> std::result::Result<(), E>;
+    async fn stream_logs(&self) -> std::result::Result<(), E>;
 }

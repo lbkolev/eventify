@@ -14,8 +14,12 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+eventify-primitives.workspace = true
+
 serde.workspace = true
 serde-aux.workspace = true
 secrecy.workspace = true
 url.workspace = true
 sqlx.workspace = true
+either.workspace = true
+alloy-primitives.workspace = true
