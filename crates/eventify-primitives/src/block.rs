@@ -65,7 +65,7 @@ pub struct EthBlock<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::Block;
+    use super::*;
 
     #[test]
     fn deserialize_block() {
@@ -101,13 +101,13 @@ mod tests {
           }
         );
 
-        serde_json::from_value::<Block>(json).unwrap();
+        serde_json::from_value::<EthBlock<B256>>(json).unwrap();
     }
 
     #[test]
     fn deserialize_empty_block() {
         let json = serde_json::json!({});
 
-        assert!(serde_json::from_value::<Block>(json).is_err());
+        assert!(serde_json::from_value::<EthBlock<B256>>(json).is_err());
     }
 }

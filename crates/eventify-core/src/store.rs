@@ -1,13 +1,35 @@
 #![allow(clippy::option_map_unit_fn)]
 
-use alloy_primitives::B256;
-use sqlx::pool::PoolOptions;
+use alloy_primitives::{Address, B256};
+use sqlx::{pool::PoolOptions, Pool};
 use tracing::debug;
 
-use crate::{error::StorageClientError, storage::Postgres, Auth, Error, StorageClient};
+use crate::{storage_client, Error, StorageClient};
 use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
 
-impl Auth for Postgres {
+storage_client!(Store, Pool<sqlx::postgres::Postgres>);
+
+#[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
+pub enum StoreError {
+    #[error("Failed to store block {hash}. {err}")]
+    StoreBlockFailed { hash: B256, err: String },
+
+    #[error("Failed to store transaction {hash}. {err}")]
+    StoreTransactionFailed { hash: B256, err: String },
+
+    #[error("Failed to store log from addr {addr}. {err}")]
+    StoreLogFailed { addr: Address, err: String },
+
+    #[error("Failed to store contract from tx {hash}. {err}")]
+    StoreContractFailed { hash: B256, err: String },
+}
+
+impl Store {
+    pub async fn new(url: &str) -> Self {
+        Self::connect(url).await
+    }
+
     async fn connect(url: &str) -> Self {
         Self {
             inner: PoolOptions::new()
@@ -19,13 +41,7 @@ impl Auth for Postgres {
     }
 }
 
-impl Postgres {
-    pub async fn new(url: &str) -> Self {
-        Self::connect(url).await
-    }
-}
-
-impl StorageClient for Postgres {
+impl StorageClient for Store {
     async fn store_block(&self, block: &EthBlock<B256>) -> Result<(), Error> {
         let sql = r#"INSERT INTO eth.block (
                 parent_hash,
@@ -72,11 +88,15 @@ impl StorageClient for Postgres {
             .bind(block.blob_gas_used.map(|v| v.to::<i64>()))
             .bind(block.excess_blob_gas.map(|v| v.to::<i64>()))
             .bind(block.withdrawals_hash.map(|v| v.as_slice().to_vec()))
-            .bind(block.hash.map(|h| h.as_slice().to_vec().to_vec()))
+            .bind(block.hash.map(|v| v.as_slice().to_vec().to_vec()))
             .execute(&self.inner)
-            .await?;
+            .await
+            .map_err(|e| StoreError::StoreBlockFailed {
+                hash: block.hash.expect("unable to get block hash"),
+                err: e.to_string(),
+            })?;
 
-        debug!(target: "eventify::idx::block", hash=?block.hash, number=?block.number, "Insert");
+        debug!(target: "eventify::core::store::block", hash=?block.hash, number=?block.number);
         Ok(())
     }
 
@@ -98,7 +118,7 @@ impl StorageClient for Postgres {
             ) ON CONFLICT DO NOTHING"#;
 
         sqlx::query(sql)
-            .bind(tx.block_hash.map(|h| h.as_slice().to_vec().to_vec()))
+            .bind(tx.block_hash.map(|v| v.as_slice().to_vec().to_vec()))
             .bind(tx.block_number.map(|v| v.to::<i64>()))
             .bind(tx.from.as_slice())
             .bind(tx.gas.as_le_slice())
@@ -113,8 +133,13 @@ impl StorageClient for Postgres {
             .bind(tx.r.as_le_slice())
             .bind(tx.s.as_le_slice())
             .execute(&self.inner)
-            .await?;
+            .await
+            .map_err(|e| StoreError::StoreTransactionFailed {
+                hash: tx.hash,
+                err: e.to_string(),
+            })?;
 
+        debug!(target: "eventify::core::store::transaction", hash=?tx.hash);
         Ok(())
     }
 
@@ -133,59 +158,54 @@ impl StorageClient for Postgres {
             .bind(tx.input.0.to_vec())
             .execute(&self.inner)
             .await
-            .map_err(|_| StorageClientError::StoreContractFailed(tx.transaction_hash))?;
+            .map_err(|e| StoreError::StoreContractFailed {
+                hash: tx.transaction_hash,
+                err: e.to_string(),
+            })?;
 
-        debug!(target: "eventify::idx::contract", tx_hash=?tx.transaction_hash, tx_from=?tx.from, "Insert");
+        debug!(target: "eventify::core::store::contract", tx_hash=?tx.transaction_hash, tx_from=?tx.from);
         Ok(())
     }
 
-    async fn store_log(&self, _log: &EthLog) -> Result<(), Error> {
-        //let sql = r#"INSERT INTO eth.log (
-        //    address,
-        //    topic0,
-        //    topic1,
-        //    topic2,
-        //    topic3,
-        //    data,
-        //    block_hash,
-        //    block_number,
-        //    tx_hash,
-        //    tx_index,
-        //    tx_log_index,
-        //    log_index,
-        //    log_type,
-        //    removed
-        //    ) VALUES (
-        //        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-        //    ) ON CONFLICT DO NOTHING"#;
+    async fn store_log(&self, log: &EthLog) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log (
+            address,
+            topic0,
+            topic1,
+            topic2,
+            topic3,
+            data,
+            block_hash,
+            block_number,
+            tx_hash,
+            tx_index,
+            log_index,
+            removed
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+            ) ON CONFLICT (address, block_hash, tx_hash, data) DO NOTHING"#;
 
-        //let mut transaction_log_index_slice = [0u8; 32];
-        //log.transaction_log_index
-        //    .map(|v| v.to_big_endian(&mut transaction_log_index_slice));
+        sqlx::query(sql)
+            .bind(log.address.as_slice())
+            .bind(log.topics.first().map(|v| v.map(|v| v.as_slice().to_vec())))
+            .bind(log.topics.get(1).map(|v| v.map(|v| v.as_slice().to_vec())))
+            .bind(log.topics.get(2).map(|v| v.map(|v| v.as_slice().to_vec())))
+            .bind(log.topics.get(3).map(|v| v.map(|v| v.as_slice().to_vec())))
+            .bind(log.data.0.as_ref())
+            .bind(log.block_hash.map(|v| v.as_slice().to_vec().to_vec()))
+            .bind(log.block_number.map(|v| v.to::<i64>()))
+            .bind(log.transaction_hash.map(|v| v.as_slice().to_vec()))
+            .bind(log.transaction_index.map(|v| v.to::<i64>()))
+            .bind(log.log_index.map(|v| v.to::<i64>()))
+            .bind(log.removed)
+            .execute(&self.inner)
+            .await
+            .map_err(|e| StoreError::StoreLogFailed {
+                addr: log.address,
+                err: e.to_string(),
+            })?;
 
-        //let mut log_index_slice = [0u8; 32];
-        //log.log_index.map(|v| v.to_big_endian(&mut log_index_slice));
-
-        //sqlx::query(sql)
-        //    .bind(log.address.as_ref())
-        //    .bind(log.topics.first().map(|h| h.as_bytes()))
-        //    .bind(log.topics.get(1).map(|h| h.as_bytes()))
-        //    .bind(log.topics.get(2).map(|h| h.as_bytes()))
-        //    .bind(log.topics.get(3).map(|h| h.as_bytes()))
-        //    .bind(log.data.0.as_ref())
-        //    .bind(log.block_hash.as_ref().map(|h| h.as_bytes()))
-        //    .bind(log.block_number.map(|v| v.as_u64() as i32))
-        //    .bind(log.transaction_hash.as_ref().map(|h| h.as_bytes()))
-        //    .bind(log.transaction_index.map(|v| v.as_u64() as i32))
-        //    .bind(transaction_log_index_slice)
-        //    .bind(log_index_slice)
-        //    .bind(log.log_type.as_ref())
-        //    .bind(log.removed)
-        //    .execute(&self.inner)
-        //    .await
-        //    .map_err(|_| StorageClientError::StoreLog(log.transaction_hash.unwrap()))?;
-
-        //debug!(target: "eventify::idx::log", address=?log.address, block=?log.block_number, event=?log.topics.first().map(|h| format!("{:x}", h)) ,"Insert");
+        debug!(target: "eventify::core::store::log", address=?log.address, block=?log.block_number, event=?log.topics.first());
         Ok(())
     }
 }
@@ -238,7 +258,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_block() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = super::Postgres { inner: pool };
+        let db = Store { inner: pool };
 
         let json = serde_json::json!(
         {
@@ -272,7 +292,7 @@ mod tests {
           }
         );
 
-        let block = serde_json::from_value::<EthBlock>(json).unwrap();
+        let block = serde_json::from_value::<EthBlock<B256>>(json).unwrap();
         println!("{:?}", block);
         db.store_block(&block).await.unwrap();
 
@@ -282,7 +302,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_transaction() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = super::Postgres { inner: pool };
+        let db = Store { inner: pool };
 
         let json = serde_json::json!({
             "blockHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
@@ -311,7 +331,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_contract() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = super::Postgres { inner: pool };
+        let db = Store { inner: pool };
 
         let json = serde_json::json!({
             "transactionHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
@@ -329,7 +349,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_log() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = super::Postgres { inner: pool };
+        let db = Store { inner: pool };
 
         let json = serde_json::json!(
             {

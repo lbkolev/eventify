@@ -45,14 +45,7 @@ services:
     ports:
       - "6969:6969"
     entrypoint:
-      [
-        "/app/eventify",
-        "run",
-        "--indexer.enabled",
-        "--server.enabled",
-        "--src-block=3000000",
-        "--dst-block=3001000",
-      ]
+      ["/app/eventify", "run", "--src-block=3000000", "--dst-block=3001000"]
     networks:
       - default
 

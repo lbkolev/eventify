@@ -19,7 +19,7 @@ use utoipa::ToSchema;
 pub struct EthLog {
     pub removed: bool,
     #[serde(rename = "logIndex")]
-    pub log_index: U64,
+    pub log_index: Option<U64>,
     #[serde(rename = "transactionIndex")]
     pub transaction_index: Option<U64>,
     #[serde(rename = "transactionHash")]
@@ -41,7 +41,7 @@ pub struct Criteria {
     pub dst_block: Option<BlockNumber>,
     pub addresses: Option<Vec<Address>>,
 
-    pub events_signatures: Option<Vec<String>>, // aka filter0
+    pub filter0: Option<Vec<String>>, // aka event signature
     pub filter1: Option<Vec<String>>,
     pub filter2: Option<Vec<String>>,
     pub filter3: Option<Vec<String>>,
@@ -59,7 +59,7 @@ impl Criteria {
     }
 
     pub fn hashed_events(&self) -> Vec<H256> {
-        self.events_signatures
+        self.filter0
             .clone()
             .unwrap_or_default()
             .into_iter()
@@ -99,6 +99,8 @@ impl From<&str> for Criteria {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Add;
+
     use ethers_core::types::{H160, U64};
 
     use super::*;
@@ -143,7 +145,7 @@ mod tests {
             "srcBlock": "1",
             "dstBlock": "2",
             "addresses": ["0x0000000000000000000000000000000000000001", "0x0000000000000000000000000000000000000002"],
-            "eventsSignatures": ["Transfer(address,address,uint256)"],
+            "filter0": ["Transfer(address,address,uint256)"],
             "filter1": ["0x000000"],
             "filter2": ["0x000000"],
             "filter3": ["0x000000"]
@@ -155,12 +157,12 @@ mod tests {
         assert_eq!(
             res.addresses,
             Some(vec![
-                H160::from_str("0x0000000000000000000000000000000000000001").unwrap(),
-                H160::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+                Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
+                Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
             ]),
         );
         assert_eq!(
-            res.events_signatures,
+            res.filter0,
             Some(vec!["Transfer(address,address,uint256)".to_string()]),
         );
         assert_eq!(res.filter1, Some(vec!["0x000000".to_string()]));

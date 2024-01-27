@@ -15,15 +15,15 @@ impl Eth {
     pub async fn new(host: String) -> Result<Self> {
         Self::connect(host).await
     }
-}
 
-impl NodeProvider for Eth {
-    async fn connect(host: String) -> Result<Self> {
+    pub async fn connect(host: String) -> Result<Self> {
         Ok(Self {
             inner: Arc::new(WsClientBuilder::default().build(&host).await?),
         })
     }
+}
 
+impl NodeProvider for Eth {
     async fn get_block_number(&self) -> Result<BlockNumber> {
         let s: Result<String> = self
             .inner
@@ -79,7 +79,7 @@ impl NodeProvider for Eth {
         self.inner
             .request("eth_getLogs", rpc_params!(filter))
             .await
-            .map_err(|e| NodeProviderError::Logs { err: e.to_string() }.into())
+            .map_err(|e| NodeProviderError::GetLogsFailed { err: e.to_string() }.into())
     }
 
     async fn stream_blocks(&self) -> Result<Subscription<EthBlock<B256>>> {
@@ -146,20 +146,6 @@ mod tests {
         println!("{:#?}", tx);
         assert!(tx.is_ok());
     }
-
-    //#[tokio::test]
-    //async fn test_eth_get_log() {
-    //    let client = Eth::new("wss://eth.llamarpc.com".to_string())
-    //        .await
-    //        .unwrap();
-
-    //    let filter = Filter::new().select(1911151..1911152);
-    //    let criteria: Criteria = filter.into();
-    //    let logs = client.get_logs(&filter).await;
-
-    //    println!("{:#?}", logs);
-    //    assert!(logs.is_ok());
-    //}
 
     #[tokio::test]
     async fn test_eth_latest_block() {

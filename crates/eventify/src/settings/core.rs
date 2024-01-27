@@ -37,7 +37,7 @@ pub(crate) struct CoreSettings {
     pub(crate) events: Events,
 }
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct BlockRange {
     #[arg(
         long = "src-block",
@@ -95,7 +95,7 @@ pub(crate) struct BlockGroup {
 pub(crate) struct CriteriaGroup {
     #[arg(
         long,
-        env = "EVENTIFY_CRITERIAS_FILE",
+        env = "EVENTIFY_CRITERIA_FILE",
         help = "file holding the criteria that'll be used to filter events",
         default_value = None,
     )]
@@ -103,7 +103,7 @@ pub(crate) struct CriteriaGroup {
 
     #[arg(
         long,
-        env = "EVENTIFY_CRITERIAS_JSON",
+        env = "EVENTIFY_CRITERIA_JSON",
         help = "Argument holding the criteria that'll be used to filter events",
         default_value = None,
         value_parser = clap::value_parser!(Criteria)
@@ -137,46 +137,47 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_indexer_settings_default_values() {
+    fn test_run_settings_default_values() {
         let args = CommandParser::<CoreSettings>::parse_from(["run"]).args;
-        assert!(!args.indexer_enabled);
         assert!(!args.skip_transactions);
         assert!(!args.skip_blocks);
-        assert!(!args.block.latest);
-        assert_eq!(args.block.block.src, 0);
-        assert_eq!(args.block.block.dst, BlockNumber::MAX);
+        assert!(!args.skip_logs);
+        assert!(args.block.block.is_none());
         assert_eq!(args.events.criteria.criteria_file, None);
         assert_eq!(args.events.criteria.criteria_json, None);
     }
 
     #[test]
     #[serial]
-    fn test_indexer_settings_env_values() {
-        set_var("EVENTIFY_INDEXER_ENABLED", "true");
+    fn test_run_settings_env_values() {
         set_var("EVENTIFY_SKIP_TRANSACTIONS", "true");
         set_var("EVENTIFY_SKIP_BLOCKS", "true");
         set_var("EVENTIFY_SRC_BLOCK", "1");
         set_var("EVENTIFY_DST_BLOCK", "2");
-        set_var("EVENTIFY_CRITERIAS_FILE", "tmp/criteria.rnd");
+        set_var("EVENTIFY_CRITERIA_FILE", "tmp/criteria.rnd");
 
         let args = CommandParser::<CoreSettings>::parse_from(["run"]).args;
-        assert!(args.indexer_enabled);
         assert!(args.skip_transactions);
         assert!(args.skip_blocks);
-        assert_eq!(args.block.block.src, 1);
-        assert_eq!(args.block.block.dst, 2);
+        assert_eq!(
+            args.block.block.unwrap(),
+            BlockRange {
+                src: 1,
+                dst: 2,
+                step: 1
+            }
+        );
         assert_eq!(
             args.events.criteria.criteria_file,
             Some("tmp/criteria.rnd".into())
         );
         assert_eq!(args.events.criteria.criteria_json, None);
 
-        remove_var("EVENTIFY_INDEXER_ENABLED");
         remove_var("EVENTIFY_SKIP_TRANSACTIONS");
         remove_var("EVENTIFY_SKIP_BLOCKS");
         remove_var("EVENTIFY_SRC_BLOCK");
         remove_var("EVENTIFY_DST_BLOCK");
-        remove_var("EVENTIFY_CRITERIAS_FILE");
+        remove_var("EVENTIFY_CRITERIA_FILE");
     }
 
     #[test]
@@ -184,11 +185,10 @@ mod tests {
     fn test_indexer_settings_args_precedence() {
         set_var("EVENTIFY_SRC_BLOCK", "1");
         set_var("EVENTIFY_DST_BLOCK", "2");
-        set_var("EVENTIFY_CRITERIAS_JSON", "[{\"name\":\"UniswapV3Factory\",\"events\":[\"PoolCreated(address,address,uint24,int24,address)\"],\"addresses\":[\"0x1F98431c8aD98523631AE4a59f267346ea31F984\"]},{\"name\":\"ERC20\",\"events\":[\"Transfer(address,address,uint256)\",\"Approve(address,address,uint256)\"],\"addresses\":[\"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2\",\"0x6B175474E89094C44Da98b954EedeAC495271d0F\"]}]");
+        set_var("EVENTIFY_CRITERIA_JSON", "[{\"name\":\"UniswapV3Factory\",\"events\":[\"PoolCreated(address,address,uint24,int24,address)\"],\"addresses\":[\"0x1F98431c8aD98523631AE4a59f267346ea31F984\"]},{\"name\":\"ERC20\",\"events\":[\"Transfer(address,address,uint256)\",\"Approve(address,address,uint256)\"],\"addresses\":[\"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2\",\"0x6B175474E89094C44Da98b954EedeAC495271d0F\"]}]");
 
         let args = CommandParser::<CoreSettings>::parse_from([
             "run",
-            "--indexer.enabled",
             "--src-block",
             "3",
             "--dst-block",
@@ -197,10 +197,14 @@ mod tests {
             "[{\"name\":\"UniswapV3Swap\",\"events\":[\"Swap(address,address,int256,int256,uint160,uint128,int24)\"],\"addresses\":[\"0x1F98431c8aD98523631AE4a59f267346ea31F984\"]}]",
         ])
         .args;
-        assert!(args.indexer_enabled);
-        assert!(!args.block.latest);
-        assert_eq!(args.block.block.src, 3);
-        assert_eq!(args.block.block.dst, 4);
+        assert_eq!(
+            args.block.block.unwrap(),
+            BlockRange {
+                src: 3,
+                dst: 4,
+                step: 1
+            }
+        );
         assert_eq!(
             args.events.criteria.criteria_json,
             Some("[{\"name\":\"UniswapV3Swap\",\"events\":[\"Swap(address,address,int256,int256,uint160,uint128,int24)\"],\"addresses\":[\"0x1F98431c8aD98523631AE4a59f267346ea31F984\"]}]".into())
@@ -209,6 +213,6 @@ mod tests {
 
         remove_var("EVENTIFY_SRC_BLOCK");
         remove_var("EVENTIFY_DST_BLOCK");
-        remove_var("EVENTIFY_CRITERIAS_JSON");
+        remove_var("EVENTIFY_CRITERIA_JSON");
     }
 }

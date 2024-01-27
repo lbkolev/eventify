@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 const CHANNEL_ETH_BLOCKS: &str = "eth:blocks";
 const CHANNEL_ETH_TXS: &str = "eth:txs";
 const CHANNEL_ETH_EVENTS: &str = "eth:events";
@@ -8,8 +9,6 @@ const CHANNELETH_ERC_APPROVAL_FOR_ALL: &str = "eth:erc-approval-for-all";
 const CHANNEL_ZKSYNC_BLOCKS: &str = "zksync:blocks";
 const CHANNEL_ZKSYNC_TXS: &str = "zksync:txs";
 const CHANNEL_ZKSYNC_EVENTS: &str = "zksync:events";
-
-
 
 #[cfg(test)]
 mod tests {

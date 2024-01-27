@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS eth.block (
     blob_gas_used BIGINT,
     excess_blob_gas BIGINT,
     withdraws_hash BYTEA,
-    hash BYTEA,
+    hash BYTEA UNIQUE,
 
     PRIMARY KEY(hash)
 );
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS eth.transaction (
     "from" BYTEA,
     gas BYTEA,
     gas_price BYTEA,
-    hash BYTEA,
+    hash BYTEA UNIQUE,
     input BYTEA,
     nonce BYTEA,
     "to" BYTEA,
@@ -55,9 +55,6 @@ CREATE TABLE IF NOT EXISTS eth.transaction (
     v BYTEA,
     r BYTEA,
     s BYTEA,
-    --max_fee_per_gas BYTEA,
-    --max_priority_fee_per_gas BYTEA,
-    --transaction_type INTEGER,
 
     PRIMARY KEY(hash)
 );
@@ -78,11 +75,10 @@ CREATE TABLE IF NOT EXISTS eth.log (
     block_number BIGINT,
     tx_hash BYTEA,
     tx_index INTEGER,
-    tx_log_index BYTEA,
-    log_index BYTEA,
-    log_type TEXT,
+    log_index INTEGER,
     removed BOOLEAN,
 
+    UNIQUE (address, block_hash, tx_hash, data),
     PRIMARY KEY(id)
 );
 comment on table eth.log is 'Indexed logs that do not fit in any of the custom event tables e.g. Transfer & Approval from ERC20, Minted & Sent from ERC4626, etc';

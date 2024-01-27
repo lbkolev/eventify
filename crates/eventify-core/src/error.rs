@@ -1,4 +1,4 @@
-use crate::NodeProviderError;
+use crate::{store::StoreError, NodeProviderError};
 use alloy_primitives::B256;
 
 #[derive(thiserror::Error, Debug)]
@@ -7,7 +7,7 @@ pub enum Error {
     NodeProvider(#[from] NodeProviderError),
 
     #[error(transparent)]
-    StorageClient(#[from] StorageClientError),
+    StoreClient(#[from] StoreError),
 
     #[error(transparent)]
     JoinTask(#[from] tokio::task::JoinError),
@@ -29,20 +29,4 @@ pub enum Error {
 
     #[error("jsonrpsee error: {0:?}")]
     JsonRpsee(#[from] jsonrpsee::core::ClientError),
-}
-
-#[derive(thiserror::Error, Debug)]
-#[non_exhaustive]
-pub enum StorageClientError {
-    #[error("Failed to store block {0}")]
-    StoreBlockFailed(u64),
-
-    #[error("Failed to store transaction {0}")]
-    StoreTransactionFailed(B256),
-
-    #[error("Failed to store log {0}")]
-    StoreLogFailed(B256),
-
-    #[error("Failed to store contract {0}")]
-    StoreContractFailed(B256),
 }

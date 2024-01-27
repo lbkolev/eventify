@@ -10,8 +10,6 @@ use jsonrpsee::core::client::Subscription;
 
 #[trait_variant::make(NodeProvider: Send)]
 pub trait LocalNodeProvider: 'static + Clone + Sync {
-    async fn connect(host: String) -> Result<Self>;
-
     async fn get_block_number(&self) -> Result<BlockNumber>;
 
     // block with tx hashes
@@ -26,10 +24,10 @@ pub trait LocalNodeProvider: 'static + Clone + Sync {
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
 pub enum NodeProviderError {
-    #[error("Failed to connect to node: {0}")]
+    #[error("failed to connect to node: {0}")]
     ConnectionFailed(#[from] jsonrpsee::core::ClientError),
 
-    #[error("Failed to get the latest block number. {err}")]
+    #[error("failed to get the latest block number. {err}")]
     GetLatestBlockFailed { err: String },
 
     #[error("failed to get block #{n}. {err}")]
@@ -39,16 +37,16 @@ pub enum NodeProviderError {
     GetTransactionsFailed { n: u64, err: String },
 
     #[error("Failed to get logs. {err}")]
-    Logs { err: String },
+    GetLogsFailed { err: String },
 
-    #[error("Failed to get block from sub {sub}, with params {params}. {err}")]
+    #[error("failed to get block from sub {sub}, with params {params}. {err}")]
     BlockSubscriptionFailed {
         sub: String,
         params: String,
         err: String,
     },
 
-    #[error("Failed to get log from sub {sub}, with params {params}. {err}")]
+    #[error("failed to get log from sub {sub}, with params {params}. {err}")]
     LogSubscriptionFailed {
         sub: String,
         params: String,

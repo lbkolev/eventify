@@ -2,7 +2,7 @@ use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 
-use eventify_primitives::configs::{ApplicationConfig, DatabaseConfig, ServerConfig};
+use eventify_configs::configs::{ApplicationConfig, DatabaseConfig, ServerConfig};
 
 pub struct TestApp {
     pub address: String,

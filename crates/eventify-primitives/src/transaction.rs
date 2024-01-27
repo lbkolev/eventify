@@ -59,19 +59,19 @@ mod tests {
             "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
         });
 
-        serde_json::from_value::<Transaction>(json).unwrap();
+        serde_json::from_value::<EthTransaction>(json).unwrap();
     }
 
     #[test]
     fn deserialize_empty_tx() {
         let json = serde_json::json!({});
 
-        assert!(serde_json::from_value::<Transaction>(json).is_err());
+        assert!(serde_json::from_value::<EthTransaction>(json).is_err());
     }
 
     #[test]
     fn test_is_contract_creation() {
-        let tx = Transaction {
+        let tx = EthTransaction {
             to: None,
             ..Default::default() // Using other default values
         };

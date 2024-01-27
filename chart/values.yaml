@@ -42,14 +42,12 @@ server:
   threads: 1
 
 # -- All around configuration for the Indexing part of the service
-indexer:
-  enabled: true
 
-  # -- The starting block to begin indexing from
-  startBlock: 0
+# -- The starting block to begin indexing from
+startBlock: 0
 
-  # -- The end block to end indexing at
-  endBlock: 999999999
+# -- The end block to end indexing at
+endBlock: 999999999
 
 # -- A list of potential additional arguments.
 # Passed directly to the eventify-coreer

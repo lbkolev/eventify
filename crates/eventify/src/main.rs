@@ -16,8 +16,10 @@ use crate::cmd::Cmd;
 use configs::configs::{ManagerConfig, ServerConfig};
 use core::{
     provider::{eth::Eth, NodeKind},
-    storage::{Postgres, StorageClientKind, StorageKind},
-    Collector, Manager,
+    //storage::{Postgres, StorageClientKind, StorageKind},
+    Collector,
+    Manager,
+    Store,
 };
 use primitives::Criteria;
 
@@ -70,12 +72,7 @@ async fn main() -> Result<()> {
                 NodeKind::Ethereum => Eth::new(args.node_url.clone()).await?,
             };
 
-            let storage_client =
-                match StorageKind::from_str(Url::parse(args.database_url())?.scheme())? {
-                    StorageKind::Postgres => {
-                        StorageClientKind::Postgres(Postgres::new(args.database_url()).await)
-                    }
-                };
+            let store = Store::new(args.database_url()).await;
 
             match args.block_range() {
                 Some(range) => {
@@ -86,7 +83,7 @@ async fn main() -> Result<()> {
                         criteria.clone(),
                         Some(range.into()),
                     );
-                    let collector = Collector::new(node_client, storage_client);
+                    let collector = Collector::new(node_client, store);
 
                     if !args.skip_blocks() {
                         handles.push(
@@ -121,7 +118,7 @@ async fn main() -> Result<()> {
                         criteria.clone(),
                         None,
                     );
-                    let collector = Collector::new(node_client, storage_client);
+                    let collector = Collector::new(node_client, store);
 
                     if !args.skip_blocks() {
                         handles.push(

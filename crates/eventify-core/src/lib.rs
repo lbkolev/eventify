@@ -8,12 +8,13 @@ pub mod error;
 pub mod macros;
 pub mod manager;
 pub mod provider;
-pub mod storage;
+pub mod store;
 
 pub use collector::Collector;
-pub use error::{Error, StorageClientError};
+pub use error::Error;
 pub use manager::Manager;
 pub use provider::{eth::Eth, NodeProvider, NodeProviderError};
+pub use store::{Store, StoreError};
 
 type Result<T> = std::result::Result<T, error::Error>;
 
@@ -30,11 +31,6 @@ pub trait LocalStorageClient: 'static + Clone + Debug + Sync {
     ) -> std::result::Result<(), Error>;
     async fn store_log(&self, log: &EthLog) -> std::result::Result<(), Error>;
     async fn store_contract(&self, contract: &Contract) -> std::result::Result<(), Error>;
-}
-
-#[trait_variant::make(Auth: Send)]
-pub trait LocalAuth {
-    async fn connect(url: &str) -> Self;
 }
 
 #[trait_variant::make(Collect: Send)]

@@ -138,8 +138,7 @@ mod tests {
     #[test]
     #[serial]
     fn test_run_subcmd_latest() {
-        let args =
-            CommandParser::<Cmd>::parse_from(["run", "--indexer.enabled", "--from-latest"]).args;
+        let args = CommandParser::<Cmd>::parse_from(["run", "--from-latest"]).args;
 
         assert_eq!(args.src_block(), None);
         assert_eq!(args.dst_block(), None);

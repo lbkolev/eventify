@@ -43,14 +43,17 @@ where
     }
 
     async fn process_blocks(&self, from: BlockNumber, to: BlockNumber) -> crate::Result<()> {
-        info!(target: "eventify::idx", from_block=?from, to_block=?to, "Processing blocks");
+        info!(target: "eventify::core::collector::process_blocks", from_block=?from, to_block=?to);
         let now = Instant::now();
 
         for block in from..=to {
             self.process_block(block).await?;
 
             if block % 30 == 0 {
-                info!(target: "eventify::idx::block", processed=?true, block_count=?block - from, latest=?block, elapsed=?now.elapsed());
+                info!(
+                    target: "eventify::core::collector::process_blocks", 
+                    processed=?true, block_count=?block - from, 
+                    latest=?block, elapsed=?now.elapsed());
             }
         }
 
@@ -75,7 +78,7 @@ where
         from: BlockNumber,
         to: BlockNumber,
     ) -> crate::Result<()> {
-        info!(target: "eventify::idx::tx", "Processing transactions from blocks {}..{}", from, to);
+        info!(target: "eventify::core::collector::process_transactions_from_range", "Processing transactions from blocks {}..{}", from, to);
 
         for block in from..=to {
             self.process_transactions(block).await?;
@@ -95,7 +98,7 @@ where
             log_count += 1;
 
             if log_count % 100 == 0 {
-                info!(target: "eventify::idx::logs", processed=?true, log_count=?log_count, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
+                info!(target: "eventify::core::collector::process_logs", processed=?true, log_count=?log_count, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
             }
         }
 
