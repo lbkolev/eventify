@@ -324,7 +324,6 @@ CREATE INDEX IF NOT EXISTS transaction_to_index ON eth.transaction ("to");
 
 CREATE INDEX IF NOT EXISTS log_address_index ON eth.log (address);
 CREATE INDEX IF NOT EXISTS log_topic0_index ON eth.log (topic0);
---CREATE INDEX IF NOT EXISTS log_tx_hash_index ON eth.log (tx_hash);
 CREATE INDEX IF NOT EXISTS log_block_number_index ON eth.log (block_number);
 
 CREATE INDEX IF NOT EXISTS contract_tx_hash_index ON eth.contract (tx_hash);

@@ -9,23 +9,23 @@ pub mod subcommands;
 
 use eventify_configs as configs;
 use eventify_core as core;
-use eventify_http_server as server;
+
 use eventify_primitives as primitives;
 
 use crate::cmd::Cmd;
-use configs::configs::{CollectorConfig, ManagerConfig, ServerConfig};
-use core::{provider::eth::Eth, Collector, Manager, Store};
+use configs::configs::{CollectorConfig, ManagerConfig};
+use core::{networks::eth::Eth, Collector, Manager, Store};
 use primitives::{Criteria, NetworkKind};
 //--
 
-use std::{path::Path, str::FromStr};
+use std::{path::Path};
 
 use clap::Parser;
 use eyre::Result;
 use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
-use url::Url;
+
 
 async fn run_migrations(url: &str) -> Result<()> {
     let migrator = Migrator::new(Path::new("./migrations")).await?;

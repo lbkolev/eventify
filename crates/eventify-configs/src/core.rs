@@ -1,7 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
-
 use alloy_primitives::BlockNumber;
-
 use eventify_primitives::{Criteria, NetworkKind};
 
 #[derive(Clone, Debug, Default)]

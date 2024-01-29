@@ -24,7 +24,7 @@ pub enum EmitError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use redis::{Commands, RedisResult};
+    use redis::{Commands};
     use serde::{Deserialize, Serialize};
 
     #[test]
@@ -33,7 +33,7 @@ mod tests {
         let mut con = client.get_connection().unwrap();
 
         #[derive(Debug, Deserialize, Serialize)]
-        pub struct MyStruct {
+        pub(crate) struct MyStruct {
             field1: String,
             field2: i32,
         }

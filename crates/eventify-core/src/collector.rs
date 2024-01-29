@@ -2,9 +2,9 @@ use std::time::Instant;
 
 use alloy_primitives::BlockNumber;
 use eventify_configs::core::CollectorConfig;
-use tracing::{info, trace, error};
+use tracing::{info, trace};
 
-use crate::{provider::Node, Collect, Storage, emit::Emit};
+use crate::{emit::Emit, provider::Node, Collect, Storage};
 use eventify_primitives::Criteria;
 
 #[derive(Debug, Clone)]
@@ -17,17 +17,22 @@ where
     config: CollectorConfig,
     node: N,
     storage: S,
-    mid: E
+    mid: E,
 }
 
 impl<N, S, E> Collector<N, S, E>
 where
     N: Node,
     S: Storage,
-    E: Emit
+    E: Emit,
 {
     pub fn new(config: CollectorConfig, node: N, storage: S, mid: E) -> Self {
-        Self { config, node, storage, mid }
+        Self {
+            config,
+            node,
+            storage,
+            mid,
+        }
     }
 
     pub async fn get_latest_block(&self) -> crate::Result<BlockNumber> {
@@ -39,12 +44,15 @@ impl<N, S, E> Collect<crate::Error> for Collector<N, S, E>
 where
     N: Node,
     S: Storage,
-    E: Emit
+    E: Emit,
 {
     async fn process_block(&self, block: BlockNumber) -> crate::Result<()> {
         let block = self.node.get_block(block).await?;
         self.storage.store_block(&block).await?;
-        self.mid.publish(format!("{}:block", self.config.network).as_str(), serde_json::to_string(&block)?)?;
+        self.mid.publish(
+            format!("{}:block", self.config.network).as_str(),
+            serde_json::to_string(&block)?,
+        )?;
 
         Ok(())
     }
@@ -58,8 +66,8 @@ where
 
             if block % 30 == 0 {
                 info!(
-                    target: "eventify::core::collector::process_blocks", 
-                    processed=?true, block_count=?block - from, 
+                    target: "eventify::core::collector::process_blocks",
+                    processed=?true, block_count=?block - from,
                     latest=?block, elapsed=?now.elapsed());
             }
         }
@@ -74,7 +82,12 @@ where
 
         for tx in tx {
             self.storage.store_transaction(&tx).await?;
-            self.mid.publish(format!("{}:transaction", self.config.network).as_str(), serde_json::to_string(&tx).unwrap()).unwrap();
+            self.mid
+                .publish(
+                    format!("{}:transaction", self.config.network).as_str(),
+                    serde_json::to_string(&tx).unwrap(),
+                )
+                .unwrap();
         }
         info!(target: "eventify::idx::tx", processed=?true, tx_count=?tx_count, block=?block, elapsed=?now.elapsed());
 
@@ -103,7 +116,12 @@ where
 
         for log in logs {
             self.storage.store_log(&log).await?;
-            self.mid.publish(format!("{}:log", self.config.network).as_str(), serde_json::to_string(&log).unwrap()).unwrap();
+            self.mid
+                .publish(
+                    format!("{}:log", self.config.network).as_str(),
+                    serde_json::to_string(&log).unwrap(),
+                )
+                .unwrap();
             log_count += 1;
 
             if log_count % 100 == 0 {
@@ -123,7 +141,12 @@ where
 
             info!(target: "eventify::core::collector::stream_blocks", block_number=?block.number.map(|x| x.to::<u64>()));
             self.storage.store_block(&block).await?;
-            self.mid.publish(format!("{}:block", self.config.network).as_str(), serde_json::to_string(&block).unwrap()).unwrap();
+            self.mid
+                .publish(
+                    format!("{}:block", self.config.network).as_str(),
+                    serde_json::to_string(&block).unwrap(),
+                )
+                .unwrap();
         }
 
         Ok(())
@@ -143,7 +166,12 @@ where
             for tx in tx {
                 info!(target: "eventify::core::collector::stream_transactions", tx_hash=?tx.hash);
                 self.storage.store_transaction(&tx).await?;
-                self.mid.publish(format!("{}:transaction", self.config.network).as_str(), serde_json::to_string(&tx).unwrap()).unwrap();
+                self.mid
+                    .publish(
+                        format!("{}:transaction", self.config.network).as_str(),
+                        serde_json::to_string(&tx).unwrap(),
+                    )
+                    .unwrap();
             }
         }
 
@@ -159,7 +187,12 @@ where
 
             info!(target: "eventify::core::collector::stream_logs", address=?log.address, tx_hash=?log.transaction_hash);
             self.storage.store_log(&log).await?;
-            self.mid.publish(format!("{}:log", self.config.network).as_str(), serde_json::to_string(&log).unwrap()).unwrap();
+            self.mid
+                .publish(
+                    format!("{}:log", self.config.network).as_str(),
+                    serde_json::to_string(&log).unwrap(),
+                )
+                .unwrap();
         }
 
         Ok(())

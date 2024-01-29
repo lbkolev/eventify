@@ -9,7 +9,6 @@ DROP INDEX IF EXISTS transaction_to_index;
 
 DROP INDEX IF EXISTS log_address_index;
 DROP INDEX IF EXISTS log_topic0_index;
---DROP INDEX IF EXISTS log_tx_hash_index;
 DROP INDEX IF EXISTS log_block_number_index;
 
 DROP INDEX IF EXISTS contract_tx_hash_index;

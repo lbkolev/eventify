@@ -1,24 +1,25 @@
-pub mod eth;
+use futures::Future;
+use std::{num::ParseIntError};
 
-use std::{fmt::Display, num::ParseIntError};
 
-use crate::Error;
 use alloy_primitives::{BlockNumber, B256};
 use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction};
 use eyre::Result;
 use jsonrpsee::core::client::Subscription;
 
-#[trait_variant::make(Node: Send)]
-pub trait LocalNode: 'static + Clone + Sync {
-    async fn get_block_number(&self) -> Result<BlockNumber>;
+pub trait Node: 'static + Clone + Sync + Send {
+    fn get_block_number(&self) -> impl Future<Output = Result<BlockNumber>> + Send;
 
     // block with tx hashes
-    async fn get_block(&self, block: BlockNumber) -> Result<EthBlock<B256>>;
-    async fn get_transactions(&self, n: BlockNumber) -> Result<Vec<EthTransaction>>;
-    async fn get_logs(&self, criteria: &Criteria) -> Result<Vec<EthLog>>;
+    fn get_block(&self, block: BlockNumber) -> impl Future<Output = Result<EthBlock<B256>>> + Send;
+    fn get_transactions(
+        &self,
+        n: BlockNumber,
+    ) -> impl Future<Output = Result<Vec<EthTransaction>>> + Send;
+    fn get_logs(&self, criteria: &Criteria) -> impl Future<Output = Result<Vec<EthLog>>> + Send;
 
-    async fn stream_blocks(&self) -> Result<Subscription<EthBlock<B256>>>;
-    async fn stream_logs(&self) -> Result<Subscription<EthLog>>;
+    fn stream_blocks(&self) -> impl Future<Output = Result<Subscription<EthBlock<B256>>>> + Send;
+    fn stream_logs(&self) -> impl Future<Output = Result<Subscription<EthLog>>> + Send;
 }
 
 #[derive(thiserror::Error, Debug)]

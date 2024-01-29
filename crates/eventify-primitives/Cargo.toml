@@ -18,20 +18,16 @@ tokio.workspace = true
 
 # core
 serde.workspace = true
-serde-aux.workspace = true
 serde_json.workspace = true
 
 # eth
-ethers-core.workspace = true
 alloy-primitives.workspace = true
 
 # auxiliary
 clap.workspace = true
 tracing.workspace = true
-secrecy.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 url.workspace = true
 utoipa.workspace = true
 chrono = "0.4.31"
-trait-variant.workspace = true

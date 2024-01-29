@@ -15,6 +15,12 @@ pub use error::Error;
 pub use log::{Criteria, EthLog};
 pub use transaction::{EthTransaction, TransactionResponse};
 
+pub mod eth {
+    pub use crate::{
+        block::EthBlock as Block, log::EthLog as Log, transaction::EthTransaction as Transaction,
+    };
+}
+
 type Result<T> = std::result::Result<T, error::Error>;
 
 #[derive(Clone, Debug)]
@@ -23,7 +29,7 @@ pub struct NetworkKindError(String);
 impl std::error::Error for NetworkKindError {}
 impl std::fmt::Display for NetworkKindError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "invalid network kind: {}", self.0)
+        write!(f, "invalid network: {}", self.0)
     }
 }
 

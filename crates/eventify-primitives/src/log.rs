@@ -1,15 +1,10 @@
 use std::{
     fmt::{Display, Formatter},
     fs,
-    ops::{Deref, DerefMut},
     str::FromStr,
 };
 
-use alloy_primitives::{Address, Bytes, B256, U64};
-use ethers_core::{
-    types::{BlockNumber, H256},
-    utils::keccak256,
-};
+use alloy_primitives::{keccak256, Address, BlockNumber, Bytes, B256, U64};
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use sqlx::prelude::FromRow;
@@ -58,21 +53,21 @@ impl Criteria {
         Ok(criteria)
     }
 
-    pub fn hashed_events(&self) -> Vec<H256> {
+    pub fn hashed_events(&self) -> Vec<B256> {
         self.filter0
             .clone()
             .unwrap_or_default()
             .into_iter()
-            .map(|event| H256::from(keccak256(event)))
+            .map(|event| B256::from(keccak256(event)))
             .collect()
     }
 
-    pub fn filter_as_h256(&self) -> Vec<H256> {
+    pub fn filter_as_b256(&self) -> Vec<B256> {
         self.filter1
             .clone()
             .unwrap_or_default()
             .into_iter()
-            .map(|f| H256::from_str(&f).unwrap())
+            .map(|f| B256::from_str(&f).unwrap())
             .collect()
     }
 }
@@ -99,10 +94,6 @@ impl From<&str> for Criteria {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Add;
-
-    use ethers_core::types::{H160, U64};
-
     use super::*;
 
     #[test]

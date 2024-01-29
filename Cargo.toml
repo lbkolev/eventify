@@ -43,7 +43,6 @@ redis = "0.24.0"
 
 # eth
 alloy-primitives = { version = "0.6.0", features = ["serde"] }
-ethers-core = "2.0.11"
 
 # auxiliary
 clap = "4.3.12"
