@@ -37,7 +37,7 @@ serde-aux.workspace = true
 serde_derive.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
-redis = "0.24.0"
+redis.workspace = true
 
 # eth
 alloy-primitives = { workspace = true, features = ["postgres"]}

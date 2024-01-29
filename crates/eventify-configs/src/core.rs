@@ -1,6 +1,8 @@
+use std::{collections::HashMap, hash::Hash};
+
 use alloy_primitives::BlockNumber;
 
-use eventify_primitives::Criteria;
+use eventify_primitives::{Criteria, NetworkKind};
 
 #[derive(Clone, Debug, Default)]
 pub struct ManagerConfig {
@@ -36,4 +38,15 @@ pub struct BlockRange {
     pub src: BlockNumber,
     pub dst: BlockNumber,
     pub step: BlockNumber,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct CollectorConfig {
+    pub network: NetworkKind,
+}
+
+impl CollectorConfig {
+    pub fn new(network: NetworkKind) -> Self {
+        Self { network }
+    }
 }

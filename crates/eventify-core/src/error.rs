@@ -1,10 +1,9 @@
-use crate::{store::StoreError, NodeProviderError};
-use alloy_primitives::B256;
+use crate::{emit, store::StoreError, NodeError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    NodeProvider(#[from] NodeProviderError),
+    Node(#[from] NodeError),
 
     #[error(transparent)]
     StoreClient(#[from] StoreError),
@@ -16,17 +15,17 @@ pub enum Error {
     EventifyPrimitives(#[from] eventify_primitives::Error),
 
     #[error(transparent)]
+    EmitError(#[from] emit::EmitError),
+
+    #[error(transparent)]
     Sql(#[from] sqlx::Error),
-
-    #[error("{0}")]
-    InvalidNodeKind(String),
-
-    #[error("{0}")]
-    InvalidDatabase(String),
 
     #[error("rpc error: {0:?}")]
     RpcError(#[from] eyre::Report),
 
     #[error("jsonrpsee error: {0:?}")]
     JsonRpsee(#[from] jsonrpsee::core::ClientError),
+
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
 }

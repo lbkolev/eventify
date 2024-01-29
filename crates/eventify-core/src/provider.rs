@@ -8,8 +8,8 @@ use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction};
 use eyre::Result;
 use jsonrpsee::core::client::Subscription;
 
-#[trait_variant::make(NodeProvider: Send)]
-pub trait LocalNodeProvider: 'static + Clone + Sync {
+#[trait_variant::make(Node: Send)]
+pub trait LocalNode: 'static + Clone + Sync {
     async fn get_block_number(&self) -> Result<BlockNumber>;
 
     // block with tx hashes
@@ -23,7 +23,7 @@ pub trait LocalNodeProvider: 'static + Clone + Sync {
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
-pub enum NodeProviderError {
+pub enum NodeError {
     #[error("failed to connect to node: {0}")]
     ConnectionFailed(#[from] jsonrpsee::core::ClientError),
 
@@ -55,30 +55,4 @@ pub enum NodeProviderError {
 
     #[error(transparent)]
     ParseInt(#[from] ParseIntError),
-}
-
-// Supported chains
-#[derive(Clone, Copy, Debug, Default)]
-pub enum NodeKind {
-    #[default]
-    Ethereum,
-}
-
-impl Display for NodeKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            NodeKind::Ethereum => write!(f, "eth"),
-        }
-    }
-}
-
-impl std::str::FromStr for NodeKind {
-    type Err = Error;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "ethereum" | "eth" => Ok(NodeKind::Ethereum),
-            _ => Err(Error::InvalidNodeKind(s.to_string())),
-        }
-    }
 }

@@ -13,7 +13,7 @@ pub mod store;
 pub use collector::Collector;
 pub use error::Error;
 pub use manager::Manager;
-pub use provider::{eth::Eth, NodeProvider, NodeProviderError};
+pub use provider::{eth::Eth, Node, NodeError};
 pub use store::{Store, StoreError};
 
 type Result<T> = std::result::Result<T, error::Error>;
@@ -22,8 +22,8 @@ use alloy_primitives::{BlockNumber, B256};
 use eventify_primitives::{Contract, Criteria, EthBlock, EthLog, EthTransaction};
 use std::fmt::Debug;
 
-#[trait_variant::make(StorageClient: Send)]
-pub trait LocalStorageClient: 'static + Clone + Debug + Sync {
+#[trait_variant::make(Storage: Send)]
+pub trait LocalStorage: 'static + Clone + Debug + Sync {
     async fn store_block(&self, block: &EthBlock<B256>) -> std::result::Result<(), Error>;
     async fn store_transaction(
         &self,

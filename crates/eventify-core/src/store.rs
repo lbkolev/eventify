@@ -4,7 +4,7 @@ use alloy_primitives::{Address, B256};
 use sqlx::{pool::PoolOptions, Pool};
 use tracing::debug;
 
-use crate::{storage_client, Error, StorageClient};
+use crate::{storage_client, Error, Storage};
 use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
 
 storage_client!(Store, Pool<sqlx::postgres::Postgres>);
@@ -41,7 +41,7 @@ impl Store {
     }
 }
 
-impl StorageClient for Store {
+impl Storage for Store {
     async fn store_block(&self, block: &EthBlock<B256>) -> Result<(), Error> {
         let sql = r#"INSERT INTO eth.block (
                 parent_hash,

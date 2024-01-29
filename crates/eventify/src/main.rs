@@ -13,16 +13,9 @@ use eventify_http_server as server;
 use eventify_primitives as primitives;
 
 use crate::cmd::Cmd;
-use configs::configs::{ManagerConfig, ServerConfig};
-use core::{
-    provider::{eth::Eth, NodeKind},
-    //storage::{Postgres, StorageClientKind, StorageKind},
-    Collector,
-    Manager,
-    Store,
-};
-use primitives::Criteria;
-
+use configs::configs::{CollectorConfig, ManagerConfig, ServerConfig};
+use core::{provider::eth::Eth, Collector, Manager, Store};
+use primitives::{Criteria, NetworkKind};
 //--
 
 use std::{path::Path, str::FromStr};
@@ -68,26 +61,28 @@ async fn main() -> Result<()> {
                 .transpose()?
                 .or_else(|| args.criteria_json());
 
-            let node_client = match args.node {
-                NodeKind::Ethereum => Eth::new(args.node_url.clone()).await?,
+            let node_client = match args.network {
+                NetworkKind::Ethereum => Eth::new(args.node_url.clone()).await?,
             };
 
             let store = Store::new(args.database_url()).await;
+            let redis = redis::Client::open(args.redis_url()).unwrap();
 
             match args.block_range() {
                 Some(range) => {
-                    let config = ManagerConfig::new(
+                    let manager_config = ManagerConfig::new(
                         args.skip_blocks(),
                         args.skip_transactions(),
                         args.skip_logs(),
                         criteria.clone(),
                         Some(range.into()),
                     );
-                    let collector = Collector::new(node_client, store);
+                    let collector_config = CollectorConfig::new(args.network());
+                    let collector = Collector::new(collector_config, node_client, store, redis);
 
                     if !args.skip_blocks() {
                         handles.push(
-                            Manager::new(config.clone(), collector.clone())
+                            Manager::new(manager_config.clone(), collector.clone())
                                 .get_blocks_task()
                                 .await?,
                         );
@@ -95,7 +90,7 @@ async fn main() -> Result<()> {
 
                     if !args.skip_transactions() {
                         handles.push(
-                            Manager::new(config.clone(), collector.clone())
+                            Manager::new(manager_config.clone(), collector.clone())
                                 .get_transactions_task()
                                 .await?,
                         );
@@ -103,7 +98,7 @@ async fn main() -> Result<()> {
 
                     if !args.skip_logs() {
                         handles.push(
-                            Manager::new(config.clone(), collector.clone())
+                            Manager::new(manager_config.clone(), collector.clone())
                                 .get_logs_task()
                                 .await?,
                         );
@@ -111,18 +106,19 @@ async fn main() -> Result<()> {
                 }
 
                 None => {
-                    let config = ManagerConfig::new(
+                    let manager_config = ManagerConfig::new(
                         args.skip_blocks(),
                         args.skip_transactions(),
                         args.skip_logs(),
                         criteria.clone(),
                         None,
                     );
-                    let collector = Collector::new(node_client, store);
+                    let collector_config = CollectorConfig::new(args.network());
+                    let collector = Collector::new(collector_config, node_client, store, redis);
 
                     if !args.skip_blocks() {
                         handles.push(
-                            Manager::new(config.clone(), collector.clone())
+                            Manager::new(manager_config.clone(), collector.clone())
                                 .stream_blocks_task()
                                 .await?,
                         );
@@ -130,7 +126,7 @@ async fn main() -> Result<()> {
 
                     if !args.skip_transactions() {
                         handles.push(
-                            Manager::new(config.clone(), collector.clone())
+                            Manager::new(manager_config.clone(), collector.clone())
                                 .stream_transactions_task()
                                 .await?,
                         );
@@ -138,7 +134,7 @@ async fn main() -> Result<()> {
 
                     if !args.skip_logs() {
                         handles.push(
-                            Manager::new(config.clone(), collector.clone())
+                            Manager::new(manager_config.clone(), collector.clone())
                                 .stream_logs_task()
                                 .await?,
                         );
@@ -158,7 +154,7 @@ async fn main() -> Result<()> {
         }
 
         cmd::SubCommand::Config(_) => {
-            unimplemented!("Configuration management.")
+            unimplemented!("manager_configuration management.")
         }
     }
 

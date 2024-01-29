@@ -1,14 +1,25 @@
 #![allow(dead_code)]
-const CHANNEL_ETH_BLOCKS: &str = "eth:blocks";
-const CHANNEL_ETH_TXS: &str = "eth:txs";
-const CHANNEL_ETH_EVENTS: &str = "eth:events";
-const CHANNEL_ETH_ERC_TRANSFER: &str = "eth:erc-transfer";
-const CHANNEL_ETH_ERC_APPROVAL: &str = "eth:erc-approval";
-const CHANNELETH_ERC_APPROVAL_FOR_ALL: &str = "eth:erc-approval-for-all";
 
-const CHANNEL_ZKSYNC_BLOCKS: &str = "zksync:blocks";
-const CHANNEL_ZKSYNC_TXS: &str = "zksync:txs";
-const CHANNEL_ZKSYNC_EVENTS: &str = "zksync:events";
+use redis::{Commands, RedisError};
+
+pub trait Emit: 'static + Clone + Send + Sync {
+    fn publish(&self, channel: &str, message: String) -> Result<(), EmitError>;
+}
+
+impl Emit for redis::Client {
+    fn publish(&self, channel: &str, message: String) -> Result<(), EmitError> {
+        let mut con = self.get_connection()?;
+
+        con.publish(channel, message)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum EmitError {
+    #[error("Redis publish error: {0}")]
+    RedisPublishError(#[from] RedisError),
+}
 
 #[cfg(test)]
 mod tests {

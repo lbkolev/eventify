@@ -1,28 +1,33 @@
 use std::time::Instant;
 
 use alloy_primitives::BlockNumber;
-use tracing::{info, trace};
+use eventify_configs::core::CollectorConfig;
+use tracing::{info, trace, error};
 
-use crate::{provider::NodeProvider, Collect, StorageClient};
+use crate::{provider::Node, Collect, Storage, emit::Emit};
 use eventify_primitives::Criteria;
 
 #[derive(Debug, Clone)]
-pub struct Collector<N, S>
+pub struct Collector<N, S, E>
 where
-    N: NodeProvider,
-    S: StorageClient,
+    N: Node,
+    S: Storage,
+    E: Emit,
 {
+    config: CollectorConfig,
     node: N,
     storage: S,
+    mid: E
 }
 
-impl<N, S> Collector<N, S>
+impl<N, S, E> Collector<N, S, E>
 where
-    N: NodeProvider,
-    S: StorageClient,
+    N: Node,
+    S: Storage,
+    E: Emit
 {
-    pub fn new(node: N, storage: S) -> Self {
-        Self { node, storage }
+    pub fn new(config: CollectorConfig, node: N, storage: S, mid: E) -> Self {
+        Self { config, node, storage, mid }
     }
 
     pub async fn get_latest_block(&self) -> crate::Result<BlockNumber> {
@@ -30,14 +35,16 @@ where
     }
 }
 
-impl<N, S> Collect<crate::Error> for Collector<N, S>
+impl<N, S, E> Collect<crate::Error> for Collector<N, S, E>
 where
-    N: NodeProvider,
-    S: StorageClient,
+    N: Node,
+    S: Storage,
+    E: Emit
 {
     async fn process_block(&self, block: BlockNumber) -> crate::Result<()> {
         let block = self.node.get_block(block).await?;
         self.storage.store_block(&block).await?;
+        self.mid.publish(format!("{}:block", self.config.network).as_str(), serde_json::to_string(&block)?)?;
 
         Ok(())
     }
@@ -62,11 +69,12 @@ where
 
     async fn process_transactions(&self, block: BlockNumber) -> crate::Result<()> {
         let now = Instant::now();
-        let transactions = self.node.get_transactions(block).await?;
-        let tx_count = transactions.len();
+        let tx = self.node.get_transactions(block).await?;
+        let tx_count = tx.len();
 
-        for tx in transactions {
+        for tx in tx {
             self.storage.store_transaction(&tx).await?;
+            self.mid.publish(format!("{}:transaction", self.config.network).as_str(), serde_json::to_string(&tx).unwrap()).unwrap();
         }
         info!(target: "eventify::idx::tx", processed=?true, tx_count=?tx_count, block=?block, elapsed=?now.elapsed());
 
@@ -95,6 +103,7 @@ where
 
         for log in logs {
             self.storage.store_log(&log).await?;
+            self.mid.publish(format!("{}:log", self.config.network).as_str(), serde_json::to_string(&log).unwrap()).unwrap();
             log_count += 1;
 
             if log_count % 100 == 0 {
@@ -114,6 +123,7 @@ where
 
             info!(target: "eventify::core::collector::stream_blocks", block_number=?block.number.map(|x| x.to::<u64>()));
             self.storage.store_block(&block).await?;
+            self.mid.publish(format!("{}:block", self.config.network).as_str(), serde_json::to_string(&block).unwrap()).unwrap();
         }
 
         Ok(())
@@ -123,7 +133,6 @@ where
         let mut stream = self.node.stream_blocks().await?;
 
         while let Some(block) = stream.next().await {
-            trace!(target: "eventify::core::collector::stream_transactions", "{:#?}", block);
             let block = block?;
             let tx = self
                 .node
@@ -134,6 +143,7 @@ where
             for tx in tx {
                 info!(target: "eventify::core::collector::stream_transactions", tx_hash=?tx.hash);
                 self.storage.store_transaction(&tx).await?;
+                self.mid.publish(format!("{}:transaction", self.config.network).as_str(), serde_json::to_string(&tx).unwrap()).unwrap();
             }
         }
 
@@ -149,6 +159,7 @@ where
 
             info!(target: "eventify::core::collector::stream_logs", address=?log.address, tx_hash=?log.transaction_hash);
             self.storage.store_log(&log).await?;
+            self.mid.publish(format!("{}:log", self.config.network).as_str(), serde_json::to_string(&log).unwrap()).unwrap();
         }
 
         Ok(())

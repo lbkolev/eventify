@@ -6,8 +6,7 @@ use secrecy::{ExposeSecret, Secret};
 
 use crate::settings::{core::BlockRange, CoreSettings, ServerSettings};
 use eventify_configs::configs::{ApplicationConfig, DatabaseConfig, ServerConfig};
-use eventify_core::provider::NodeKind;
-use eventify_primitives::Criteria;
+use eventify_primitives::{Criteria, NetworkKind};
 
 #[derive(Clone, Debug, Parser)]
 #[command(about = "Idx from range or stream directly from the tip of the chain")]
@@ -28,12 +27,20 @@ pub(crate) struct Cmd {
 
     #[arg(
         long,
-        env = "EVENTIFY_NODE",
-        help = "The type of chain(node) to index",
-        default_value_t = NodeKind::Ethereum,
-        value_parser = NodeKind::from_str,
+        env = "REDIS_URL",
+        help = "The redis URL to connect to",
+        default_value = "redis://localhost:6379"
     )]
-    pub(crate) node: NodeKind,
+    pub(crate) redis_url: Secret<String>,
+
+    #[arg(
+        long,
+        env = "EVENTIFY_NETWORK",
+        help = "The type of network(s) to index",
+        default_value_t = NetworkKind::Ethereum,
+        value_parser = NetworkKind::from_str,
+    )]
+    pub(crate) network: NetworkKind,
 
     #[arg(
         long,
@@ -100,9 +107,18 @@ impl Cmd {
         self.database_url.expose_secret()
     }
 
+    pub(crate) fn redis_url(&self) -> &str {
+        self.redis_url.expose_secret()
+    }
+
     #[allow(unused)]
     pub(crate) fn node_url(&self) -> &str {
         &self.node_url
+    }
+
+    #[allow(unused)]
+    pub(crate) fn network(&self) -> NetworkKind {
+        self.network
     }
 }
 

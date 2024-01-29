@@ -1,33 +1,36 @@
 use tokio::task::JoinHandle;
 use tracing::{error, info};
 
-use crate::{collector::Collector, provider::NodeProvider, Collect, StorageClient};
+use crate::{collector::Collector, emit::Emit, provider::Node, Collect, Storage};
 use eventify_configs::configs::ManagerConfig;
 
 #[derive(Debug, Clone)]
-pub struct Manager<N, S>
+pub struct Manager<N, S, E>
 where
-    N: NodeProvider,
-    S: StorageClient,
+    N: Node,
+    S: Storage,
+    E: Emit,
 {
     pub config: ManagerConfig,
-    pub collector: Collector<N, S>,
+    pub collector: Collector<N, S, E>,
 }
 
-impl<N, S> Manager<N, S>
+impl<N, S, E> Manager<N, S, E>
 where
-    N: NodeProvider,
-    S: StorageClient,
+    N: Node,
+    S: Storage,
+    E: Emit,
 {
-    pub fn new(config: ManagerConfig, collector: Collector<N, S>) -> Self {
+    pub fn new(config: ManagerConfig, collector: Collector<N, S, E>) -> Self {
         Self { config, collector }
     }
 }
 
-impl<N, S> Manager<N, S>
+impl<N, S, E> Manager<N, S, E>
 where
-    N: NodeProvider,
-    S: StorageClient,
+    N: Node,
+    S: Storage,
+    E: Emit,
 {
     pub async fn get_blocks_task(&self) -> crate::Result<JoinHandle<()>> {
         if self.config.skip_blocks {

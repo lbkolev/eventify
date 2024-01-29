@@ -14,7 +14,7 @@ repository = "https://github.com/lbkolev/eventify"
 members = [
     "crates/eventify",
     "crates/eventify-configs",
-    "crates/eventify-core",
+    "crates/eventify-core", "crates/eventify-engine",
     "crates/eventify-http-client",
     "crates/eventify-http-server",
     "crates/eventify-primitives"
@@ -39,6 +39,7 @@ serde-aux = "4.2.0"
 serde_derive = "1.0.171"
 serde_json = "1.0.104"
 sqlx = { version = "0.7.3", features = ["postgres", "runtime-tokio"] }
+redis = "0.24.0"
 
 # eth
 alloy-primitives = { version = "0.6.0", features = ["serde"] }

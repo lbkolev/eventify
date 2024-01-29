@@ -4,7 +4,7 @@ pub mod server;
 
 pub mod configs {
     pub use crate::{
-        core::{BlockRange, ManagerConfig},
+        core::{BlockRange, CollectorConfig, ManagerConfig},
         database::DatabaseConfig,
         server::{ApplicationConfig, ServerConfig},
     };
