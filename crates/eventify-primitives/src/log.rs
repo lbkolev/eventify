@@ -143,8 +143,8 @@ mod tests {
         });
         let res = serde_json::from_value::<Criteria>(json).unwrap();
         assert_eq!(res.name, "test");
-        assert_eq!(res.src_block, Some(BlockNumber::Number(U64::from(1))));
-        assert_eq!(res.dst_block, Some(BlockNumber::Number(U64::from(2))));
+        assert_eq!(res.src_block, Some(1));
+        assert_eq!(res.dst_block, Some(2));
         assert_eq!(
             res.addresses,
             Some(vec![

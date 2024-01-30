@@ -24,7 +24,7 @@ pub enum EmitError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use redis::{Commands};
+    use redis::Commands;
     use serde::{Deserialize, Serialize};
 
     #[test]

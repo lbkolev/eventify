@@ -24,7 +24,10 @@ type Result<T> = std::result::Result<T, error::Error>;
 
 use alloy_primitives::{BlockNumber, B256};
 use eventify_primitives::{Contract, Criteria, EthBlock, EthLog, EthTransaction};
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+};
+use tokio::sync::watch::Receiver;
 
 pub trait Storage: 'static + Clone + Debug + Sync + Send {
     fn store_block(
@@ -52,22 +55,36 @@ where
     fn process_block(&self, b: BlockNumber) -> impl Future<Output = std::result::Result<(), E>>;
     fn process_blocks(
         &self,
+        signal_receiver: Receiver<bool>,
         from: BlockNumber,
         to: BlockNumber,
     ) -> impl Future<Output = std::result::Result<(), E>>;
-    fn process_logs(&self, criteria: &Criteria)
-        -> impl Future<Output = std::result::Result<(), E>>;
+    fn process_logs(
+        &self,
+        signal_receiver: Receiver<bool>,
+        criteria: &Criteria,
+    ) -> impl Future<Output = std::result::Result<(), E>>;
     fn process_transactions(
         &self,
         b: BlockNumber,
     ) -> impl Future<Output = std::result::Result<(), E>>;
     fn process_transactions_from_range(
         &self,
+        signal_receiver: Receiver<bool>,
         from: BlockNumber,
         to: BlockNumber,
     ) -> impl Future<Output = std::result::Result<(), E>>;
 
-    fn stream_blocks(&self) -> impl Future<Output = std::result::Result<(), E>>;
-    fn stream_transactions(&self) -> impl Future<Output = std::result::Result<(), E>>;
-    fn stream_logs(&self) -> impl Future<Output = std::result::Result<(), E>>;
+    fn stream_blocks(
+        &self,
+        signal_receiver: Receiver<bool>,
+    ) -> impl Future<Output = std::result::Result<(), E>>;
+    fn stream_transactions(
+        &self,
+        signal_receiver: Receiver<bool>,
+    ) -> impl Future<Output = std::result::Result<(), E>>;
+    fn stream_logs(
+        &self,
+        signal_receiver: Receiver<bool>,
+    ) -> impl Future<Output = std::result::Result<(), E>>;
 }

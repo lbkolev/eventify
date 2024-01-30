@@ -1,6 +1,5 @@
 use futures::Future;
-use std::{num::ParseIntError};
-
+use std::num::ParseIntError;
 
 use alloy_primitives::{BlockNumber, B256};
 use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction};

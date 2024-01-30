@@ -1,10 +1,14 @@
-use std::time::Instant;
+use std::{
+    time::Instant,
+};
 
 use alloy_primitives::BlockNumber;
-use eventify_configs::core::CollectorConfig;
+
+use tokio::sync::watch::Receiver;
 use tracing::{info, trace};
 
 use crate::{emit::Emit, provider::Node, Collect, Storage};
+use eventify_configs::core::CollectorConfig;
 use eventify_primitives::Criteria;
 
 #[derive(Debug, Clone)]
@@ -57,16 +61,24 @@ where
         Ok(())
     }
 
-    async fn process_blocks(&self, from: BlockNumber, to: BlockNumber) -> crate::Result<()> {
-        info!(target: "eventify::core::collector::process_blocks", from_block=?from, to_block=?to);
+    async fn process_blocks(
+        &self,
+        signal_receiver: Receiver<bool>,
+        from: BlockNumber,
+        to: BlockNumber,
+    ) -> crate::Result<()> {
+        info!(from_block=?from, to_block=?to);
         let now = Instant::now();
 
         for block in from..=to {
-            self.process_block(block).await?;
+            if signal_receiver.borrow().to_owned() {
+                trace!("Received a signal to stop processing blocks");
+                break;
+            };
 
+            self.process_block(block).await?;
             if block % 30 == 0 {
                 info!(
-                    target: "eventify::core::collector::process_blocks",
                     processed=?true, block_count=?block - from,
                     latest=?block, elapsed=?now.elapsed());
             }
@@ -82,117 +94,134 @@ where
 
         for tx in tx {
             self.storage.store_transaction(&tx).await?;
-            self.mid
-                .publish(
-                    format!("{}:transaction", self.config.network).as_str(),
-                    serde_json::to_string(&tx).unwrap(),
-                )
-                .unwrap();
+            self.mid.publish(
+                format!("{}:transaction", self.config.network).as_str(),
+                serde_json::to_string(&tx)?,
+            )?;
         }
-        info!(target: "eventify::idx::tx", processed=?true, tx_count=?tx_count, block=?block, elapsed=?now.elapsed());
+        info!(processed=?true, tx_count=?tx_count, block=?block, elapsed=?now.elapsed());
 
         Ok(())
     }
 
     async fn process_transactions_from_range(
         &self,
+        signal_receiver: Receiver<bool>,
         from: BlockNumber,
         to: BlockNumber,
     ) -> crate::Result<()> {
-        info!(target: "eventify::core::collector::process_transactions_from_range", "Processing transactions from blocks {}..{}", from, to);
+        info!("Processing transactions from blocks {}..{}", from, to);
 
         for block in from..=to {
+            if signal_receiver.borrow().to_owned() {
+                trace!("Received a signal to stop processing transactions");
+                break;
+            };
+
             self.process_transactions(block).await?;
         }
 
         Ok(())
     }
 
-    async fn process_logs(&self, criteria: &Criteria) -> crate::Result<()> {
+    async fn process_logs(
+        &self,
+        signal_receiver: Receiver<bool>,
+        criteria: &Criteria,
+    ) -> crate::Result<()> {
         let now = Instant::now();
 
         let logs = self.node.get_logs(criteria).await?;
         let mut log_count = 0;
 
         for log in logs {
+            if signal_receiver.borrow().to_owned() {
+                trace!("Received a signal to stop processing logs");
+                break;
+            };
+
             self.storage.store_log(&log).await?;
-            self.mid
-                .publish(
-                    format!("{}:log", self.config.network).as_str(),
-                    serde_json::to_string(&log).unwrap(),
-                )
-                .unwrap();
+            self.mid.publish(
+                format!("{}:log", self.config.network).as_str(),
+                serde_json::to_string(&log)?,
+            )?;
             log_count += 1;
 
             if log_count % 100 == 0 {
-                info!(target: "eventify::core::collector::process_logs", processed=?true, log_count=?log_count, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
+                info!(processed=?true, log_count=?log_count, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
             }
         }
 
         Ok(())
     }
 
-    async fn stream_blocks(&self) -> crate::Result<()> {
+    async fn stream_blocks(&self, signal_receiver: Receiver<bool>) -> crate::Result<()> {
         let mut stream = self.node.stream_blocks().await?;
 
         while let Some(block) = stream.next().await {
-            trace!(target: "eventify::core::collector::stream_blocks", "{:#?}", block);
-            let block = block?;
+            if signal_receiver.borrow().to_owned() {
+                trace!("Received a signal to stop streaming blocks");
+                break;
+            };
 
-            info!(target: "eventify::core::collector::stream_blocks", block_number=?block.number.map(|x| x.to::<u64>()));
+            let block = block?;
+            trace!(block=?block);
+            info!(r#type="block", number=?block.number, hash=?block.hash);
             self.storage.store_block(&block).await?;
-            self.mid
-                .publish(
-                    format!("{}:block", self.config.network).as_str(),
-                    serde_json::to_string(&block).unwrap(),
-                )
-                .unwrap();
+            self.mid.publish(
+                format!("{}:block", self.config.network).as_str(),
+                serde_json::to_string(&block)?,
+            )?;
         }
 
         Ok(())
     }
 
-    async fn stream_transactions(&self) -> crate::Result<()> {
+    async fn stream_transactions(&self, signal_receiver: Receiver<bool>) -> crate::Result<()> {
         let mut stream = self.node.stream_blocks().await?;
 
         while let Some(block) = stream.next().await {
+            if signal_receiver.borrow().to_owned() {
+                trace!("Received a signal to stop streaming transactions");
+                break;
+            };
+
             let block = block?;
             let tx = self
                 .node
                 .get_transactions(block.number.expect("Invalid block number").to::<u64>())
                 .await?;
-            trace!(target: "eventify::core::collector::stream_transactions", "{:#?}", tx);
-
             for tx in tx {
-                info!(target: "eventify::core::collector::stream_transactions", tx_hash=?tx.hash);
+                trace!(tx=?tx);
+                info!(r#type="tx", hash=?tx.hash);
                 self.storage.store_transaction(&tx).await?;
-                self.mid
-                    .publish(
-                        format!("{}:transaction", self.config.network).as_str(),
-                        serde_json::to_string(&tx).unwrap(),
-                    )
-                    .unwrap();
+                self.mid.publish(
+                    format!("{}:transaction", self.config.network).as_str(),
+                    serde_json::to_string(&tx)?,
+                )?;
             }
         }
 
         Ok(())
     }
 
-    async fn stream_logs(&self) -> crate::Result<()> {
+    async fn stream_logs(&self, signal_receiver: Receiver<bool>) -> crate::Result<()> {
         let mut stream = self.node.stream_logs().await?;
 
         while let Some(log) = stream.next().await {
-            trace!(target: "eventify::core::collector::stream_logs", "{:#?}", log);
-            let log = log?;
+            if signal_receiver.borrow().to_owned() {
+                trace!("Received a signal to stop streaming logs");
+                break;
+            };
 
-            info!(target: "eventify::core::collector::stream_logs", address=?log.address, tx_hash=?log.transaction_hash);
+            let log = log?;
+            trace!(log=?log);
+            info!(r#type="log", address=?log.address, tx_hash=?log.transaction_hash);
             self.storage.store_log(&log).await?;
-            self.mid
-                .publish(
-                    format!("{}:log", self.config.network).as_str(),
-                    serde_json::to_string(&log).unwrap(),
-                )
-                .unwrap();
+            self.mid.publish(
+                format!("{}:log", self.config.network).as_str(),
+                serde_json::to_string(&log)?,
+            )?;
         }
 
         Ok(())
