@@ -23,3 +23,5 @@ url.workspace = true
 sqlx.workspace = true
 either.workspace = true
 alloy-primitives.workspace = true
+toml.workspace = true
+num_cpus.workspace = true

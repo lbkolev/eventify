@@ -2,8 +2,6 @@
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 
-use futures::Future;
-
 pub mod collector;
 pub mod emit;
 pub mod error;
@@ -22,12 +20,13 @@ pub use store::{Store, StoreError};
 
 type Result<T> = std::result::Result<T, error::Error>;
 
+use std::fmt::Debug;
+
 use alloy_primitives::{BlockNumber, B256};
-use eventify_primitives::{Contract, Criteria, EthBlock, EthLog, EthTransaction};
-use std::{
-    fmt::Debug,
-};
+use futures::Future;
 use tokio::sync::watch::Receiver;
+
+use eventify_primitives::{Contract, Criteria, EthBlock, EthLog, EthTransaction};
 
 pub trait Storage: 'static + Clone + Debug + Sync + Send {
     fn store_block(
@@ -52,23 +51,23 @@ pub trait Collect<E>
 where
     E: std::error::Error + Send + Sync,
 {
-    fn process_block(&self, b: BlockNumber) -> impl Future<Output = std::result::Result<(), E>>;
-    fn process_blocks(
+    fn collect_block(&self, b: BlockNumber) -> impl Future<Output = std::result::Result<(), E>>;
+    fn collect_blocks(
         &self,
         signal_receiver: Receiver<bool>,
         from: BlockNumber,
         to: BlockNumber,
     ) -> impl Future<Output = std::result::Result<(), E>>;
-    fn process_logs(
+    fn collect_logs(
         &self,
         signal_receiver: Receiver<bool>,
         criteria: &Criteria,
     ) -> impl Future<Output = std::result::Result<(), E>>;
-    fn process_transactions(
+    fn collect_transactions(
         &self,
         b: BlockNumber,
     ) -> impl Future<Output = std::result::Result<(), E>>;
-    fn process_transactions_from_range(
+    fn collect_transactions_from_range(
         &self,
         signal_receiver: Receiver<bool>,
         from: BlockNumber,

@@ -1,9 +1,10 @@
-
+use alloy_primitives::BlockNumber;
 use tokio::{sync::watch::Receiver, task::JoinHandle};
 use tracing::{error, info};
 
 use crate::{collector::Collector, emit::Emit, provider::Node, Collect, Storage};
 use eventify_configs::configs::ManagerConfig;
+use eventify_primitives::{Criteria, ResourceKind};
 
 #[derive(Debug, Clone)]
 pub struct Manager<N, S, E>
@@ -33,84 +34,138 @@ where
     S: Storage,
     E: Emit,
 {
-    pub async fn get_blocks_task(
+    pub async fn init_collect_tasks(
         &self,
         signal_receiver: Receiver<bool>,
-    ) -> crate::Result<JoinHandle<()>> {
-        if let Some(range) = self.config.range.clone() {
-            let collector = self.collector.clone();
-            info!("Spawning a blocks thread");
-            Ok(tokio::spawn(async move {
-                match collector
-                    .process_blocks(signal_receiver, range.src, range.dst)
-                    .await
-                {
-                    Ok(_) => {
-                        info!("Blocks thread finished")
-                    }
-                    Err(e) => {
-                        error!("Blocks thread failed: {}", e)
-                    }
+        src: BlockNumber,
+        dst: BlockNumber,
+        criteria: Criteria,
+    ) -> crate::Result<Vec<JoinHandle<()>>> {
+        let mut tasks = Vec::new();
+
+        for r in self.config.resources.iter() {
+            match r {
+                ResourceKind::Block => {
+                    tasks.push(
+                        self.create_block_collect_task(signal_receiver.clone(), src, dst)
+                            .await?,
+                    );
                 }
-            }))
-        } else {
-            Ok(tokio::spawn(async move {}))
+                ResourceKind::Transaction => {
+                    tasks.push(
+                        self.create_transaction_collect_task(signal_receiver.clone(), src, dst)
+                            .await?,
+                    );
+                }
+                ResourceKind::Log => {
+                    tasks.push(
+                        self.create_log_collect_task(signal_receiver.clone(), criteria.clone())
+                            .await?,
+                    );
+                }
+            }
         }
+
+        Ok(tasks)
     }
 
-    pub async fn get_transactions_task(
+    pub async fn init_stream_tasks(
         &self,
         signal_receiver: Receiver<bool>,
-    ) -> crate::Result<JoinHandle<()>> {
-        if let Some(range) = self.config.range.clone() {
-            let collector = self.collector.clone();
-            info!("Spawning a transactions thread");
-            Ok(tokio::spawn(async move {
-                match collector
-                    .process_transactions_from_range(signal_receiver, range.src, range.dst)
-                    .await
-                {
-                    Ok(_) => {
-                        info!("Transactions thread finished")
-                    }
-                    Err(e) => {
-                        error!("Transactions thread failed: {}", e)
-                    }
+    ) -> crate::Result<Vec<JoinHandle<()>>> {
+        let mut tasks = Vec::new();
+
+        for r in self.config.resources.iter() {
+            match r {
+                ResourceKind::Block => {
+                    tasks.push(
+                        self.create_block_stream_task(signal_receiver.clone())
+                            .await?,
+                    );
                 }
-            }))
-        } else {
-            Ok(tokio::spawn(async move {}))
+                ResourceKind::Transaction => {
+                    tasks.push(
+                        self.create_transaction_stream_task(signal_receiver.clone())
+                            .await?,
+                    );
+                }
+                ResourceKind::Log => {
+                    tasks.push(self.create_log_stream_task(signal_receiver.clone()).await?);
+                }
+            }
         }
+
+        Ok(tasks)
     }
 
-    pub async fn get_logs_task(
+    pub async fn create_block_collect_task(
         &self,
         signal_receiver: Receiver<bool>,
+        src: BlockNumber,
+        dst: BlockNumber,
     ) -> crate::Result<JoinHandle<()>> {
-        if let Some(criteria) = self.config.criteria.clone() {
-            let collector = self.collector.clone();
-            info!("Spawning a logs thread");
-            Ok(tokio::spawn(async move {
-                match collector.process_logs(signal_receiver, &criteria).await {
-                    Ok(_) => {
-                        info!("Logs thread finished")
-                    }
-                    Err(e) => {
-                        error!("Logs thread failed: {}", e)
-                    }
+        let collector = self.collector.clone();
+        info!("Spawning blocks thread");
+        Ok(tokio::spawn(async move {
+            match collector.collect_blocks(signal_receiver, src, dst).await {
+                Ok(_) => {
+                    info!("Blocks thread finished")
                 }
-            }))
-        } else {
-            Ok(tokio::spawn(async move {}))
-        }
+                Err(e) => {
+                    error!("Blocks thread failed: {}", e)
+                }
+            }
+        }))
     }
 
-    pub async fn stream_blocks_task(
+    pub async fn create_transaction_collect_task(
+        &self,
+        signal_receiver: Receiver<bool>,
+        src: BlockNumber,
+        dst: BlockNumber,
+    ) -> crate::Result<JoinHandle<()>> {
+        let collector = self.collector.clone();
+        info!("Spawning transactions thread");
+        Ok(tokio::spawn(async move {
+            match collector
+                .collect_transactions_from_range(signal_receiver, src, dst)
+                .await
+            {
+                Ok(_) => {
+                    info!("Transactions thread finished")
+                }
+                Err(e) => {
+                    error!("Transactions thread failed: {}", e)
+                }
+            }
+        }))
+    }
+
+    pub async fn create_log_collect_task(
+        &self,
+        signal_receiver: Receiver<bool>,
+        criteria: Criteria,
+    ) -> crate::Result<JoinHandle<()>> {
+        let collector = self.collector.clone();
+        info!("Spawning logs thread");
+        Ok(tokio::spawn(async move {
+            match collector.collect_logs(signal_receiver, &criteria).await {
+                Ok(_) => {
+                    info!("Logs thread finished")
+                }
+                Err(e) => {
+                    error!("Logs thread failed: {}", e)
+                }
+            }
+        }))
+    }
+
+    pub async fn create_block_stream_task(
         &self,
         signal_receiver: Receiver<bool>,
     ) -> crate::Result<JoinHandle<()>> {
         let collector = self.collector.clone();
-        info!("Spawning a block streaming thread");
+        info!("Spawning block streaming thread");
         Ok(tokio::spawn(async move {
             match collector.stream_blocks(signal_receiver).await {
                 Ok(_) => {
@@ -123,12 +178,12 @@ where
         }))
     }
 
-    pub async fn stream_transactions_task(
+    pub async fn create_transaction_stream_task(
         &self,
         signal_receiver: Receiver<bool>,
     ) -> crate::Result<JoinHandle<()>> {
         let collector = self.collector.clone();
-        info!("Spawning a transaction streaming thread");
+        info!("Spawning transaction streaming thread");
         Ok(tokio::spawn(async move {
             match collector.stream_transactions(signal_receiver).await {
                 Ok(_) => {
@@ -141,12 +196,12 @@ where
         }))
     }
 
-    pub async fn stream_logs_task(
+    pub async fn create_log_stream_task(
         &self,
         signal_receiver: Receiver<bool>,
     ) -> crate::Result<JoinHandle<()>> {
         let collector = self.collector.clone();
-        info!("Spawning a log streaming thread");
+        info!("Spawning log streaming thread");
         Ok(tokio::spawn(async move {
             match collector.stream_logs(signal_receiver).await {
                 Ok(_) => {

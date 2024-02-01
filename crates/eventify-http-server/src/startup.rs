@@ -7,7 +7,7 @@ use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-use eventify_configs::configs::{DatabaseConfig, ServerConfig};
+use eventify_configs::configs::{ApplicationConfig, DatabaseConfig};
 
 use crate::{
     api::{self, block, log, transaction},
@@ -21,18 +21,12 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(settings: ServerConfig) -> Result<Self> {
+    pub async fn build(settings: ApplicationConfig) -> Result<Self> {
         let connection_pool = get_connection_pool(&settings.database);
-        let listener = TcpListener::bind(format!(
-            "{}:{}",
-            settings.application.host, settings.application.port
-        ))?;
+        let listener =
+            TcpListener::bind(format!("{}:{}", settings.server.host, settings.server.port))?;
         let port = listener.local_addr().unwrap().port();
-        let server = start(
-            listener,
-            settings.application.worker_threads,
-            connection_pool,
-        )?;
+        let server = start(listener, connection_pool)?;
 
         Ok(Self { port, server })
     }
@@ -69,7 +63,6 @@ struct ApiDoc;
 
 pub fn start(
     listener: TcpListener,
-    worker_threads: usize,
     db_pool: PgPool,
 ) -> std::result::Result<Server, std::io::Error> {
     let db_pool = web::Data::new(db_pool);
@@ -100,7 +93,6 @@ pub fn start(
             .app_data(db_pool.clone())
     })
     .listen(listener)?
-    .workers(worker_threads)
     .run();
 
     Ok(server)

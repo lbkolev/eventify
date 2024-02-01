@@ -4,33 +4,24 @@
 
 //--
 pub mod cmd;
-pub mod settings;
 pub mod subcommands;
 
-use eventify_configs as configs;
-use eventify_core as core;
-use eventify_http_server as server;
-use eventify_primitives as primitives;
-
-
 use crate::cmd::Cmd;
-use configs::configs::{CollectorConfig, ManagerConfig, ServerConfig};
-use core::{networks::eth::Eth, Collector, Manager, Store};
-use primitives::{Criteria, NetworkKind};
+use eventify_configs::{
+    configs::{ApplicationConfig, CollectorConfig, ManagerConfig},
+    database::DatabaseConfig,
+    Config, ModeKind,
+};
+use eventify_core::{networks::eth::Eth, Collector, Manager, Store};
+use eventify_primitives::{Criteria, NetworkKind};
 //--
 
-use std::{
-    path::Path,
-};
-use tokio::{
-    signal::ctrl_c,
-    sync::{watch},
-};
+use std::path::Path;
 
 use clap::Parser;
 use eyre::Result;
-
 use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
+use tokio::{signal::ctrl_c, sync::watch};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -60,84 +51,59 @@ async fn main() -> Result<()> {
                 return Ok(());
             }
 
-            let mut handles = vec![];
-
-            // event criteria
-            let criteria = args
-                .criteria_file()
-                .map(|file| Criteria::from_file(file.as_str()))
-                .transpose()?
-                .or_else(|| args.criteria_json());
-
-            let node = match args.network {
-                NetworkKind::Ethereum => Eth::new(args.node_url.clone()).await?,
-            };
-            let store = Store::new(args.database_url()).await;
-            let redis = redis::Client::open(args.redis_url()).unwrap();
-
-            let collector_config = CollectorConfig::new(args.network());
-            let collector = Collector::new(collector_config, node, store, redis);
-            let manager_config = if let Some(range) = args.block_range() {
-                ManagerConfig::new(
-                    args.skip_blocks(),
-                    args.skip_transactions(),
-                    args.skip_logs(),
-                    criteria.clone(),
-                    Some(range.into()),
-                )
+            let config: Config = if let Some(file) = args.config {
+                info!(target:"eventify::cli", "Loading config from {}", file);
+                toml::from_str(std::fs::read_to_string(file.as_str())?.as_str())?
             } else {
-                ManagerConfig::new(
-                    args.skip_blocks(),
-                    args.skip_transactions(),
-                    args.skip_logs(),
-                    criteria.clone(),
-                    None,
-                )
+                Config::from(args)
             };
-            let manager = Manager::new(manager_config.clone(), collector.clone());
 
-            let (sender, receiver) = watch::channel(false);
+            let (signal_sender, signal_receiver) = watch::channel(false);
             tokio::spawn(async move {
                 ctrl_c().await.unwrap();
                 warn!("Received Ctrl-C signal, shutting down...");
-                sender.send(true).unwrap();
+                signal_sender.send(true).unwrap();
             });
-            match args.block_range() {
-                Some(_) => {
-                    if !args.skip_blocks() {
-                        handles.push(manager.get_blocks_task(receiver.clone()).await?);
-                    }
 
-                    if !args.skip_transactions() {
-                        handles.push(manager.get_transactions_task(receiver.clone()).await?);
-                    }
+            let store = Store::new(config.database_url.as_str()).await;
+            let redis = redis::Client::open(config.redis_url).unwrap();
 
-                    if !args.skip_logs() {
-                        handles.push(manager.get_logs_task(receiver.clone()).await?);
-                    }
+            let collector_config = CollectorConfig::new(NetworkKind::Ethereum);
+            let collector = Collector::new(
+                collector_config,
+                Eth::new(config.network.eth.unwrap().node_url).await?,
+                store,
+                redis,
+            );
+
+            let manager_config = ManagerConfig::new(config.collect);
+            let manager = Manager::new(manager_config.clone(), collector);
+
+            let mut tasks = match config.mode.kind {
+                ModeKind::Batch => {
+                    manager
+                        .init_collect_tasks(
+                            signal_receiver,
+                            config.mode.src.unwrap(),
+                            config.mode.dst.unwrap(),
+                            Criteria::default(),
+                        )
+                        .await?
                 }
-                None => {
-                    if !args.skip_blocks() {
-                        handles.push(manager.stream_blocks_task(receiver.clone()).await?);
-                    }
+                ModeKind::Stream => manager.init_stream_tasks(signal_receiver).await?,
+            };
 
-                    if !args.skip_transactions() {
-                        handles.push(manager.stream_transactions_task(receiver.clone()).await?);
-                    }
-
-                    if !args.skip_logs() {
-                        handles.push(manager.stream_logs_task(receiver.clone()).await?);
-                    }
-                }
+            if let Some(server_config) = config.server {
+                let app_config = ApplicationConfig {
+                    database: DatabaseConfig::from(config.database_url.as_str()),
+                    server: server_config,
+                };
+                tasks.push(tokio::spawn(async move {
+                    eventify_http_server::run(app_config).await.unwrap()
+                }))
             }
 
-            if args.server_enabled() {
-                handles.push(tokio::spawn(async move {
-                    server::run(ServerConfig::from(args.clone())).await.unwrap()
-                }));
-            }
-
-            futures::future::join_all(handles).await;
+            futures::future::join_all(tasks).await;
         }
 
         cmd::SubCommand::Db(_) => {

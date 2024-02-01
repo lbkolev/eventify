@@ -1,10 +1,11 @@
-use futures::Future;
 use std::num::ParseIntError;
 
 use alloy_primitives::{BlockNumber, B256};
-use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction};
 use eyre::Result;
+use futures::Future;
 use jsonrpsee::core::client::Subscription;
+
+use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction};
 
 pub trait Node: 'static + Clone + Sync + Send {
     fn get_block_number(&self) -> impl Future<Output = Result<BlockNumber>> + Send;

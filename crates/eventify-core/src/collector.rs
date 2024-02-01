@@ -1,6 +1,4 @@
-use std::{
-    time::Instant,
-};
+use std::time::Instant;
 
 use alloy_primitives::BlockNumber;
 
@@ -50,7 +48,7 @@ where
     S: Storage,
     E: Emit,
 {
-    async fn process_block(&self, block: BlockNumber) -> crate::Result<()> {
+    async fn collect_block(&self, block: BlockNumber) -> crate::Result<()> {
         let block = self.node.get_block(block).await?;
         self.storage.store_block(&block).await?;
         self.mid.publish(
@@ -61,7 +59,7 @@ where
         Ok(())
     }
 
-    async fn process_blocks(
+    async fn collect_blocks(
         &self,
         signal_receiver: Receiver<bool>,
         from: BlockNumber,
@@ -76,7 +74,7 @@ where
                 break;
             };
 
-            self.process_block(block).await?;
+            self.collect_block(block).await?;
             if block % 30 == 0 {
                 info!(
                     processed=?true, block_count=?block - from,
@@ -87,7 +85,7 @@ where
         Ok(())
     }
 
-    async fn process_transactions(&self, block: BlockNumber) -> crate::Result<()> {
+    async fn collect_transactions(&self, block: BlockNumber) -> crate::Result<()> {
         let now = Instant::now();
         let tx = self.node.get_transactions(block).await?;
         let tx_count = tx.len();
@@ -104,7 +102,7 @@ where
         Ok(())
     }
 
-    async fn process_transactions_from_range(
+    async fn collect_transactions_from_range(
         &self,
         signal_receiver: Receiver<bool>,
         from: BlockNumber,
@@ -118,13 +116,13 @@ where
                 break;
             };
 
-            self.process_transactions(block).await?;
+            self.collect_transactions(block).await?;
         }
 
         Ok(())
     }
 
-    async fn process_logs(
+    async fn collect_logs(
         &self,
         signal_receiver: Receiver<bool>,
         criteria: &Criteria,
@@ -166,7 +164,7 @@ where
 
             let block = block?;
             trace!(block=?block);
-            info!(r#type="block", number=?block.number, hash=?block.hash);
+            info!(kind="block", number=?block.number, hash=?block.hash);
             self.storage.store_block(&block).await?;
             self.mid.publish(
                 format!("{}:block", self.config.network).as_str(),
@@ -193,7 +191,7 @@ where
                 .await?;
             for tx in tx {
                 trace!(tx=?tx);
-                info!(r#type="tx", hash=?tx.hash);
+                info!(kind="tx", hash=?tx.hash);
                 self.storage.store_transaction(&tx).await?;
                 self.mid.publish(
                     format!("{}:transaction", self.config.network).as_str(),
@@ -216,7 +214,7 @@ where
 
             let log = log?;
             trace!(log=?log);
-            info!(r#type="log", address=?log.address, tx_hash=?log.transaction_hash);
+            info!(kind="log", address=?log.address, tx_hash=?log.transaction_hash);
             self.storage.store_log(&log).await?;
             self.mid.publish(
                 format!("{}:log", self.config.network).as_str(),

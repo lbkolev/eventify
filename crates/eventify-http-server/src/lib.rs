@@ -13,7 +13,7 @@ pub use error::Error;
 type Result<T> = std::result::Result<T, crate::error::Error>;
 
 /// The entry point of the API server.
-pub async fn run(settings: eventify_configs::configs::ServerConfig) -> Result<()> {
+pub async fn run(settings: eventify_configs::configs::ApplicationConfig) -> Result<()> {
     let application = startup::Application::build(settings).await?;
     application.run_until_stopped().await?;
 

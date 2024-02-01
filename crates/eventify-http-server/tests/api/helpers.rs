@@ -17,11 +17,10 @@ pub async fn spawn_app() -> TestApp {
     // Randomise configuration to ensure test isolation
     let configuration = {
         //let mut c = get_configuration().expect("Failed to read configuration.");
-        let mut c = ServerConfig {
-            application: ApplicationConfig {
+        let mut c = ApplicationConfig {
+            server: ServerConfig {
                 host: String::from("localhost"),
                 port: 0,
-                worker_threads: 1,
             },
             database: DatabaseConfig {
                 host: String::from("localhost"),
@@ -36,7 +35,7 @@ pub async fn spawn_app() -> TestApp {
         // Use a different database for each test case
         c.database.database_name = Uuid::new_v4().to_string();
         // Use a random OS port
-        c.application.port = 0;
+        c.server.port = 0;
 
         c
     };

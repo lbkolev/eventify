@@ -9,10 +9,13 @@ pub mod error;
 pub mod log;
 pub mod transaction;
 
+use std::collections::HashSet;
+
 pub use block::EthBlock;
 pub use contract::Contract;
 pub use error::Error;
 pub use log::{Criteria, EthLog};
+use serde::Deserialize;
 pub use transaction::{EthTransaction, TransactionResponse};
 
 pub mod eth {
@@ -60,74 +63,28 @@ impl std::str::FromStr for NetworkKind {
     }
 }
 
-impl NetworkKind {
-    pub fn supported_resources(&self) -> Vec<ResourceKind> {
-        match self {
-            &NetworkKind::Ethereum => {
-                vec![
-                    ResourceKind::Block,
-                    ResourceKind::Transaction,
-                    ResourceKind::Log(LogKind::RAW),
-                    ResourceKind::Log(LogKind::ERC_APPROVAL),
-                    ResourceKind::Log(LogKind::ERC_APPROVAL_FOR_ALL),
-                    ResourceKind::Log(LogKind::ERC_TRANSFER),
-                ]
-            }
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
 pub enum ResourceKind {
     Block,
     Transaction,
-    Log(LogKind),
+    Log,
 }
 
-impl std::fmt::Display for ResourceKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ResourceKind::Block => write!(f, "block"),
-            ResourceKind::Transaction => write!(f, "transaction"),
-            ResourceKind::Log(t) => write!(f, "log({t})"),
-        }
+impl ResourceKind {
+    pub fn resources_from_string(s: String) -> HashSet<ResourceKind> {
+        s.split(',')
+            .map(|x| match x.trim().to_lowercase().as_str() {
+                "block" | "blocks" => ResourceKind::Block,
+                "tx" | "txs" | "transactions" => ResourceKind::Transaction,
+                "log" | "logs" => ResourceKind::Log,
+                _ => {
+                    panic!("invalid resource: {}", x);
+                }
+            })
+            .collect()
     }
-}
 
-#[derive(Clone, Debug)]
-pub struct Bundle {
-    pub network: NetworkKind,
-    pub resource: ResourceKind,
-}
-
-impl Bundle {
-    pub fn new(network: NetworkKind, resource: ResourceKind) -> Self {
-        Self { network, resource }
-    }
-}
-
-impl std::fmt::Display for Bundle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.network, self.resource)
-    }
-}
-
-#[allow(non_camel_case_types)]
-#[derive(Clone, Debug)]
-pub enum LogKind {
-    RAW,
-    ERC_APPROVAL,
-    ERC_TRANSFER,
-    ERC_APPROVAL_FOR_ALL,
-}
-
-impl std::fmt::Display for LogKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LogKind::RAW => write!(f, "raw"),
-            LogKind::ERC_APPROVAL => write!(f, "erc-approval"),
-            LogKind::ERC_TRANSFER => write!(f, "erc-transfer"),
-            LogKind::ERC_APPROVAL_FOR_ALL => write!(f, "erc-approval-for-all"),
-        }
+    pub fn resources_from_str(s: &str) -> HashSet<ResourceKind> {
+        ResourceKind::resources_from_string(s.to_string())
     }
 }

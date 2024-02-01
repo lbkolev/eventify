@@ -43,7 +43,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-eventify}
     ports:
-      - "6969:6969"
+      - "21420:21420"
     entrypoint:
       ["/app/eventify", "run", "--src-block=3000000", "--dst-block=3001000"]
     networks:

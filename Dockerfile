@@ -51,6 +51,6 @@ COPY ./migrations/ /app/migrations
 # Copy licenses
 COPY LICENSE-* ./
 
-EXPOSE 6969
+EXPOSE 21420
 ENTRYPOINT ["/app/eventify"]
 #----

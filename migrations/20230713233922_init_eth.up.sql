@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS eth.fn_sig (
 
     PRIMARY KEY(id)
 );
-comment on table eth.fn_sig is 'Function signatures taken from https://4byte.directory, not associated with the indexing engine, but useful for debugging';
+comment on table eth.fn_sig is 'Function signatures taken from https://4byte.directory, not associated with the collecting engine, but useful for debugging';
 comment on column eth.fn_sig.hex_sig is 'hexadecimal representation of the 4-byte function selector used by the EVM';
 comment on column eth.fn_sig.text_sig is 'human readable function signature';
 

@@ -1,16 +1,20 @@
 #[derive(Clone, Debug, serde::Deserialize)]
-pub struct ServerConfig {
+pub struct ApplicationConfig {
     pub database: crate::configs::DatabaseConfig,
-    pub application: ApplicationConfig,
+    pub server: ServerConfig,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
-pub struct ApplicationConfig {
+pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+}
 
-    /// The number of workers to start
-    ///
-    /// by default, the number of the machine's physical cores.
-    pub worker_threads: usize,
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            host: "0.0.0.0".to_string(),
+            port: 21420,
+        }
+    }
 }

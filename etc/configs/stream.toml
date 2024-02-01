@@ -1,0 +1,24 @@
+collect = "blocks,logs"
+redis_url = "redis://localhost:6379"
+database_url = "postgres://postgres:password@localhost:5432/eventify"
+
+[server]
+host = "0.0.0.0"
+port = 21420
+
+[mode]
+kind = "stream"
+
+[network]
+    [network.eth]
+    node_url = "wss://eth.llamarpc.com"
+
+    #[network.zksync]
+    #node_url = "wss://mainnet.era.zksync.io/ws"
+
+#[platform]
+#    [platform.discord]
+#    token = "discord_token"
+#
+#    [platform.slack]
+#    token = "slack_token"

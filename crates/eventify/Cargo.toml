@@ -46,7 +46,7 @@ secrecy.workspace = true
 thiserror.workspace = true
 eyre.workspace = true
 either.workspace = true
-ctrlc = { version = "3.4.2", features = ["termination"] }
+toml.workspace = true
 
 [dev-dependencies]
 temp-env = "0.3.6"

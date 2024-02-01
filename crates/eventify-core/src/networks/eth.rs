@@ -13,13 +13,29 @@ use jsonrpsee::{
 impl_provider!(Eth, WsClient);
 impl Eth {
     pub async fn new(host: String) -> Result<Self> {
-        Self::connect(host).await
+        Self::connect_with_retry(host, 5).await
     }
 
     pub async fn connect(host: String) -> Result<Self> {
         Ok(Self {
             inner: Arc::new(WsClientBuilder::default().build(&host).await?),
         })
+    }
+
+    pub async fn connect_with_retry(host: String, max_retries: i32) -> Result<Self> {
+        let mut retries = 0;
+        loop {
+            match Self::connect(host.clone()).await {
+                Ok(client) => return Ok(client),
+                Err(e) => {
+                    if retries >= max_retries {
+                        return Err(e);
+                    } else {
+                        retries += 1;
+                    }
+                }
+            }
+        }
     }
 }
 

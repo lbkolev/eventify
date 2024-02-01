@@ -43,10 +43,10 @@ server:
 
 # -- All around configuration for the Indexing part of the service
 
-# -- The starting block to begin indexing from
+# -- The starting block to begin collecting from
 startBlock: 0
 
-# -- The end block to end indexing at
+# -- The end block to end collecting at
 endBlock: 999999999
 
 # -- A list of potential additional arguments.

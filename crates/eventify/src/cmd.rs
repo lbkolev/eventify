@@ -12,14 +12,6 @@ pub(crate) struct Cmd {
     pub(crate) subcmd: SubCommand,
 
     #[arg(
-        long = "config",
-        env = "EVENTIFY_CONFIG",
-        help = "Path to the config file",
-        default_value = "etc/default.toml"
-    )]
-    pub(crate) config: Option<String>,
-
-    #[arg(
         long = "only-migrations",
         env = "EVENTIFY_DB_MIGRATIONS",
         help = "Run only the database migrations and exit immediately after.",

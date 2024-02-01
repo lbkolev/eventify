@@ -1,0 +1,20 @@
+collect = "blocks,tx,logs"
+redis_url = "redis://localhost:6379"
+database_url = "postgres://postgres:password@localhost:5432/eventify"
+
+[server]
+port = 21420
+
+[mode]
+kind = "batch"
+src = 1
+dst = 15000
+step = 1
+
+[network]
+    [network.eth]
+    node_url = "wss://eth.llamarpc.com"
+
+#[platform]
+#    [platform.discord]
+#    token = "..."

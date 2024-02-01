@@ -2,7 +2,7 @@
 
 # generates the openapi spec from the server
 
-SERVER_URL="http://localhost:6969/api-docs/openapi.json"
+SERVER_URL="http://localhost:21420/api-docs/openapi.json"
 
 wait_for_server() {
     local timeout=5
