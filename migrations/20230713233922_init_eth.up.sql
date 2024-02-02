@@ -90,7 +90,6 @@ CREATE TABLE IF NOT EXISTS eth.contract (
     input BYTEA NOT NULL,
     created_at TIMESTAMP with time zone NOT NULL DEFAULT now()
 );
-
 comment on table eth.contract is 'transactions creating contract';
 comment on column eth.contract.tx_hash is 'hash of the transaction that created the contract';
 comment on column eth.contract.from is 'address creator of the contract';
