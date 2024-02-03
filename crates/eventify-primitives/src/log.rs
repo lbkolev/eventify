@@ -25,7 +25,7 @@ pub struct EthLog {
     pub block_number: Option<U64>,
     pub address: Address,
     pub data: Bytes,
-    pub topics: Vec<Option<B256>>,
+    pub topics: Vec<B256>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]

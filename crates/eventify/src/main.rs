@@ -12,7 +12,7 @@ use eventify_configs::{
     database::DatabaseConfig,
     Config, ModeKind,
 };
-use eventify_core::{networks::eth::Eth, Collector, Manager, Store};
+use eventify_core::{networks::eth::Eth, Collector, Manager, Storage};
 use eventify_primitives::{Criteria, NetworkKind};
 //--
 
@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
                 signal_sender.send(true).unwrap();
             });
 
-            let store = Store::new(config.database_url.as_str()).await;
+            let store = Storage::new(config.database_url.as_str()).await;
             let redis = redis::Client::open(config.redis_url).unwrap();
 
             let collector_config = CollectorConfig::new(NetworkKind::Ethereum);

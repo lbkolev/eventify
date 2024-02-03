@@ -1,13 +1,13 @@
 #![allow(clippy::option_map_unit_fn)]
 
-use alloy_primitives::{Address, B256};
+use alloy_primitives::{Address, Bytes, FixedBytes, B256, U64};
 use sqlx::{pool::PoolOptions, Pool};
 use tracing::debug;
 
-use crate::{storage_client, Error, Storage};
+use crate::{storage_client, Error, Store};
 use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
 
-storage_client!(Store, Pool<sqlx::postgres::Postgres>);
+storage_client!(Storage, Pool<sqlx::postgres::Postgres>);
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
@@ -25,7 +25,7 @@ pub enum StoreError {
     StoreContractFailed { hash: B256, err: String },
 }
 
-impl Store {
+impl Storage {
     pub async fn new(url: &str) -> Self {
         Self::connect(url).await
     }
@@ -41,7 +41,7 @@ impl Store {
     }
 }
 
-impl Storage for Store {
+impl Store for Storage {
     async fn store_block(&self, block: &EthBlock<B256>) -> Result<(), Error> {
         let sql = r#"INSERT INTO eth.block (
                 parent_hash,
@@ -82,13 +82,13 @@ impl Storage for Store {
             .bind(block.time.to::<i64>())
             .bind(block.extra.to_vec())
             .bind(block.mix_digest.as_slice())
-            .bind(block.nonce.map(|v| v.as_slice().to_vec()))
+            .bind(block.nonce.as_ref().map(|v| v.as_slice()))
             .bind(block.base_fee.map(|v| v.to::<i64>()))
-            .bind(block.parent_beacon_root.map(|v| v.as_slice().to_vec()))
+            .bind(block.parent_beacon_root.as_ref().map(|v| v.as_slice()))
             .bind(block.blob_gas_used.map(|v| v.to::<i64>()))
             .bind(block.excess_blob_gas.map(|v| v.to::<i64>()))
-            .bind(block.withdrawals_hash.map(|v| v.as_slice().to_vec()))
-            .bind(block.hash.map(|v| v.as_slice().to_vec().to_vec()))
+            .bind(block.withdrawals_hash.as_ref().map(|v| v.as_slice()))
+            .bind(block.hash.as_ref().map(|v| v.as_slice()))
             .execute(&self.inner)
             .await
             .map_err(|e| StoreError::StoreBlockFailed {
@@ -118,7 +118,7 @@ impl Storage for Store {
             ) ON CONFLICT DO NOTHING"#;
 
         sqlx::query(sql)
-            .bind(tx.block_hash.map(|v| v.as_slice().to_vec().to_vec()))
+            .bind(tx.block_hash.as_ref().map(|v| v.as_slice()))
             .bind(tx.block_number.map(|v| v.to::<i64>()))
             .bind(tx.from.as_slice())
             .bind(tx.gas.as_le_slice())
@@ -126,7 +126,7 @@ impl Storage for Store {
             .bind(tx.hash.as_slice())
             .bind(tx.input.to_vec())
             .bind(tx.nonce.as_le_slice())
-            .bind(tx.to.map(|v| v.as_slice().to_vec()))
+            .bind(tx.to.as_ref().map(|v| v.as_slice()))
             .bind(tx.transaction_index.map(|v| v.to::<i64>()))
             .bind(tx.value.as_le_slice())
             .bind(tx.v.as_le_slice())
@@ -140,6 +140,48 @@ impl Storage for Store {
             })?;
 
         debug!(target: "eventify::core::store::transaction", hash=?tx.hash);
+        Ok(())
+    }
+
+    async fn store_log(&self, log: &EthLog) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log (
+            address,
+            topic0,
+            topic1,
+            topic2,
+            topic3,
+            data,
+            block_hash,
+            block_number,
+            tx_hash,
+            tx_index,
+            log_index,
+            removed
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+            ) ON CONFLICT (address, block_hash, tx_hash) DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(log.address.as_slice())
+            .bind(log.topics.first().map(|v| v.as_slice()))
+            .bind(log.topics.get(1).map(|v| v.as_slice()))
+            .bind(log.topics.get(2).map(|v| v.as_slice()))
+            .bind(log.topics.get(3).map(|v| v.as_slice()))
+            .bind(log.data.0.as_ref())
+            .bind(log.block_hash.as_ref().map(|v| v.as_slice()))
+            .bind(log.block_number.map(|v| v.to::<i64>()))
+            .bind(log.transaction_hash.as_ref().map(|v| v.as_slice()))
+            .bind(log.transaction_index.map(|v| v.to::<i64>()))
+            .bind(log.log_index.map(|v| v.to::<i64>()))
+            .bind(log.removed)
+            .execute(&self.inner)
+            .await
+            .map_err(|e| StoreError::StoreLogFailed {
+                addr: log.address,
+                err: e.to_string(),
+            })?;
+
+        debug!(target: "eventify::core::store::log", address=?log.address, block=?log.block_number, event=?log.topics.first());
         Ok(())
     }
 
@@ -167,45 +209,395 @@ impl Storage for Store {
         Ok(())
     }
 
-    async fn store_log(&self, log: &EthLog) -> Result<(), Error> {
-        let sql = r#"INSERT INTO eth.log (
-            address,
-            topic0,
-            topic1,
-            topic2,
-            topic3,
-            data,
-            block_hash,
-            block_number,
+    async fn store_log_transfer(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        from: &FixedBytes<32>,
+        to: &FixedBytes<32>,
+        value: Bytes,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_transfer (
             tx_hash,
-            tx_index,
-            log_index,
-            removed
-            ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-            ) ON CONFLICT (address, block_hash, tx_hash, data) DO NOTHING"#;
+            "from",
+            "to",
+            value )
+            VALUES (
+                $1, $2, $3, $4
+            ) ON CONFLICT DO NOTHING"#;
 
         sqlx::query(sql)
-            .bind(log.address.as_slice())
-            .bind(log.topics.first().map(|v| v.map(|v| v.as_slice().to_vec())))
-            .bind(log.topics.get(1).map(|v| v.map(|v| v.as_slice().to_vec())))
-            .bind(log.topics.get(2).map(|v| v.map(|v| v.as_slice().to_vec())))
-            .bind(log.topics.get(3).map(|v| v.map(|v| v.as_slice().to_vec())))
-            .bind(log.data.0.as_ref())
-            .bind(log.block_hash.map(|v| v.as_slice().to_vec().to_vec()))
-            .bind(log.block_number.map(|v| v.to::<i64>()))
-            .bind(log.transaction_hash.map(|v| v.as_slice().to_vec()))
-            .bind(log.transaction_index.map(|v| v.to::<i64>()))
-            .bind(log.log_index.map(|v| v.to::<i64>()))
-            .bind(log.removed)
+            .bind(tx_hash.as_slice())
+            .bind(from.as_slice())
+            .bind(to.as_slice())
+            .bind(value.to_vec())
             .execute(&self.inner)
-            .await
-            .map_err(|e| StoreError::StoreLogFailed {
-                addr: log.address,
-                err: e.to_string(),
-            })?;
+            .await?;
 
-        debug!(target: "eventify::core::store::log", address=?log.address, block=?log.block_number, event=?log.topics.first());
+        debug!(target: "eventify::core::store::eth_transfer", from=?from, to=?to, value=?value);
+        Ok(())
+    }
+
+    async fn store_log_approval(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        owner: &FixedBytes<32>,
+        spender: &FixedBytes<32>,
+        value: Bytes,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_approval (
+            tx_hash,
+            owner,
+            spender,
+            value )
+            VALUES (
+                $1, $2, $3, $4
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(owner.as_slice())
+            .bind(spender.as_slice())
+            .bind(value.to_vec())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_approval", owner=?owner, spender=?spender, value=?value);
+        Ok(())
+    }
+
+    async fn store_log_approval_for_all(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        owner: &FixedBytes<32>,
+        operator: &FixedBytes<32>,
+        approved: bool,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_approval_for_all (
+            tx_hash,
+            owner,
+            operator,
+            approved )
+            VALUES (
+                $1, $2, $3, $4
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(owner.as_slice())
+            .bind(operator.as_slice())
+            .bind(approved)
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_approval_for_all", owner=?owner, operator=?operator, approved=?approved);
+        Ok(())
+    }
+
+    async fn store_log_sent(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        operator: &FixedBytes<32>,
+        from: &FixedBytes<32>,
+        to: &FixedBytes<32>,
+        amount: Bytes,
+        data: Bytes,
+        operator_data: Bytes,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_sent (
+            tx_hash,
+            operator,
+            from,
+            to,
+            amount,
+            data,
+            operator_data )
+            VALUES (
+                $1, $2, $3, $4, $5, $6, $7
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(operator.as_slice())
+            .bind(from.as_slice())
+            .bind(to.as_slice())
+            .bind(amount.to_vec())
+            .bind(data.to_vec())
+            .bind(operator_data.to_vec())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_sent", operator=?operator, from=?from, to=?to, amount=?amount);
+        Ok(())
+    }
+
+    async fn store_log_minted(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        operator: &FixedBytes<32>,
+        to: &FixedBytes<32>,
+        amount: Bytes,
+        data: Bytes,
+        operator_data: Bytes,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_minted (
+            tx_hash,
+            operator,
+            to,
+            amount,
+            data,
+            operator_data )
+            VALUES (
+                $1, $2, $3, $4, $5, $6
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(operator.as_slice())
+            .bind(to.as_slice())
+            .bind(amount.to_vec())
+            .bind(data.to_vec())
+            .bind(operator_data.to_vec())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_minted", operator=?operator, to=?to, amount=?amount);
+        Ok(())
+    }
+
+    async fn store_log_burned(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        operator: &FixedBytes<32>,
+        from: &FixedBytes<32>,
+        amount: Bytes,
+        data: Bytes,
+        operator_data: Bytes,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_burned (
+            tx_hash,
+            operator,
+            from,
+            amount,
+            data,
+            operator_data )
+            VALUES (
+                $1, $2, $3, $4, $5, $6
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(operator.as_slice())
+            .bind(from.as_slice())
+            .bind(amount.to_vec())
+            .bind(data.to_vec())
+            .bind(operator_data.to_vec())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_burned", operator=?operator, from=?from, amount=?amount);
+        Ok(())
+    }
+
+    async fn store_log_authorized_operator(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        operator: &FixedBytes<32>,
+        holder: &FixedBytes<32>,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_authorized_operator (
+            tx_hash,
+            operator,
+            holder )
+            VALUES (
+                $1, $2, $3
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(operator.as_slice())
+            .bind(holder.as_slice())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_authorized_operator", operator=?operator, holder=?holder);
+        Ok(())
+    }
+
+    async fn store_log_revoked_operator(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        operator: &FixedBytes<32>,
+        holder: &FixedBytes<32>,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_revoked_operator (
+            tx_hash,
+            operator,
+            holder )
+            VALUES (
+                $1, $2, $3
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(operator.as_slice())
+            .bind(holder.as_slice())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_revoked_operator", operator=?operator, holder=?holder);
+        Ok(())
+    }
+
+    async fn store_log_transfer_single(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        operator: &FixedBytes<32>,
+        from: &FixedBytes<32>,
+        to: &FixedBytes<32>,
+        id: U64,
+        value: Bytes,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_transfer_single (
+            tx_hash,
+            operator,
+            from,
+            to,
+            id,
+            value )
+            VALUES (
+                $1, $2, $3, $4, $5, $6
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(operator.as_slice())
+            .bind(from.as_slice())
+            .bind(to.as_slice())
+            .bind(id.to::<i64>())
+            .bind(value.to_vec())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_transfer_single", operator=?operator, from=?from, to=?to, id=?id, value=?value);
+        Ok(())
+    }
+
+    async fn store_log_transfer_batch(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        operator: &FixedBytes<32>,
+        from: &FixedBytes<32>,
+        to: &FixedBytes<32>,
+        ids: Vec<U64>,
+        values: Vec<Bytes>,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_transfer_batch (
+            tx_hash,
+            operator,
+            from,
+            to,
+            ids,
+            values )
+            VALUES (
+                $1, $2, $3, $4, $5, $6
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(operator.as_slice())
+            .bind(from.as_slice())
+            .bind(to.as_slice())
+            .bind(ids.iter().map(|v| v.to::<i64>()).collect::<Vec<_>>())
+            .bind(values.iter().map(|v| v.to_vec()).collect::<Vec<_>>())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_transfer_batch", operator=?operator, from=?from, to=?to, ids=?ids, values=?values);
+        Ok(())
+    }
+
+    async fn store_log_uri(&self, tx_hash: &FixedBytes<32>, uri: String, id: U64) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_uri (
+            tx_hash,
+            uri,
+            id )
+            VALUES (
+                $1, $2, $3
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(uri)
+            .bind(id.to::<i64>())
+            .execute(&self.inner)
+            .await?;
+
+        //debug!(target: "eventify::core::store::eth_uri", tx_hash=?tx_hash, uri=?uri, id=?id);
+        Ok(())
+    }
+
+    async fn store_log_deposit(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        sender: &FixedBytes<32>,
+        owner: &FixedBytes<32>,
+        assets: U64,
+        shares: U64,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_deposit (
+            tx_hash,
+            sender,
+            owner,
+            assets,
+            shares )
+            VALUES (
+                $1, $2, $3, $4, $5
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(sender.as_slice())
+            .bind(owner.as_slice())
+            .bind(assets.to::<i64>())
+            .bind(shares.to::<i64>())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_deposit", tx_hash=?tx_hash, sender=?sender, owner=?owner, assets=?assets, shares=?shares);
+        Ok(())
+    }
+
+    async fn store_log_withdraw(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        sender: &FixedBytes<32>,
+        receiver: &FixedBytes<32>,
+        owner: &FixedBytes<32>,
+        assets: U64,
+        shares: U64,
+    ) -> Result<(), Error> {
+        let sql = r#"INSERT INTO eth.log_withdraw (
+            tx_hash,
+            sender,
+            receiver,
+            owner,
+            assets,
+            shares )
+            VALUES (
+                $1, $2, $3, $4, $5, $6
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(tx_hash.as_slice())
+            .bind(sender.as_slice())
+            .bind(receiver.as_slice())
+            .bind(owner.as_slice())
+            .bind(assets.to::<i64>())
+            .bind(shares.to::<i64>())
+            .execute(&self.inner)
+            .await?;
+
+        debug!(target: "eventify::core::store::eth_withdraw", tx_hash=?tx_hash, owner=?owner, assets=?assets, shares=?shares);
         Ok(())
     }
 }
@@ -258,7 +650,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_block() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = Store { inner: pool };
+        let db = Storage { inner: pool };
 
         let json = serde_json::json!(
         {
@@ -302,7 +694,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_transaction() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = Store { inner: pool };
+        let db = Storage { inner: pool };
 
         let json = serde_json::json!({
             "blockHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
@@ -331,7 +723,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_contract() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = Store { inner: pool };
+        let db = Storage { inner: pool };
 
         let json = serde_json::json!({
             "transactionHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
@@ -349,7 +741,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_log() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = Store { inner: pool };
+        let db = Storage { inner: pool };
 
         let json = serde_json::json!(
             {

@@ -1,19 +1,19 @@
-use std::time::Instant;
+use std::{str::FromStr, time::Instant};
 
-use alloy_primitives::BlockNumber;
+use alloy_primitives::{bytes::Buf, fixed_bytes, Address, BlockNumber, FixedBytes, U64};
 
 use tokio::sync::watch::Receiver;
-use tracing::{info, trace};
+use tracing::{error, info, trace, warn};
 
-use crate::{emit::Emit, provider::Node, Collect, Storage};
+use crate::{emit::Emit, provider::Node, Collect, Store};
 use eventify_configs::core::CollectorConfig;
-use eventify_primitives::Criteria;
+use eventify_primitives::{consts, Criteria};
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S, E>
 where
     N: Node,
-    S: Storage,
+    S: Store,
     E: Emit,
 {
     config: CollectorConfig,
@@ -25,7 +25,7 @@ where
 impl<N, S, E> Collector<N, S, E>
 where
     N: Node,
-    S: Storage,
+    S: Store,
     E: Emit,
 {
     pub fn new(config: CollectorConfig, node: N, storage: S, mid: E) -> Self {
@@ -45,7 +45,7 @@ where
 impl<N, S, E> Collect<crate::Error> for Collector<N, S, E>
 where
     N: Node,
-    S: Storage,
+    S: Store,
     E: Emit,
 {
     async fn collect_block(&self, block: BlockNumber) -> crate::Result<()> {
@@ -138,12 +138,46 @@ where
                 break;
             };
 
-            self.storage.store_log(&log).await?;
-            self.mid.publish(
-                format!("{}:log", self.config.network).as_str(),
-                serde_json::to_string(&log)?,
-            )?;
-            log_count += 1;
+            //match log.topics.first() {
+            //    Some(topic) => {
+            //        if topic
+            //            == &"0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+            //                .parse::<FixedBytes<32>>()
+            //                .unwrap()
+            //        {
+            //            tracing::warn!("WOOP");
+            //            self.storage
+            //                .store_log_transfer(
+            //                    log.topics.get(1).unwrap(),
+            //                    log.topics.get(2).unwrap(),
+            //                    U64::from_str(log.data.to_string().as_str()).unwrap(),
+            //                )
+            //                .await?;
+            //            self.mid.publish(
+            //                format!("{}:eth_transfer", self.config.network).as_str(),
+            //                serde_json::to_string(&log)?,
+            //            )?;
+            //            log_count += 1;
+            //        } else {
+            //            self.storage.store_log(&log).await?;
+            //            self.mid.publish(
+            //                format!("{}:log", self.config.network).as_str(),
+            //                serde_json::to_string(&log)?,
+            //            )?;
+            //            log_count += 1;
+            //            tracing::warn!("BEEEEEEEEEP");
+            //        }
+            //    }
+            //    None => {
+            //        tracing::warn!("WTF?");
+            //        self.storage.store_log(&log).await?;
+            //        self.mid.publish(
+            //            format!("{}:log", self.config.network).as_str(),
+            //            serde_json::to_string(&log)?,
+            //        )?;
+            //        log_count += 1;
+            //    }
+            //}
 
             if log_count % 100 == 0 {
                 info!(processed=?true, log_count=?log_count, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
@@ -220,8 +254,100 @@ where
                 format!("{}:log", self.config.network).as_str(),
                 serde_json::to_string(&log)?,
             )?;
+
+            match log.topics.first() {
+                Some(topic) => {
+                    if topic == consts::TRANSFER.parse::<FixedBytes<32>>().as_ref().unwrap() {
+                        self.storage
+                            .store_log_transfer(
+                                &log.transaction_hash.unwrap_or_default(),
+                                log.topics.get(1).unwrap_or_default(),
+                                log.topics.get(2).unwrap_or_default(),
+                                log.data.clone(),
+                            )
+                            .await?;
+                        self.mid.publish(
+                            format!("{}:transfer", self.config.network).as_str(),
+                            serde_json::to_string(&log)?,
+                        )?;
+                    } else if topic == consts::APPROVAL.parse::<FixedBytes<32>>().as_ref().unwrap()
+                    {
+                        self.storage
+                            .store_log_approval(
+                                &log.transaction_hash.unwrap_or_default(),
+                                log.topics.get(1).unwrap_or_default(),
+                                log.topics.get(2).unwrap_or_default(),
+                                log.data.clone(),
+                            )
+                            .await?;
+                        self.mid.publish(
+                            format!("{}:eth_approval", self.config.network).as_str(),
+                            serde_json::to_string(&log)?,
+                        )?;
+                    } else if topic
+                        == consts::APPROVAL_FOR_ALL
+                            .parse::<FixedBytes<32>>()
+                            .as_ref()
+                            .unwrap()
+                    {
+                        warn!(
+                            "APPROVAL_FOR_ALL: {:#?}",
+                            log.data.clone().ends_with(&[0x1])
+                        );
+                        self.storage
+                            .store_log_approval_for_all(
+                                &log.transaction_hash.unwrap_or_default(),
+                                log.topics.get(1).unwrap_or_default(),
+                                log.topics.get(2).unwrap_or_default(),
+                                log.data.ends_with(&[0x1]),
+                            )
+                            .await?;
+                        self.mid.publish(
+                            format!("{}:log_approval_for_all", self.config.network).as_str(),
+                            serde_json::to_string(&log)?,
+                        )?;
+                    } else {
+                        self.storage.store_log(&log).await?;
+                        self.mid.publish(
+                            format!("{}:log", self.config.network).as_str(),
+                            serde_json::to_string(&log)?,
+                        )?;
+                        tracing::warn!("BEEEEEEEEEP");
+                    }
+                }
+                None => {
+                    tracing::warn!("WTF?");
+                    self.storage.store_log(&log).await?;
+                    self.mid.publish(
+                        format!("{}:log", self.config.network).as_str(),
+                        serde_json::to_string(&log)?,
+                    )?;
+                }
+            }
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloy_primitives::{hex::FromHex, Address, Bytes};
+
+    #[test]
+    fn test_bytes() {
+        let b =
+            Bytes::from_hex("0x0000000000000000000000000000000000000000000000000000000000000001")
+                .unwrap();
+        println!("{:?}", &b[15..]);
+        assert!(b.ends_with(&[0x1]));
+
+        let b =
+            Bytes::from_hex("0x0000000000000000000000000000000000000000000000000000000000000000")
+                .unwrap();
+        assert!(b.ends_with(&[0x0]));
+
+        let sent = Bytes::from_hex("0x0000000000000000000000000000000000000000000009976cd8feec903400000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
+        println!("{:?}", Address::try_from(&sent[12..32]).unwrap_or_default());
     }
 }
