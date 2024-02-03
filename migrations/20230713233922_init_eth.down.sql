@@ -7,12 +7,12 @@ DROP INDEX IF EXISTS transaction_block_number_index;
 DROP INDEX IF EXISTS transaction_from_index;
 DROP INDEX IF EXISTS transaction_to_index;
 
+DROP INDEX IF EXISTS contract_tx_hash_index;
+DROP INDEX IF EXISTS contract_from_index;
+
 DROP INDEX IF EXISTS log_address_index;
 DROP INDEX IF EXISTS log_topic0_index;
 DROP INDEX IF EXISTS log_block_number_index;
-
-DROP INDEX IF EXISTS contract_tx_hash_index;
-DROP INDEX IF EXISTS contract_from_index;
 
 DROP INDEX IF EXISTS log_transfer_from_index;
 DROP INDEX IF EXISTS log_transfer_to_index;
@@ -57,9 +57,9 @@ DROP INDEX IF EXISTS log_withdraw_tx_owner_index;
 -- tables
 DROP TABLE IF EXISTS eth.block;
 DROP TABLE IF EXISTS eth.transaction;
-DROP TABLE IF EXISTS eth.log;
 DROP TABLE IF EXISTS eth.contract;
 DROP TABLE IF EXISTS eth.fn_sig;
+DROP TABLE IF EXISTS eth.log;
 DROP TABLE IF EXISTS eth.log_transfer;
 DROP TABLE IF EXISTS eth.log_approval;
 DROP TABLE IF EXISTS eth.log_approval_for_all;

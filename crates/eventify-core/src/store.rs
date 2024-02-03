@@ -516,7 +516,12 @@ impl Store for Storage {
         Ok(())
     }
 
-    async fn store_log_uri(&self, tx_hash: &FixedBytes<32>, uri: String, id: U64) -> Result<(), Error> {
+    async fn store_log_uri(
+        &self,
+        tx_hash: &FixedBytes<32>,
+        uri: String,
+        id: U64,
+    ) -> Result<(), Error> {
         let sql = r#"INSERT INTO eth.log_uri (
             tx_hash,
             uri,

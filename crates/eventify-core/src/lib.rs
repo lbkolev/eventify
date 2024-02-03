@@ -22,7 +22,7 @@ type Result<T> = std::result::Result<T, error::Error>;
 
 use std::fmt::Debug;
 
-use alloy_primitives::{Address, BlockNumber, Bytes, FixedBytes, B256, U64};
+use alloy_primitives::{BlockNumber, Bytes, FixedBytes, B256, U64};
 use futures::Future;
 use tokio::sync::watch::Receiver;
 

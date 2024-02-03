@@ -1,13 +1,13 @@
-use std::{str::FromStr, time::Instant};
+use std::time::Instant;
 
-use alloy_primitives::{bytes::Buf, fixed_bytes, Address, BlockNumber, FixedBytes, U64};
+use alloy_primitives::{BlockNumber, FixedBytes};
 
 use tokio::sync::watch::Receiver;
-use tracing::{error, info, trace, warn};
+use tracing::{info, trace};
 
 use crate::{emit::Emit, provider::Node, Collect, Store};
 use eventify_configs::core::CollectorConfig;
-use eventify_primitives::{consts, Criteria};
+use eventify_primitives::{consts, Criteria, LogKind, ResourceKind};
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S, E>
@@ -51,11 +51,8 @@ where
     async fn collect_block(&self, block: BlockNumber) -> crate::Result<()> {
         let block = self.node.get_block(block).await?;
         self.storage.store_block(&block).await?;
-        self.mid.publish(
-            format!("{}:block", self.config.network).as_str(),
-            serde_json::to_string(&block)?,
-        )?;
-
+        self.mid
+            .publish(&self.config.network, &ResourceKind::Block, &block)?;
         Ok(())
     }
 
@@ -92,10 +89,8 @@ where
 
         for tx in tx {
             self.storage.store_transaction(&tx).await?;
-            self.mid.publish(
-                format!("{}:transaction", self.config.network).as_str(),
-                serde_json::to_string(&tx)?,
-            )?;
+            self.mid
+                .publish(&self.config.network, &ResourceKind::Transaction, &tx)?;
         }
         info!(processed=?true, tx_count=?tx_count, block=?block, elapsed=?now.elapsed());
 
@@ -138,47 +133,12 @@ where
                 break;
             };
 
-            //match log.topics.first() {
-            //    Some(topic) => {
-            //        if topic
-            //            == &"0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-            //                .parse::<FixedBytes<32>>()
-            //                .unwrap()
-            //        {
-            //            tracing::warn!("WOOP");
-            //            self.storage
-            //                .store_log_transfer(
-            //                    log.topics.get(1).unwrap(),
-            //                    log.topics.get(2).unwrap(),
-            //                    U64::from_str(log.data.to_string().as_str()).unwrap(),
-            //                )
-            //                .await?;
-            //            self.mid.publish(
-            //                format!("{}:eth_transfer", self.config.network).as_str(),
-            //                serde_json::to_string(&log)?,
-            //            )?;
-            //            log_count += 1;
-            //        } else {
-            //            self.storage.store_log(&log).await?;
-            //            self.mid.publish(
-            //                format!("{}:log", self.config.network).as_str(),
-            //                serde_json::to_string(&log)?,
-            //            )?;
-            //            log_count += 1;
-            //            tracing::warn!("BEEEEEEEEEP");
-            //        }
-            //    }
-            //    None => {
-            //        tracing::warn!("WTF?");
-            //        self.storage.store_log(&log).await?;
-            //        self.mid.publish(
-            //            format!("{}:log", self.config.network).as_str(),
-            //            serde_json::to_string(&log)?,
-            //        )?;
-            //        log_count += 1;
-            //    }
-            //}
+            log_count += 1;
+            self.storage.store_log(&log).await?;
+            self.mid
+                .publish(&self.config.network, &ResourceKind::Log(LogKind::Raw), &log)?;
 
+            // TODO add an additional thread that'll keep track of the resources' current stats
             if log_count % 100 == 0 {
                 info!(processed=?true, log_count=?log_count, latest_tx_hash=?log.transaction_hash, elapsed=?now.elapsed());
             }
@@ -195,15 +155,12 @@ where
                 trace!("Received a signal to stop streaming blocks");
                 break;
             };
-
             let block = block?;
             trace!(block=?block);
             info!(kind="block", number=?block.number, hash=?block.hash);
             self.storage.store_block(&block).await?;
-            self.mid.publish(
-                format!("{}:block", self.config.network).as_str(),
-                serde_json::to_string(&block)?,
-            )?;
+            self.mid
+                .publish(&self.config.network, &ResourceKind::Block, &block)?;
         }
 
         Ok(())
@@ -227,10 +184,8 @@ where
                 trace!(tx=?tx);
                 info!(kind="tx", hash=?tx.hash);
                 self.storage.store_transaction(&tx).await?;
-                self.mid.publish(
-                    format!("{}:transaction", self.config.network).as_str(),
-                    serde_json::to_string(&tx)?,
-                )?;
+                self.mid
+                    .publish(&self.config.network, &ResourceKind::Transaction, &tx)?;
             }
         }
 
@@ -248,16 +203,10 @@ where
 
             let log = log?;
             trace!(log=?log);
-            info!(kind="log", address=?log.address, tx_hash=?log.transaction_hash);
-            self.storage.store_log(&log).await?;
-            self.mid.publish(
-                format!("{}:log", self.config.network).as_str(),
-                serde_json::to_string(&log)?,
-            )?;
-
             match log.topics.first() {
                 Some(topic) => {
                     if topic == consts::TRANSFER.parse::<FixedBytes<32>>().as_ref().unwrap() {
+                        info!(kind=LogKind::Transfer.to_string(), address=?log.address, tx_hash=?log.transaction_hash);
                         self.storage
                             .store_log_transfer(
                                 &log.transaction_hash.unwrap_or_default(),
@@ -267,11 +216,13 @@ where
                             )
                             .await?;
                         self.mid.publish(
-                            format!("{}:transfer", self.config.network).as_str(),
-                            serde_json::to_string(&log)?,
+                            &self.config.network,
+                            &ResourceKind::Log(LogKind::Transfer),
+                            &log,
                         )?;
                     } else if topic == consts::APPROVAL.parse::<FixedBytes<32>>().as_ref().unwrap()
                     {
+                        info!(kind=LogKind::Approval.to_string(), address=?log.address, tx_hash=?log.transaction_hash);
                         self.storage
                             .store_log_approval(
                                 &log.transaction_hash.unwrap_or_default(),
@@ -281,8 +232,9 @@ where
                             )
                             .await?;
                         self.mid.publish(
-                            format!("{}:eth_approval", self.config.network).as_str(),
-                            serde_json::to_string(&log)?,
+                            &self.config.network,
+                            &ResourceKind::Log(LogKind::Approval),
+                            &log,
                         )?;
                     } else if topic
                         == consts::APPROVAL_FOR_ALL
@@ -290,10 +242,7 @@ where
                             .as_ref()
                             .unwrap()
                     {
-                        warn!(
-                            "APPROVAL_FOR_ALL: {:#?}",
-                            log.data.clone().ends_with(&[0x1])
-                        );
+                        info!(kind=LogKind::ApprovalForAll.to_string(), address=?log.address, tx_hash=?log.transaction_hash);
                         self.storage
                             .store_log_approval_for_all(
                                 &log.transaction_hash.unwrap_or_default(),
@@ -303,24 +252,27 @@ where
                             )
                             .await?;
                         self.mid.publish(
-                            format!("{}:log_approval_for_all", self.config.network).as_str(),
-                            serde_json::to_string(&log)?,
+                            &self.config.network,
+                            &ResourceKind::Log(LogKind::ApprovalForAll),
+                            &log,
                         )?;
                     } else {
+                        info!(kind=LogKind::Raw.to_string(), address=?log.address, tx_hash=?log.transaction_hash);
                         self.storage.store_log(&log).await?;
                         self.mid.publish(
-                            format!("{}:log", self.config.network).as_str(),
-                            serde_json::to_string(&log)?,
+                            &self.config.network,
+                            &ResourceKind::Log(LogKind::Raw),
+                            &log,
                         )?;
-                        tracing::warn!("BEEEEEEEEEP");
                     }
                 }
                 None => {
-                    tracing::warn!("WTF?");
+                    info!(kind=LogKind::Raw.to_string(), address=?log.address, tx_hash=?log.transaction_hash);
                     self.storage.store_log(&log).await?;
                     self.mid.publish(
-                        format!("{}:log", self.config.network).as_str(),
-                        serde_json::to_string(&log)?,
+                        &self.config.network,
+                        &ResourceKind::Log(LogKind::Raw),
+                        &log,
                     )?;
                 }
             }

@@ -57,7 +57,7 @@ where
                             .await?,
                     );
                 }
-                ResourceKind::Log => {
+                ResourceKind::Log(_) => {
                     tasks.push(
                         self.create_log_collect_task(signal_receiver.clone(), criteria.clone())
                             .await?,
@@ -89,7 +89,7 @@ where
                             .await?,
                     );
                 }
-                ResourceKind::Log => {
+                ResourceKind::Log(_) => {
                     tasks.push(self.create_log_stream_task(signal_receiver.clone()).await?);
                 }
             }
