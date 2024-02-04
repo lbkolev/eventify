@@ -1,13 +1,12 @@
 #![allow(clippy::option_map_unit_fn)]
 
 use alloy_primitives::{Address, Bytes, FixedBytes, B256, U64};
-use sqlx::{pool::PoolOptions, Pool};
+use eventify_configs::database::DatabaseConfig;
+use sqlx::{pool::PoolOptions, postgres::Postgres, Pool};
 use tracing::debug;
 
-use crate::{storage_client, Error, Store};
+use crate::{Error, Store};
 use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
-
-storage_client!(Storage, Pool<sqlx::postgres::Postgres>);
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
@@ -25,19 +24,75 @@ pub enum StoreError {
     StoreContractFailed { hash: B256, err: String },
 }
 
+#[derive(Clone, Debug)]
+pub struct Storage {
+    inner: Pool<Postgres>,
+    pub config: DatabaseConfig,
+}
+
+impl std::ops::Deref for Storage {
+    type Target = Pool<Postgres>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl std::ops::DerefMut for Storage {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+impl From<Pool<Postgres>> for Storage {
+    fn from(inner: Pool<Postgres>) -> Self {
+        Self {
+            inner,
+            config: DatabaseConfig::default(),
+        }
+    }
+}
+
+impl std::fmt::Display for Storage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}: [{}]",
+            stringify!(Storage),
+            stringify!(Pool<Postgres>)
+        )
+    }
+}
+
 impl Storage {
-    pub async fn new(url: &str) -> Self {
-        Self::connect(url).await
+    pub async fn new(pool: Pool<Postgres>, config: DatabaseConfig) -> Self {
+        Self {
+            inner: pool,
+            config,
+        }
     }
 
-    async fn connect(url: &str) -> Self {
+    pub async fn connect(config: DatabaseConfig) -> Self {
         Self {
             inner: PoolOptions::new()
-                .acquire_timeout(std::time::Duration::from_secs(2))
-                .connect_lazy(url)
-                .map_err(Error::from)
-                .expect("Failed to connect to Postgres"),
+                .acquire_timeout(std::time::Duration::from_secs(5))
+                .connect_lazy_with(config.with_db()),
+            config,
         }
+    }
+
+    pub fn inner(&self) -> &Pool<Postgres> {
+        &self.inner
+    }
+
+    pub fn with_inner(mut self, inner: Pool<Postgres>) -> Self {
+        self.inner = inner;
+        self
+    }
+
+    pub fn with_config(mut self, config: DatabaseConfig) -> Self {
+        self.config = config;
+        self
     }
 }
 
@@ -655,7 +710,10 @@ mod tests {
     #[tokio::test]
     async fn test_store_block() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = Storage { inner: pool };
+        let db = Storage {
+            inner: pool,
+            config: DatabaseConfig::default(),
+        };
 
         let json = serde_json::json!(
         {
@@ -699,7 +757,10 @@ mod tests {
     #[tokio::test]
     async fn test_store_transaction() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = Storage { inner: pool };
+        let db = Storage {
+            inner: pool,
+            config: DatabaseConfig::default(),
+        };
 
         let json = serde_json::json!({
             "blockHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
@@ -728,7 +789,10 @@ mod tests {
     #[tokio::test]
     async fn test_store_contract() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = Storage { inner: pool };
+        let db = Storage {
+            inner: pool,
+            config: DatabaseConfig::default(),
+        };
 
         let json = serde_json::json!({
             "transactionHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
@@ -746,7 +810,10 @@ mod tests {
     #[tokio::test]
     async fn test_store_log() {
         let (pool, db_name) = setup_test_db().await.unwrap();
-        let db = Storage { inner: pool };
+        let db = Storage {
+            inner: pool,
+            config: DatabaseConfig::default(),
+        };
 
         let json = serde_json::json!(
             {

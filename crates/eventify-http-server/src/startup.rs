@@ -1,13 +1,13 @@
 use std::net::TcpListener;
 
 use actix_web::{dev::Server, web, App, HttpServer};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{PgPool, Pool, Postgres};
 use utoipa::OpenApi;
 use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-use eventify_configs::configs::{ApplicationConfig, DatabaseConfig};
+use eventify_configs::configs::ApplicationConfig;
 
 use crate::{
     api::{self, block, log, transaction},
@@ -21,10 +21,8 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(settings: ApplicationConfig) -> Result<Self> {
-        let connection_pool = get_connection_pool(&settings.database);
-        let listener =
-            TcpListener::bind(format!("{}:{}", settings.server.host, settings.server.port))?;
+    pub async fn build(config: ApplicationConfig, connection_pool: Pool<Postgres>) -> Result<Self> {
+        let listener = TcpListener::bind(format!("{}:{}", config.server.host, config.server.port))?;
         let port = listener.local_addr().unwrap().port();
         let server = start(listener, connection_pool)?;
 
@@ -38,14 +36,6 @@ impl Application {
     pub async fn run_until_stopped(self) -> std::result::Result<(), std::io::Error> {
         self.server.await
     }
-}
-
-pub fn get_connection_pool(configuration: &DatabaseConfig) -> PgPool {
-    PgPoolOptions::new()
-        .acquire_timeout(std::time::Duration::from_secs(2))
-        // The connection needs to be established lazily, since the database
-        // might not be available when the application starts.
-        .connect_lazy_with(configuration.with_db())
 }
 
 #[derive(OpenApi)]
@@ -93,6 +83,7 @@ pub fn start(
             .app_data(db_pool.clone())
     })
     .listen(listener)?
+    .disable_signals()
     .run();
 
     Ok(server)

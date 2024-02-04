@@ -21,8 +21,15 @@ use std::path::Path;
 use clap::Parser;
 use eyre::Result;
 use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
-use tokio::{signal::ctrl_c, sync::watch};
-use tracing::{info, warn};
+use tokio::{
+    signal::{
+        ctrl_c,
+        unix::{signal, SignalKind},
+    },
+    sync::watch,
+};
+use tracing::{debug, info, warn};
+
 use tracing_subscriber::EnvFilter;
 
 async fn run_migrations(url: &str) -> Result<()> {
@@ -43,7 +50,7 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::builder().from_env_lossy())
         .init();
 
-    info!(target:"eventify::cli", ?cmd);
+    debug!(target:"eventify::cli", ?cmd);
     match cmd.subcmd {
         cmd::SubCommand::Run(args) => {
             run_migrations(args.database_url()).await?;
@@ -58,15 +65,12 @@ async fn main() -> Result<()> {
                 Config::from(args)
             };
 
-            let (signal_sender, signal_receiver) = watch::channel(false);
-            tokio::spawn(async move {
-                ctrl_c().await.unwrap();
-                warn!("Received Ctrl-C signal, shutting down...");
-                signal_sender.send(true).unwrap();
-            });
+            let database_config = DatabaseConfig::from(config.database_url);
+            let store = Storage::connect(database_config.clone()).await;
+            let pool = store.inner().clone();
 
-            let store = Storage::new(config.database_url.as_str()).await;
-            let redis = redis::Client::open(config.redis_url).unwrap();
+            let (signal_sender, signal_receiver) = watch::channel(false);
+            let redis = redis::Client::open(config.redis_url)?;
 
             let collector_config = CollectorConfig::new(NetworkKind::Ethereum);
             let collector = Collector::new(
@@ -95,15 +99,35 @@ async fn main() -> Result<()> {
 
             if let Some(server_config) = config.server {
                 let app_config = ApplicationConfig {
-                    database: DatabaseConfig::from(config.database_url.as_str()),
+                    database: database_config,
                     server: server_config,
                 };
                 tasks.push(tokio::spawn(async move {
-                    eventify_http_server::run(app_config).await.unwrap()
+                    eventify_http_server::run(app_config, pool).await.unwrap()
                 }))
             }
 
-            futures::future::join_all(tasks).await;
+            tokio::select! {
+                _ = futures::future::select_all(tasks) => {
+                    info!("Tasks finished.");
+                }
+                _ = tokio::spawn(async move {
+                    ctrl_c().await.unwrap();
+                    signal_sender.send(true).unwrap();
+                }) => {
+                    warn!("Received SIGINT, shutting down...");
+                    tokio::time::sleep(tokio::time::Duration::from_secs(6)).await; // give the streaming threads time to gracefully close the ws/db/queue connections
+                }
+                _ = tokio::spawn(async move {
+                    let mut stream = signal(SignalKind::terminate()).unwrap();
+
+                    loop {
+                        stream.recv().await;
+                    }
+                }) => {
+                    warn!("Received SIGTERM, shutting down...");
+                }
+            }
         }
 
         cmd::SubCommand::Db(_) => {

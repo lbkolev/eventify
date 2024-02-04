@@ -13,8 +13,11 @@ pub use error::Error;
 type Result<T> = std::result::Result<T, crate::error::Error>;
 
 /// The entry point of the API server.
-pub async fn run(settings: eventify_configs::configs::ApplicationConfig) -> Result<()> {
-    let application = startup::Application::build(settings).await?;
+pub async fn run(
+    config: eventify_configs::configs::ApplicationConfig,
+    pool: sqlx::pool::Pool<sqlx::Postgres>,
+) -> Result<()> {
+    let application = startup::Application::build(config, pool).await?;
     application.run_until_stopped().await?;
 
     Ok(())

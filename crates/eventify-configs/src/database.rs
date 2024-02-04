@@ -3,7 +3,11 @@ use std::fmt::Display;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::{
+    pool::PoolOptions,
+    postgres::{PgConnectOptions, PgPoolOptions, PgSslMode},
+    ConnectOptions, Pool, Postgres,
+};
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -35,6 +39,19 @@ impl DatabaseConfig {
 
     pub fn with_db(&self) -> PgConnectOptions {
         self.without_db().database(&self.database_name)
+    }
+}
+
+impl Default for DatabaseConfig {
+    fn default() -> Self {
+        Self {
+            database_name: "eventify".to_owned(),
+            host: "localhost".to_owned(),
+            port: 5432,
+            username: "postgres".to_owned(),
+            password: Secret::new("password".to_owned()),
+            require_ssl: false,
+        }
     }
 }
 

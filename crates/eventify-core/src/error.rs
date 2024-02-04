@@ -1,4 +1,4 @@
-use crate::{emit, store::StoreError, NodeError};
+use crate::{emit, storage::StoreError, NodeError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
