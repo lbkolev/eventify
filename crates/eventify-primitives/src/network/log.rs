@@ -10,7 +10,18 @@ use serde_json::Error;
 use sqlx::prelude::FromRow;
 use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    serde::Deserialize,
+    serde::Serialize,
+    PartialEq,
+    Eq,
+    Hash,
+    FromRow,
+    ToSchema,
+)]
 pub struct EthLog {
     pub removed: bool,
     #[serde(rename = "logIndex")]

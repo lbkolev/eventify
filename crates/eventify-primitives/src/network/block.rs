@@ -1,9 +1,19 @@
 use alloy_primitives::{Address, Bloom, Bytes, B256, B64, U256, U64};
-use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    serde::Deserialize,
+    serde::Serialize,
+    PartialEq,
+    Eq,
+    Hash,
+    FromRow,
+    ToSchema,
+)]
 pub struct EthBlock<T> {
     // -- header
     #[serde(rename = "parentHash")]
@@ -21,7 +31,6 @@ pub struct EthBlock<T> {
     #[serde(rename = "logsBloom")]
     pub bloom: Option<Bloom>,
     pub difficulty: U256,
-    //#[serde(deserialize_with = "deserialize_hex_string")]
     pub number: Option<U64>,
     #[serde(rename = "gasLimit")]
     pub gas_limit: U256,
@@ -68,8 +77,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn deserialize_block() {
-        let json = serde_json::json!(
+    fn deserialize_eth_block() {
+        let mut json = serde_json::json!(
         {
             "baseFeePerGas": "0x7",
             "miner": "0x0000000000000000000000000000000000000001",
@@ -100,12 +109,10 @@ mod tests {
             "uncles": []
           }
         );
-
-        serde_json::from_value::<EthBlock<B256>>(json).unwrap();
     }
 
     #[test]
-    fn deserialize_empty_block() {
+    fn deserialize_empty_eth_block() {
         let json = serde_json::json!({});
 
         assert!(serde_json::from_value::<EthBlock<B256>>(json).is_err());

@@ -7,12 +7,11 @@ use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-use eventify_configs::configs::ApplicationConfig;
-
 use crate::{
     api::{self, block, log, transaction},
     Result,
 };
+use eventify_configs::configs::ApplicationConfig;
 
 #[allow(missing_debug_implementations)]
 pub struct Application {

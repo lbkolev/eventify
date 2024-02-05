@@ -1,14 +1,12 @@
-use std::collections::HashSet;
-
-use eventify_primitives::{NetworkKind, ResourceKind};
+use eventify_primitives::network::{NetworkKind, ResourceKind};
 
 #[derive(Clone, Debug, Default)]
 pub struct ManagerConfig {
-    pub resources: HashSet<ResourceKind>,
+    pub resources: std::collections::HashSet<ResourceKind>,
 }
 
 impl ManagerConfig {
-    pub fn new(resources: HashSet<ResourceKind>) -> Self {
+    pub fn new(resources: std::collections::HashSet<ResourceKind>) -> Self {
         Self { resources }
     }
 }

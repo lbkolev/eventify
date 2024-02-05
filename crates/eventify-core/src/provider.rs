@@ -5,7 +5,7 @@ use eyre::Result;
 use futures::Future;
 use jsonrpsee::core::client::Subscription;
 
-use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction};
+use eventify_primitives::network::{Criteria, EthBlock, EthLog, EthTransaction};
 
 pub trait Node: 'static + Clone + Sync + Send {
     fn get_block_number(&self) -> impl Future<Output = Result<BlockNumber>> + Send;

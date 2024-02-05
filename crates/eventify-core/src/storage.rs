@@ -6,7 +6,7 @@ use sqlx::{pool::PoolOptions, postgres::Postgres, Pool};
 use tracing::debug;
 
 use crate::{Error, Store};
-use eventify_primitives::{Contract, EthBlock, EthLog, EthTransaction};
+use eventify_primitives::network::{Contract, EthBlock, EthLog, EthTransaction};
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]

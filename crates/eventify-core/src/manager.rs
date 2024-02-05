@@ -4,7 +4,7 @@ use tracing::{error, info};
 
 use crate::{collector::Collector, emit::Emit, provider::Node, Collect, Store};
 use eventify_configs::configs::ManagerConfig;
-use eventify_primitives::{Criteria, ResourceKind};
+use eventify_primitives::network::{Criteria, ResourceKind};
 
 #[derive(Debug, Clone)]
 pub struct Manager<N, S, E>

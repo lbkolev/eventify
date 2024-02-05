@@ -22,7 +22,7 @@ pub(crate) struct Cmd {
 
 #[derive(Debug, Clone, clap::Subcommand)]
 pub(crate) enum SubCommand {
-    Run(run::Cmd),
+    Run(Box<run::Cmd>),
     Db(db::Cmd),
     Config(config::Cmd),
 }

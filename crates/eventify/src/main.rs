@@ -13,7 +13,7 @@ use eventify_configs::{
     Config, ModeKind,
 };
 use eventify_core::{networks::eth::Eth, Collector, Manager, Storage};
-use eventify_primitives::{Criteria, NetworkKind};
+use eventify_primitives::network::{Criteria, NetworkKind};
 //--
 
 use std::path::Path;
@@ -62,7 +62,7 @@ async fn main() -> Result<()> {
                 info!(target:"eventify::cli", "Loading config from {}", file);
                 toml::from_str(std::fs::read_to_string(file.as_str())?.as_str())?
             } else {
-                Config::from(args)
+                Config::from(*args)
             };
 
             let database_config = DatabaseConfig::from(config.database_url);

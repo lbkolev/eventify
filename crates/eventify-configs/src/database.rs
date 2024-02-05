@@ -3,11 +3,7 @@ use std::fmt::Display;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::{
-    pool::PoolOptions,
-    postgres::{PgConnectOptions, PgPoolOptions, PgSslMode},
-    ConnectOptions, Pool, Postgres,
-};
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize)]

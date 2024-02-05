@@ -25,6 +25,7 @@ resolver = "2"
 # internal
 eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1" }
 eventify-core = { path = "./crates/eventify-core", version = "0.0.1" }
+eventify-engine = { path = "./crates/eventify-engine", version = "0.0.1" }
 eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
 eventify-configs = { path = "./crates/eventify-configs", version = "0.0.1" }
 eventify-client = { path = "./crates/eventify-http-client", version = "0.0.1" }
@@ -38,7 +39,7 @@ serde = "1.0.171"
 serde-aux = "4.2.0"
 serde_derive = "1.0.171"
 serde_json = "1.0.104"
-sqlx = { version = "0.7.3", features = ["postgres", "runtime-tokio"] }
+sqlx = { version = "0.7.3", features = ["postgres", "runtime-tokio", "chrono"] }
 redis = "0.24.0"
 
 # eth

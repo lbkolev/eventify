@@ -12,7 +12,7 @@ pub mod configs {
 
 use std::{collections::HashSet, fmt, str::FromStr};
 
-use eventify_primitives::{LogKind, ResourceKind};
+use eventify_primitives::network::{LogKind, ResourceKind};
 use serde::{self, Deserialize, Deserializer};
 use server::ServerConfig;
 

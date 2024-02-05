@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use eventify_primitives::{NetworkKind, ResourceKind};
+use eventify_primitives::network::{NetworkKind, ResourceKind};
 use redis::{Commands, RedisError};
 use serde::Serialize;
 

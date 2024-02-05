@@ -7,7 +7,10 @@ use tracing::{info, trace};
 
 use crate::{emit::Emit, provider::Node, Collect, Store};
 use eventify_configs::core::CollectorConfig;
-use eventify_primitives::{consts, Criteria, LogKind, ResourceKind};
+use eventify_primitives::{
+    consts,
+    network::{Criteria, LogKind, ResourceKind},
+};
 
 #[derive(Debug, Clone)]
 pub struct Collector<N, S, E>

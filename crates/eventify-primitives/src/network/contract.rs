@@ -1,9 +1,21 @@
 use alloy_primitives::{Address, Bytes, B256};
-use serde::{Deserialize, Serialize};
+use sqlx::prelude::FromRow;
+use utoipa::ToSchema;
 
-use crate::EthTransaction;
+use super::transaction::EthTransaction;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    serde::Deserialize,
+    serde::Serialize,
+    PartialEq,
+    Eq,
+    Hash,
+    FromRow,
+    ToSchema,
+)]
 #[serde(rename_all = "camelCase")]
 pub struct Contract {
     pub transaction_hash: B256,

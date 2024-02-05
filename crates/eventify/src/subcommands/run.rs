@@ -5,7 +5,7 @@ use clap::{Args, Parser};
 use secrecy::{ExposeSecret, Secret};
 
 use eventify_configs::{configs::ServerConfig, Config, Mode, ModeKind, Network, NetworkDetail};
-use eventify_primitives::{NetworkKind, ResourceKind};
+use eventify_primitives::network::{NetworkKind, ResourceKind};
 
 #[derive(Clone, Debug, Parser)]
 #[command(about = "Idx from range or stream directly from the tip of the chain")]
@@ -121,10 +121,6 @@ impl Cmd {
     pub(crate) fn node_url(&self) -> &str {
         &self.node_url
     }
-
-    //    pub(crate) fn network(&self) -> NetworkKind {
-    //        self.network
-    //    }
 }
 
 impl From<Cmd> for Config {
@@ -149,7 +145,7 @@ impl From<Cmd> for Config {
     }
 }
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ServerSettings {
     #[arg(
         long = "server.threads",
@@ -224,16 +220,169 @@ mod tests {
 
         let args = CommandParser::<ServerSettings>::parse_from([
             "run",
-            "--server.host",
-            "1.2.3.4",
-            "--server.port",
-            "5678",
+            "--server.host=1.2.3.4",
+            "--server.port=5678",
         ])
         .args;
 
         assert_eq!(args.host, "1.2.3.4");
+        assert_eq!(args.port, 5678);
 
         remove_var("EVENTIFY_SERVER_HOST");
         remove_var("EVENTIFY_SERVER_PORT");
+    }
+
+    #[test]
+    #[serial]
+    fn test_run_default_values() {
+        let args = CommandParser::<Cmd>::parse_from(["run"]).args;
+
+        assert_eq!(args.config, Some("etc/configs/default.toml".to_string()));
+        assert_eq!(args.mode, ModeKind::Stream);
+        assert_eq!(args.src, None);
+        assert_eq!(args.dst, None);
+        assert_eq!(args.step, None);
+        assert_eq!(
+            args.database_url(),
+            "postgres://postgres:password@localhost:5432/eventify"
+        );
+        assert_eq!(args.redis_url(), "redis://localhost:6379");
+        assert_eq!(args.network, NetworkKind::Ethereum);
+        assert_eq!(args.node_url(), "wss://eth.llamarpc.com");
+        assert_eq!(args.collect, "blocks,tx,logs");
+        assert_eq!(args.server, None);
+    }
+
+    #[test]
+    #[serial]
+    fn test_run_env_values() {
+        set_var("EVENTIFY_MODE", "batch");
+        set_var("EVENTIFY_SRC_BLOCK", "1");
+        set_var("EVENTIFY_DST_BLOCK", "100");
+        set_var("EVENTIFY_STEP", "10");
+        set_var(
+            "DATABASE_URL",
+            "postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify",
+        );
+        set_var("REDIS_URL", "redis://localhost:6379");
+        set_var("EVENTIFY_NETWORK", "zksync");
+        set_var("EVENTIFY_NODE_URL", "wss://zksync.llamarpc.com");
+        set_var("EVENTIFY_COLLECT", "txs,logs");
+        set_var("EVENTIFY_SERVER_HOST", "127.0.0.1");
+        set_var("EVENTIFY_SERVER_PORT", "1234");
+
+        let args = CommandParser::<Cmd>::parse_from(["run"]).args;
+
+        assert_eq!(args.mode, ModeKind::Batch);
+        assert_eq!(args.src, Some(1));
+        assert_eq!(args.dst, Some(100));
+        assert_eq!(args.step, Some(10));
+        assert_eq!(
+            args.database_url(),
+            "postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify"
+        );
+        assert_eq!(args.redis_url(), "redis://localhost:6379");
+        assert_eq!(args.network, NetworkKind::Zksync);
+        assert_eq!(args.node_url(), "wss://zksync.llamarpc.com");
+        assert_eq!(args.collect, "txs,logs");
+        assert_eq!(
+            args.server,
+            Some(ServerSettings {
+                threads: num_cpus::get(),
+                host: "127.0.0.1".to_string(),
+                port: 1234
+            })
+        );
+
+        remove_var("EVENTIFY_CONFIG");
+        remove_var("EVENTIFY_MODE");
+        remove_var("EVENTIFY_SRC_BLOCK");
+        remove_var("EVENTIFY_DST_BLOCK");
+        remove_var("EVENTIFY_STEP");
+        remove_var("DATABASE_URL");
+        remove_var("REDIS_URL");
+        remove_var("EVENTIFY_NETWORK");
+        remove_var("EVENTIFY_NODE_URL");
+        remove_var("EVENTIFY_COLLECT");
+        remove_var("EVENTIFY_SERVER_HOST");
+        remove_var("EVENTIFY_SERVER_PORT");
+    }
+
+    #[test]
+    #[serial]
+    fn test_run_args_precedence() {
+        set_var("EVENTIFY_MODE", "batch");
+        set_var("EVENTIFY_SRC_BLOCK", "1");
+        set_var("EVENTIFY_DST_BLOCK", "100");
+        set_var("EVENTIFY_STEP", "10");
+        set_var(
+            "DATABASE_URL",
+            "postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify",
+        );
+        set_var("REDIS_URL", "redis://localhost:6379");
+        set_var("EVENTIFY_NETWORK", "zksync");
+        set_var("EVENTIFY_NODE_URL", "wss://zksync.llamarpc.com");
+        set_var("EVENTIFY_COLLECT", "txs,logs");
+        set_var("EVENTIFY_SERVER_HOST", "localhost");
+        set_var("EVENTIFY_SERVER_PORT", "1234");
+
+        let args = CommandParser::<Cmd>::parse_from([
+            "run",
+            "--mode=stream",
+            "--src-block=2",
+            "--dst-block=200",
+            "--step=20",
+            "--database-url=postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify",
+            "--redis-url=redis://localhost:6379",
+            "--network=ethereum",
+            "--node-url=wss://eth.llamarpc.com",
+            "--collect=txs,logs,blocks",
+            "--server.host=localhost",
+        ])
+        .args;
+
+        assert_eq!(args.mode, ModeKind::Stream);
+        assert_eq!(args.src, Some(2));
+        assert_eq!(args.dst, Some(200));
+        assert_eq!(args.step, Some(20));
+        assert_eq!(
+            args.database_url(),
+            "postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify"
+        );
+        assert_eq!(args.redis_url(), "redis://localhost:6379");
+        assert_eq!(args.network, NetworkKind::Ethereum);
+        assert_eq!(args.node_url(), "wss://eth.llamarpc.com");
+        assert_eq!(args.collect, "txs,logs,blocks");
+        assert_eq!(
+            args.server,
+            Some(ServerSettings {
+                threads: num_cpus::get(),
+                host: "localhost".to_string(),
+                port: 1234
+            })
+        );
+
+        remove_var("EVENTIFY_MODE");
+        remove_var("EVENTIFY_SRC_BLOCK");
+        remove_var("EVENTIFY_DST_BLOCK");
+        remove_var("EVENTIFY_STEP");
+        remove_var("DATABASE_URL");
+        remove_var("REDIS_URL");
+        remove_var("EVENTIFY_NETWORK");
+        remove_var("EVENTIFY_NODE_URL");
+        remove_var("EVENTIFY_COLLECT");
+        remove_var("EVENTIFY_SERVER_HOST");
+        remove_var("EVENTIFY_SERVER_PORT");
+    }
+
+    #[test]
+    #[serial]
+    fn test_run_conclict_err() {
+        let result = CommandParser::<Cmd>::try_parse_from([
+            "run",
+            "--config=etc/configs/default.toml",
+            "--mode=batch",
+        ]);
+        assert!(result.is_err());
     }
 }

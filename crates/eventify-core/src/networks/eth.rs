@@ -2,12 +2,15 @@ use std::sync::Arc;
 
 use crate::{impl_provider, provider::Node, NodeError};
 use alloy_primitives::{BlockNumber, B256};
-use eventify_primitives::{Criteria, EthBlock, EthLog, EthTransaction, TransactionResponse};
 use eyre::Result;
 use jsonrpsee::{
     core::client::{ClientT, Subscription, SubscriptionClientT},
     rpc_params,
     ws_client::{WsClient, WsClientBuilder},
+};
+
+use eventify_primitives::network::{
+    Criteria, EthBlock, EthLog, EthTransaction, TransactionResponse,
 };
 
 impl_provider!(Eth, WsClient);
