@@ -89,17 +89,6 @@ pub trait PlatformTrait<T> {
     fn network(&self) -> Self::Network;
 }
 
-//impl PlatformTrait<PlatformKind> for Platform {
-//    type Network = NetworkKind;
-//    type Trigger = TriggerKind;
-//
-//    fn network(&self) -> Self::Network {
-//        match self.kind {
-//            PlatformKind::Discord => NetworkKind::Ethereum,
-//        }
-//    }
-//}
-
 #[cfg(test)]
 mod tests {
     use super::*;

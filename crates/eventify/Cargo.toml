@@ -23,23 +23,12 @@ eventify-http-server.workspace = true
 eventify-primitives.workspace = true
 eventify-configs.workspace = true
 
-# async
 futures.workspace = true
 tokio.workspace = true
-
-# core
 clap = { workspace = true, features = ["derive", "env"] }
 sqlx.workspace = true
 redis.workspace = true
-
-# eth
 alloy-primitives.workspace = true
-
-# tracing
-tracing.workspace = true
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-
-# auxiliary
 num_cpus.workspace = true
 url.workspace = true
 secrecy.workspace = true
@@ -47,6 +36,8 @@ thiserror.workspace = true
 eyre.workspace = true
 either.workspace = true
 toml.workspace = true
+tracing.workspace = true
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 
 [dev-dependencies]
 temp-env = "0.3.6"

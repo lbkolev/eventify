@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn deserialize_eth_block() {
-        let _json = serde_json::json!(
+        let json = serde_json::json!(
         {
             "baseFeePerGas": "0x7",
             "miner": "0x0000000000000000000000000000000000000001",
@@ -140,6 +140,8 @@ mod tests {
             "uncles": []
           }
         );
+
+        serde_json::from_value::<EthBlock<B256>>(json).unwrap();
     }
 
     #[test]
