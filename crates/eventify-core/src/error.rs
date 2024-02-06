@@ -12,9 +12,6 @@ pub enum Error {
     JoinTask(#[from] tokio::task::JoinError),
 
     #[error(transparent)]
-    EventifyPrimitives(#[from] eventify_primitives::Error),
-
-    #[error(transparent)]
     Sql(#[from] sqlx::Error),
 
     #[error("rpc error: {0:?}")]

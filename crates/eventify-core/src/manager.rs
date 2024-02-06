@@ -1,6 +1,6 @@
 use alloy_primitives::BlockNumber;
 use tokio::{sync::watch::Receiver, task::JoinHandle};
-use tracing::{error, info};
+use tracing::{info, warn};
 
 use crate::{
     collector::Collector,
@@ -40,8 +40,6 @@ where
     pub async fn init_collect_tasks(
         &self,
         stop_signal: Receiver<bool>,
-        src: BlockNumber,
-        dst: BlockNumber,
         criteria: Criteria,
     ) -> crate::Result<Vec<JoinHandle<()>>> {
         let mut tasks = Vec::new();
@@ -50,14 +48,22 @@ where
             match r {
                 ResourceKind::Block => {
                     tasks.push(
-                        self.create_block_collect_task(stop_signal.clone(), src, dst)
-                            .await?,
+                        self.create_block_collect_task(
+                            stop_signal.clone(),
+                            criteria.from,
+                            criteria.to,
+                        )
+                        .await?,
                     );
                 }
                 ResourceKind::Transaction => {
                     tasks.push(
-                        self.create_transaction_collect_task(stop_signal.clone(), src, dst)
-                            .await?,
+                        self.create_transaction_collect_task(
+                            stop_signal.clone(),
+                            criteria.from,
+                            criteria.to,
+                        )
+                        .await?,
                     );
                 }
                 ResourceKind::Log(_) => {
@@ -131,7 +137,12 @@ where
         let collector = self.collector.clone();
         info!("Spawning logs thread");
         Ok(tokio::spawn(async move {
-            let _ = collector.collect_logs(stop_signal, &criteria).await;
+            match collector.collect_logs(stop_signal, &criteria).await {
+                Ok(_) => info!("good stuff"),
+                Err(e) => {
+                    warn!("{}", e)
+                }
+            }
         }))
     }
 

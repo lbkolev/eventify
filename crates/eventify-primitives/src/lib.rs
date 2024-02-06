@@ -3,12 +3,8 @@
 #![deny(unused_must_use, rust_2018_idioms)]
 
 pub mod consts;
-pub mod error;
 pub mod networks;
 pub mod platform;
-
-pub use error::Error;
-type Result<T> = std::result::Result<T, error::Error>;
 
 pub mod eth {
     pub use crate::networks::eth::{

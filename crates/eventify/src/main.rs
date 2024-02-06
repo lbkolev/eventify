@@ -53,7 +53,6 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::builder().from_env_lossy())
         .init();
 
-    debug!(target:"eventify::cli", ?cmd);
     match cmd.subcmd {
         cmd::SubCommand::Run(args) => {
             run_migrations(args.database_url()).await?;
@@ -67,6 +66,7 @@ async fn main() -> Result<()> {
             } else {
                 Config::from(*args)
             };
+            debug!(target:"eventify::cli", ?config);
 
             let database_config = DatabaseConfig::from(config.database_url);
             let store = Storage::connect(database_config.clone()).await;
@@ -85,14 +85,16 @@ async fn main() -> Result<()> {
 
             let mut tasks = match config.mode.kind {
                 ModeKind::Batch => {
-                    manager
-                        .init_collect_tasks(
-                            signal_receiver,
-                            config.mode.src.unwrap(),
-                            config.mode.dst.unwrap(),
-                            Criteria::default(),
-                        )
-                        .await?
+                    if let (Some(src), Some(dst)) = (config.mode.src, config.mode.dst) {
+                        manager
+                            .init_collect_tasks(
+                                signal_receiver,
+                                Criteria::new(src, dst, None, None),
+                            )
+                            .await?
+                    } else {
+                        vec![]
+                    }
                 }
                 ModeKind::Stream => manager.init_stream_tasks(signal_receiver).await?,
             };

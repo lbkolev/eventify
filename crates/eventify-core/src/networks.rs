@@ -1,7 +1,5 @@
 pub mod eth;
 
-use std::num::ParseIntError;
-
 #[derive(Clone)]
 pub struct NetworkClient {
     inner: std::sync::Arc<reconnecting_jsonrpsee_ws_client::Client>,
@@ -72,7 +70,7 @@ pub enum NetworkError {
     },
 
     #[error(transparent)]
-    ParseInt(#[from] ParseIntError),
+    ParseInt(#[from] std::num::ParseIntError),
 
     #[error("Failed deserialization, {err}")]
     DeserializationFailed { err: String },

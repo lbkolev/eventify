@@ -1,14 +1,15 @@
-collect = "blocks,tx,logs"
+collect = "block"
 queue_url = "redis://localhost:6379"
 database_url = "postgres://postgres:password@localhost:5432/eventify"
 
 [server]
+host = "0.0.0.0"
 port = 21420
 
 [mode]
 kind = "batch"
-src = 1
-dst = 15000
+src = 3500000
+dst = 3502000
 step = 1
 
 [network]

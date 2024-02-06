@@ -9,7 +9,7 @@ use eventify_configs::core::CollectorConfig;
 use eventify_primitives::{
     consts,
     networks::{eth::Criteria, LogKind, ResourceKind},
-    traits::{Block as _, Log as _, Transaction as _},
+    traits::{Block as _, Log as _},
 };
 
 #[derive(Debug, Clone)]
@@ -69,7 +69,7 @@ where
         let now = Instant::now();
 
         for block in from..=to {
-            if signal_receiver.borrow().to_owned() {
+            if *signal_receiver.borrow() {
                 trace!("Received a signal to stop processing blocks");
                 break;
             };
@@ -109,7 +109,7 @@ where
         info!("Processing transactions from blocks {}..{}", from, to);
 
         for block in from..=to {
-            if signal_receiver.borrow().to_owned() {
+            if *signal_receiver.borrow() {
                 trace!("Received a signal to stop processing transactions");
                 break;
             };
@@ -131,7 +131,7 @@ where
         let mut log_count = 0;
 
         for log in logs {
-            if signal_receiver.borrow().to_owned() {
+            if *signal_receiver.borrow() {
                 trace!("Received a signal to stop processing logs");
                 break;
             };
@@ -153,12 +153,13 @@ where
         let mut stream = self.node.sub_blocks().await?;
 
         while let Some(block) = stream.next().await {
-            if signal_receiver.borrow().to_owned() {
+            if *signal_receiver.borrow() {
                 trace!("Received a signal to stop streaming blocks");
                 break;
             };
 
-            let block = serde_json::from_str::<<N as Network>::LightBlock>(block?.get())?;
+            let block = block?;
+            let block = serde_json::from_str::<<N as Network>::LightBlock>(block.get())?;
             trace!(block=?block);
             info!(kind="block", number=?block.number(), hash=?block.hash());
             self.storage.store_block(&block).await?;
@@ -173,7 +174,7 @@ where
         let mut stream = self.node.sub_logs().await?;
 
         while let Some(log) = stream.next().await {
-            if signal_receiver.borrow().to_owned() {
+            if *signal_receiver.borrow() {
                 trace!("Received a signal to stop streaming logs");
                 break;
             };

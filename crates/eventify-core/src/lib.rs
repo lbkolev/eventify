@@ -58,7 +58,6 @@ pub mod traits {
             from: BlockNumber,
             to: BlockNumber,
         ) -> impl Future<Output = Result<(), E>>;
-
         fn stream_blocks(
             &self,
             signal_receiver: Receiver<bool>,
@@ -134,6 +133,7 @@ pub mod traits {
             operator: &FixedBytes<32>,
             approved: bool,
         ) -> impl Future<Output = Result<(), Error>> + Send;
+        #[allow(clippy::too_many_arguments)]
         fn store_log_sent(
             &self,
             tx_hash: &FixedBytes<32>,

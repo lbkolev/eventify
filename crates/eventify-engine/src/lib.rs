@@ -1,8 +1,7 @@
-use eventify_configs::Network;
+#![allow(dead_code)]
 use eventify_primitives::{networks::NetworkKind, platform::PlatformKind};
-use serde::Deserialize;
-use sqlx::{postgres::PgPoolOptions, FromRow, Pool, Postgres};
-use std::{env, process::Output};
+
+use sqlx::{FromRow, Pool, Postgres};
 
 #[derive(
     Clone,
@@ -72,14 +71,14 @@ impl Notify<Notification> for Discord {
 
 #[derive(Debug, FromRow)]
 struct Notification {
-    id: i32,
-    name: String,
-    network_id: i32,
-    platform_id: i32,
-    trigger_id: i32,
-    trigger_type: TriggerKind,
-    channel: String,
-    message: String,
+    pub id: i32,
+    pub name: String,
+    pub network_id: i32,
+    pub platform_id: i32,
+    pub trigger_id: i32,
+    pub trigger_type: TriggerKind,
+    pub channel: String,
+    pub message: String,
 }
 
 pub trait PlatformTrait<T> {
@@ -92,6 +91,7 @@ pub trait PlatformTrait<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::postgres::PgPoolOptions;
 
     #[tokio::test]
     async fn test_engine_fetch_triggers() {

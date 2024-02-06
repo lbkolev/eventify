@@ -24,7 +24,6 @@ impl Emit<Eth> for redis::Client {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use redis::Commands;
     use serde::{Deserialize, Serialize};
 
