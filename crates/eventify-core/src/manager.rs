@@ -108,7 +108,7 @@ where
         info!("Spawning blocks thread");
         Ok(tokio::spawn(async move {
             let _ = collector.collect_blocks(stop_signal, src, dst).await;
-            std::future::pending::<()>().await
+            // std::future::pending::<()>().await
         }))
     }
 
@@ -124,7 +124,7 @@ where
             let _ = collector
                 .collect_transactions_from_range(stop_signal, src, dst)
                 .await;
-            std::future::pending::<()>().await
+            // std::future::pending::<()>().await
         }))
     }
 
@@ -137,7 +137,7 @@ where
         info!("Spawning logs thread");
         Ok(tokio::spawn(async move {
             let _ = collector.collect_logs(stop_signal, &criteria).await;
-            std::future::pending::<()>().await
+            // std::future::pending::<()>().await
         }))
     }
 
@@ -149,7 +149,7 @@ where
         info!("Spawning block streaming thread");
         Ok(tokio::spawn(async move {
             let _ = collector.stream_blocks(stop_signal).await;
-            std::future::pending::<()>().await
+            //std::future::pending::<()>().await
         }))
     }
 
@@ -161,7 +161,7 @@ where
         info!("Spawning transaction streaming thread");
         Ok(tokio::spawn(async move {
             let _ = collector.stream_transactions(stop_signal).await;
-            std::future::pending::<()>().await
+            //std::future::pending::<()>().await
         }))
     }
 
@@ -173,7 +173,7 @@ where
         info!("Spawning log streaming thread");
         Ok(tokio::spawn(async move {
             let _ = collector.stream_logs(stop_signal).await;
-            std::future::pending::<()>().await
+            //std::future::pending::<()>().await
         }))
     }
 }

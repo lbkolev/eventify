@@ -179,6 +179,8 @@ where
             };
 
             let block = serde_json::from_str::<<N as Network>::Block>(block?.get())?;
+
+            
             let tx = self
                 .node
                 .get_transactions(block.number().expect("Invalid block number").to::<u64>())
