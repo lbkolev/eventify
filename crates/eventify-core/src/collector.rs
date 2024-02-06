@@ -169,34 +169,6 @@ where
         Ok(())
     }
 
-    async fn stream_transactions(&self, signal_receiver: Receiver<bool>) -> crate::Result<()> {
-        let mut stream = self.node.sub_blocks().await?;
-
-        while let Some(block) = stream.next().await {
-            if signal_receiver.borrow().to_owned() {
-                trace!("Received a signal to stop streaming transactions");
-                break;
-            };
-
-            let block = serde_json::from_str::<<N as Network>::Block>(block?.get())?;
-
-            
-            let tx = self
-                .node
-                .get_transactions(block.number().expect("Invalid block number").to::<u64>())
-                .await?;
-            for tx in tx {
-                trace!(tx=?tx);
-                info!(kind="tx", hash=?tx.hash());
-                self.storage.store_transaction(&tx).await?;
-                self.queue
-                    .publish(&self.config.network, &ResourceKind::Transaction, &tx)?;
-            }
-        }
-
-        Ok(())
-    }
-
     async fn stream_logs(&self, signal_receiver: Receiver<bool>) -> crate::Result<()> {
         let mut stream = self.node.sub_logs().await?;
 

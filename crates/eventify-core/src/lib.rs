@@ -63,10 +63,6 @@ pub mod traits {
             &self,
             signal_receiver: Receiver<bool>,
         ) -> impl Future<Output = Result<(), E>>;
-        fn stream_transactions(
-            &self,
-            signal_receiver: Receiver<bool>,
-        ) -> impl Future<Output = Result<(), E>>;
         fn stream_logs(
             &self,
             signal_receiver: Receiver<bool>,

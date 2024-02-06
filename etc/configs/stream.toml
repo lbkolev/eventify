@@ -1,4 +1,4 @@
-collect = "blocks,txs,logs"
+collect = "blocks,logs"
 queue_url = "redis://localhost:6379"
 database_url = "postgres://postgres:password@localhost:5432/eventify"
 

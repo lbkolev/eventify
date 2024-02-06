@@ -20,11 +20,8 @@ pub enum Error {
     #[error("rpc error: {0:?}")]
     RpcError(#[from] eyre::Report),
 
-    #[error("jsonrpsee error: {0:?}")]
-    JsonRpsee(#[from] jsonrpsee::core::ClientError),
-
     #[error(transparent)]
-    JsonRpseeRecon(#[from] reconnecting_jsonrpsee_ws_client::DisconnectWillReconnect),
+    JsonRpsee(#[from] reconnecting_jsonrpsee_ws_client::DisconnectWillReconnect),
 
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
