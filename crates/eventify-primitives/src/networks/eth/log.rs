@@ -10,6 +10,8 @@ use serde_json::Error;
 use sqlx::prelude::FromRow;
 use utoipa::ToSchema;
 
+use crate::traits::Log;
+
 #[derive(
     Clone,
     Debug,
@@ -37,6 +39,35 @@ pub struct EthLog {
     pub address: Address,
     pub data: Bytes,
     pub topics: Vec<B256>,
+}
+
+impl Log for EthLog {
+    fn block_hash(&self) -> Option<B256> {
+        self.block_hash
+    }
+    fn block_number(&self) -> Option<U64> {
+        self.block_number
+    }
+
+    fn transaction_hash(&self) -> Option<B256> {
+        self.transaction_hash
+    }
+
+    fn transaction_index(&self) -> Option<U64> {
+        self.transaction_index
+    }
+
+    fn topics(&self) -> &Vec<B256> {
+        &self.topics
+    }
+
+    fn data(&self) -> &alloy_primitives::Bytes {
+        &self.data
+    }
+
+    fn address(&self) -> &alloy_primitives::Address {
+        &self.address
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]

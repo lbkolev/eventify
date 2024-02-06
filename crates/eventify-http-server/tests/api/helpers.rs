@@ -41,12 +41,13 @@ pub async fn spawn_app() -> TestApp {
     };
 
     // Create and migrate the database
-    configure_database(&configuration.database).await;
+    let pool = configure_database(&configuration.database).await;
 
     // Launch the application as a background task
-    let application = eventify_http_server::startup::Application::build(configuration.clone())
-        .await
-        .expect("Failed to build application.");
+    let application =
+        eventify_http_server::startup::Application::build(configuration.clone(), pool)
+            .await
+            .expect("Failed to build application.");
     let application_port = application.port();
     let _ = tokio::spawn(application.run_until_stopped());
 

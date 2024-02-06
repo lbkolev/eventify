@@ -1,5 +1,5 @@
 use eventify_configs::Network;
-use eventify_primitives::{network::NetworkKind, platform::PlatformKind};
+use eventify_primitives::{networks::NetworkKind, platform::PlatformKind};
 use serde::Deserialize;
 use sqlx::{postgres::PgPoolOptions, FromRow, Pool, Postgres};
 use std::{env, process::Output};

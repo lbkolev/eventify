@@ -2,16 +2,19 @@ use alloy_primitives::BlockNumber;
 use tokio::{sync::watch::Receiver, task::JoinHandle};
 use tracing::{error, info};
 
-use crate::{collector::Collector, emit::Emit, networks::Network, Collect, Store};
+use crate::{
+    collector::Collector,
+    traits::{Collect, Emit, Network, Store},
+};
 use eventify_configs::configs::ManagerConfig;
-use eventify_primitives::network::{Criteria, ResourceKind};
+use eventify_primitives::networks::{eth::Criteria, ResourceKind};
 
 #[derive(Debug, Clone)]
 pub struct Manager<N, S, E>
 where
     N: Network,
-    S: Store,
-    E: Emit,
+    S: Store<N>,
+    E: Emit<N>,
 {
     pub config: ManagerConfig,
     pub collector: Collector<N, S, E>,
@@ -20,8 +23,8 @@ where
 impl<N, S, E> Manager<N, S, E>
 where
     N: Network,
-    S: Store,
-    E: Emit,
+    S: Store<N>,
+    E: Emit<N>,
 {
     pub fn new(config: ManagerConfig, collector: Collector<N, S, E>) -> Self {
         Self { config, collector }
@@ -31,8 +34,8 @@ where
 impl<N, S, E> Manager<N, S, E>
 where
     N: Network,
-    S: Store,
-    E: Emit,
+    S: Store<N>,
+    E: Emit<N>,
 {
     pub async fn init_collect_tasks(
         &self,

@@ -12,8 +12,11 @@ use eventify_configs::{
     database::DatabaseConfig,
     Config, ModeKind,
 };
-use eventify_core::{networks::eth::Eth, Collector, Manager, Storage};
-use eventify_primitives::network::{Criteria, NetworkKind};
+use eventify_core::{
+    networks::{eth::Eth, NetworkClient},
+    Collector, Manager, Storage,
+};
+use eventify_primitives::networks::{eth::Criteria, NetworkKind};
 //--
 
 use std::path::Path;
@@ -70,15 +73,12 @@ async fn main() -> Result<()> {
             let pool = store.inner().clone();
 
             let (signal_sender, signal_receiver) = watch::channel(false);
-            let redis = redis::Client::open(config.redis_url)?;
+            let redis = redis::Client::open(config.queue_url)?;
 
             let collector_config = CollectorConfig::new(NetworkKind::Ethereum);
-            let collector = Collector::new(
-                collector_config,
-                Eth::new(config.network.eth.unwrap().node_url).await?,
-                store,
-                redis,
-            );
+            let network_client = NetworkClient::new(config.network.eth.unwrap().node_url).await?;
+            let collector =
+                Collector::new(collector_config, Eth::new(network_client), store, redis);
 
             let manager_config = ManagerConfig::new(config.collect);
             let manager = Manager::new(manager_config.clone(), collector);
@@ -116,7 +116,7 @@ async fn main() -> Result<()> {
                     signal_sender.send(true).unwrap();
                 }) => {
                     warn!("Received SIGINT, shutting down...");
-                    tokio::time::sleep(tokio::time::Duration::from_secs(6)).await; // give the streaming threads time to gracefully close the ws/db/queue connections
+                    tokio::time::sleep(tokio::time::Duration::from_secs(6)).await; // give the streaming threads time to gracefully wind down
                 }
                 _ = tokio::spawn(async move {
                     let mut stream = signal(SignalKind::terminate()).unwrap();

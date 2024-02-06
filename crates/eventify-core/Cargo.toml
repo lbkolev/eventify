@@ -20,35 +20,28 @@ default = [
 # chain
 eth = []
 zksync = []
-starknet = []
 
 [dependencies]
 # internal
 eventify-primitives.workspace = true
 eventify-configs.workspace = true
 
-# async
 futures.workspace = true
 tokio.workspace = true
-
-# core
 serde.workspace = true
 serde-aux.workspace = true
 serde_derive.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
 redis.workspace = true
-
-# eth
 alloy-primitives = { workspace = true, features = ["postgres"]}
-
-# auxiliary
 tracing.workspace = true
 thiserror.workspace = true
 url.workspace = true
+eyre.workspace = true
 rayon = { version = "1.7.0", optional = true }
 jsonrpsee = { version = "0.21.0", features = ["full"]}
-eyre.workspace = true
+reconnecting-jsonrpsee-ws-client = "0.2.0"
 
 [dev-dependencies]
 dotenv = "0.15.0"

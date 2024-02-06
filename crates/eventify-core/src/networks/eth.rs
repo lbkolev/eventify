@@ -1,181 +1,129 @@
-use std::sync::Arc;
-
-use crate::{impl_provider, networks::Network, NetworkError};
 use alloy_primitives::{BlockNumber, B256};
-use eyre::Result;
-use jsonrpsee::{
-    core::client::{ClientT, Subscription, SubscriptionClientT},
-    rpc_params,
-    ws_client::{WsClient, WsClientBuilder},
-};
 
-use eventify_primitives::network::{
-    Criteria, EthBlock, EthLog, EthTransaction, TransactionResponse,
-};
+use crate::{networks::NetworkClient, traits::Network, NetworkError};
+use eventify_primitives::networks::eth::{Criteria, EthBlock, EthLog, EthTransaction};
+use reconnecting_jsonrpsee_ws_client::{rpc_params, Subscription};
 
-impl_provider!(Eth, WsClient);
+#[derive(Clone, Debug)]
+pub struct Eth {
+    client: NetworkClient,
+}
+
 impl Eth {
-    pub async fn new(host: String) -> Result<Self> {
-        Self::connect_with_retry(host, 5).await
-    }
-
-    pub async fn connect(host: String) -> Result<Self> {
-        Ok(Self {
-            inner: Arc::new(WsClientBuilder::default().build(&host).await?),
-        })
-    }
-
-    pub async fn connect_with_retry(host: String, max_retries: i32) -> Result<Self> {
-        let mut retries = 0;
-        loop {
-            match Self::connect(host.clone()).await {
-                Ok(client) => return Ok(client),
-                Err(e) => {
-                    if retries >= max_retries {
-                        return Err(e);
-                    } else {
-                        retries += 1;
-                    }
-                }
-            }
-        }
+    pub fn new(client: NetworkClient) -> Eth {
+        Eth { client }
     }
 }
 
 impl Network for Eth {
-    async fn get_block_number(&self) -> Result<BlockNumber> {
-        let s: Result<String> = self
-            .inner
-            .request("eth_blockNumber", rpc_params![])
-            .await
-            .map_err(|e| NetworkError::GetLatestBlockFailed { err: e.to_string() }.into());
+    type Block = EthBlock<EthTransaction>;
+    type LightBlock = EthBlock<B256>;
+    type Transaction = EthTransaction;
+    type Log = EthLog;
 
-        match s {
-            Ok(s) => Ok(BlockNumber::from_str_radix(s.trim_start_matches("0x"), 16)?),
+    async fn get_block_number(&self) -> Result<BlockNumber, NetworkError> {
+        const METHOD: &str = "eth_blockNumber";
+
+        let r = self
+            .client
+            .inner
+            .request(METHOD.into(), rpc_params![])
+            .await
+            .map_err(|e| NetworkError::GetLatestBlockFailed { err: e.to_string() })?;
+
+        let r = serde_json::from_str::<String>(r.get())
+            .map_err(|e| NetworkError::DeserializationFailed { err: e.to_string() });
+        match r {
+            Ok(r) => Ok(BlockNumber::from_str_radix(r.trim_start_matches("0x"), 16)?),
             Err(e) => Err(e),
         }
     }
 
-    async fn get_block(&self, n: BlockNumber) -> Result<EthBlock<B256>> {
-        self.inner
-            .request(
-                "eth_getBlockByNumber",
-                rpc_params![format!("0x{:x}", n), false],
-            )
+    async fn get_block(&self, n: BlockNumber) -> Result<Self::LightBlock, NetworkError> {
+        const METHOD: &str = "eth_getBlockByNumber";
+
+        let r = self
+            .client
+            .inner
+            .request(METHOD.into(), rpc_params![format!("0x{:x}", n), false])
             .await
-            .map_err(|e| {
-                NetworkError::GetBlockFailed {
-                    n,
-                    err: e.to_string(),
-                }
-                .into()
-            })
+            .map_err(|e| NetworkError::GetBlockFailed {
+                n,
+                err: e.to_string(),
+            })?;
+
+        serde_json::from_str::<Self::LightBlock>(r.get())
+            .map_err(|e| NetworkError::DeserializationFailed { err: e.to_string() })
     }
 
-    async fn get_transactions(&self, n: BlockNumber) -> Result<Vec<EthTransaction>> {
-        let r: Result<TransactionResponse> = self
+    async fn get_transactions(
+        &self,
+        n: BlockNumber,
+    ) -> Result<Vec<Self::Transaction>, NetworkError> {
+        const METHOD: &str = "eth_getBlockByNumber";
+
+        let r = self
+            .client
             .inner
-            .request(
-                "eth_getBlockByNumber",
-                rpc_params![format!("0x{:x}", n), true],
-            )
+            .request(METHOD.into(), rpc_params![format!("0x{:x}", n), true])
             .await
-            .map_err(|e| {
-                NetworkError::GetTransactionsFailed {
-                    n,
-                    err: e.to_string(),
-                }
-                .into()
-            });
+            .map_err(|e| NetworkError::GetTransactionsFailed {
+                n,
+                err: e.to_string(),
+            })?;
+
+        let r = serde_json::from_str::<Self::Block>(r.get())
+            .map_err(|e| NetworkError::DeserializationFailed { err: e.to_string() });
 
         match r {
-            Ok(r) => Ok(r.transactions),
+            Ok(r) => Ok(r.transactions.unwrap_or_default()),
             Err(e) => Err(e),
         }
     }
 
-    async fn get_logs(&self, filter: &Criteria) -> Result<Vec<EthLog>> {
-        self.inner
-            .request("eth_getLogs", rpc_params!(filter))
+    async fn get_logs(&self, filter: &Criteria) -> Result<Vec<Self::Log>, NetworkError> {
+        const METHOD: &str = "eth_getLogs";
+
+        let r = self
+            .client
+            .inner
+            .request(METHOD.into(), rpc_params!(filter))
             .await
-            .map_err(|e| NetworkError::GetLogsFailed { err: e.to_string() }.into())
+            .map_err(|e| NetworkError::GetLogsFailed { err: e.to_string() })?;
+
+        serde_json::from_str::<Vec<Self::Log>>(r.get())
+            .map_err(|e| NetworkError::DeserializationFailed { err: e.to_string() })
     }
 
-    async fn stream_blocks(&self) -> Result<Subscription<EthBlock<B256>>> {
-        self.inner
-            .subscribe("eth_subscribe", rpc_params!["newHeads"], "eth_unsubscribe")
+    async fn sub_blocks(&self) -> Result<Subscription, NetworkError> {
+        self.client
+            .inner
+            .subscribe(
+                "eth_subscribe".to_string(),
+                rpc_params!["newHeads"],
+                "eth_unsubscribe".to_string(),
+            )
             .await
-            .map_err(|e| {
-                NetworkError::BlockSubscriptionFailed {
-                    sub: "eth_subscribe".into(),
-                    params: "newHeads".into(),
-                    err: e.to_string(),
-                }
-                .into()
+            .map_err(|e| NetworkError::BlockSubscriptionFailed {
+                sub: "eth_subscribe".into(),
+                params: "newHeads".into(),
+                err: e.to_string(),
             })
     }
 
-    async fn stream_logs(&self) -> Result<Subscription<EthLog>> {
-        self.inner
-            .subscribe("eth_subscribe", rpc_params!["logs"], "eth_unsubscribe")
+    async fn sub_logs(&self) -> Result<Subscription, NetworkError> {
+        self.client
+            .inner
+            .subscribe(
+                "eth_subscribe".to_string(),
+                rpc_params!["logs"],
+                "eth_unsubscribe".to_string(),
+            )
             .await
-            .map_err(|e| {
-                NetworkError::LogSubscriptionFailed {
-                    sub: "eth_subscribe".into(),
-                    params: "logs".into(),
-                    err: e.to_string(),
-                }
-                .into()
+            .map_err(|e| NetworkError::LogSubscriptionFailed {
+                sub: "eth_subscribe".into(),
+                params: "logs".into(),
+                err: e.to_string(),
             })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[tokio::test]
-    async fn test_eth_get_block_number() {
-        let client = Eth::new("wss://eth.llamarpc.com".to_string())
-            .await
-            .unwrap();
-
-        assert!(client.get_block_number().await.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_eth_get_block() {
-        let client = Eth::new("wss://eth.llamarpc.com".to_string())
-            .await
-            .unwrap();
-
-        let block = client.get_block(1911151).await;
-        println!("{:#?}", block);
-        assert!(block.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_eth_get_transactions() {
-        let client = Eth::new("wss://eth.llamarpc.com".to_string())
-            .await
-            .unwrap();
-
-        let tx = client.get_transactions(1911151).await;
-        println!("{:#?}", tx);
-        assert!(tx.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_eth_latest_block() {
-        let client = Eth::new("wss://eth.llamarpc.com".to_string())
-            .await
-            .unwrap();
-
-        let block = client
-            .get_block(client.get_block_number().await.unwrap())
-            .await;
-        println!("{:#?}", block);
-        assert!(block.is_ok());
     }
 }

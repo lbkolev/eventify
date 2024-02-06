@@ -1,5 +1,5 @@
 collect = "blocks,tx,logs"
-redis_url = "redis://localhost:6379"
+queue_url = "redis://localhost:6379"
 database_url = "postgres://postgres:password@localhost:5432/eventify"
 
 [server]

@@ -1,4 +1,4 @@
-use crate::{emit, storage::StoreError, NetworkError};
+use crate::{storage::StorageError, NetworkError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -6,16 +6,13 @@ pub enum Error {
     Node(#[from] NetworkError),
 
     #[error(transparent)]
-    StoreClient(#[from] StoreError),
+    StoreClient(#[from] StorageError),
 
     #[error(transparent)]
     JoinTask(#[from] tokio::task::JoinError),
 
     #[error(transparent)]
     EventifyPrimitives(#[from] eventify_primitives::Error),
-
-    #[error(transparent)]
-    EmitError(#[from] emit::EmitError),
 
     #[error(transparent)]
     Sql(#[from] sqlx::Error),
@@ -27,5 +24,8 @@ pub enum Error {
     JsonRpsee(#[from] jsonrpsee::core::ClientError),
 
     #[error(transparent)]
-    SerdeJson(#[from] serde_json::Error),
+    JsonRpseeRecon(#[from] reconnecting_jsonrpsee_ws_client::DisconnectWillReconnect),
+
+    #[error(transparent)]
+    SerdeError(#[from] serde_json::Error),
 }

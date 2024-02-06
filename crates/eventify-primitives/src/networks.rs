@@ -1,22 +1,4 @@
-pub mod block;
-pub mod contract;
-pub mod log;
-pub mod transaction;
-
-pub use block::EthBlock;
-pub use contract::Contract;
-pub use log::{Criteria, EthLog};
-pub use transaction::{EthTransaction, TransactionResponse};
-
-pub trait Block {}
-impl Block for EthBlock<alloy_primitives::B256> {}
-impl Block for EthBlock<EthTransaction> {}
-
-pub trait Transaction {}
-impl Transaction for EthTransaction {}
-
-pub trait Log {}
-impl Log for EthLog {}
+pub mod eth;
 
 #[derive(Clone, Debug)]
 pub struct NetworkKindError(String);

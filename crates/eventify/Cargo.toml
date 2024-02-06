@@ -18,7 +18,7 @@ name = "eventify"
 
 [dependencies]
 # internal
-eventify-core = { workspace = true, features = ["eth", "zksync", "starknet"] }
+eventify-core = { workspace = true, features = ["eth", "zksync"] }
 eventify-http-server.workspace = true
 eventify-primitives.workspace = true
 eventify-configs.workspace = true
