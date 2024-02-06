@@ -1,9 +1,9 @@
-use crate::{emit, storage::StoreError, NodeError};
+use crate::{emit, storage::StoreError, NetworkError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    Node(#[from] NodeError),
+    Node(#[from] NetworkError),
 
     #[error(transparent)]
     StoreClient(#[from] StoreError),

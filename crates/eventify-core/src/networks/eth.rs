@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{impl_provider, provider::Node, NodeError};
+use crate::{impl_provider, networks::Network, NetworkError};
 use alloy_primitives::{BlockNumber, B256};
 use eyre::Result;
 use jsonrpsee::{
@@ -42,13 +42,13 @@ impl Eth {
     }
 }
 
-impl Node for Eth {
+impl Network for Eth {
     async fn get_block_number(&self) -> Result<BlockNumber> {
         let s: Result<String> = self
             .inner
             .request("eth_blockNumber", rpc_params![])
             .await
-            .map_err(|e| NodeError::GetLatestBlockFailed { err: e.to_string() }.into());
+            .map_err(|e| NetworkError::GetLatestBlockFailed { err: e.to_string() }.into());
 
         match s {
             Ok(s) => Ok(BlockNumber::from_str_radix(s.trim_start_matches("0x"), 16)?),
@@ -64,7 +64,7 @@ impl Node for Eth {
             )
             .await
             .map_err(|e| {
-                NodeError::GetBlockFailed {
+                NetworkError::GetBlockFailed {
                     n,
                     err: e.to_string(),
                 }
@@ -81,7 +81,7 @@ impl Node for Eth {
             )
             .await
             .map_err(|e| {
-                NodeError::GetTransactionsFailed {
+                NetworkError::GetTransactionsFailed {
                     n,
                     err: e.to_string(),
                 }
@@ -98,7 +98,7 @@ impl Node for Eth {
         self.inner
             .request("eth_getLogs", rpc_params!(filter))
             .await
-            .map_err(|e| NodeError::GetLogsFailed { err: e.to_string() }.into())
+            .map_err(|e| NetworkError::GetLogsFailed { err: e.to_string() }.into())
     }
 
     async fn stream_blocks(&self) -> Result<Subscription<EthBlock<B256>>> {
@@ -106,7 +106,7 @@ impl Node for Eth {
             .subscribe("eth_subscribe", rpc_params!["newHeads"], "eth_unsubscribe")
             .await
             .map_err(|e| {
-                NodeError::BlockSubscriptionFailed {
+                NetworkError::BlockSubscriptionFailed {
                     sub: "eth_subscribe".into(),
                     params: "newHeads".into(),
                     err: e.to_string(),
@@ -120,7 +120,7 @@ impl Node for Eth {
             .subscribe("eth_subscribe", rpc_params!["logs"], "eth_unsubscribe")
             .await
             .map_err(|e| {
-                NodeError::LogSubscriptionFailed {
+                NetworkError::LogSubscriptionFailed {
                     sub: "eth_subscribe".into(),
                     params: "logs".into(),
                     err: e.to_string(),

@@ -8,6 +8,16 @@ pub use contract::Contract;
 pub use log::{Criteria, EthLog};
 pub use transaction::{EthTransaction, TransactionResponse};
 
+pub trait Block {}
+impl Block for EthBlock<alloy_primitives::B256> {}
+impl Block for EthBlock<EthTransaction> {}
+
+pub trait Transaction {}
+impl Transaction for EthTransaction {}
+
+pub trait Log {}
+impl Log for EthLog {}
+
 #[derive(Clone, Debug)]
 pub struct NetworkKindError(String);
 

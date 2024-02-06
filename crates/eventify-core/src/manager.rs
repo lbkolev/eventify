@@ -2,14 +2,14 @@ use alloy_primitives::BlockNumber;
 use tokio::{sync::watch::Receiver, task::JoinHandle};
 use tracing::{error, info};
 
-use crate::{collector::Collector, emit::Emit, provider::Node, Collect, Store};
+use crate::{collector::Collector, emit::Emit, networks::Network, Collect, Store};
 use eventify_configs::configs::ManagerConfig;
 use eventify_primitives::network::{Criteria, ResourceKind};
 
 #[derive(Debug, Clone)]
 pub struct Manager<N, S, E>
 where
-    N: Node,
+    N: Network,
     S: Store,
     E: Emit,
 {
@@ -19,7 +19,7 @@ where
 
 impl<N, S, E> Manager<N, S, E>
 where
-    N: Node,
+    N: Network,
     S: Store,
     E: Emit,
 {
@@ -30,7 +30,7 @@ where
 
 impl<N, S, E> Manager<N, S, E>
 where
-    N: Node,
+    N: Network,
     S: Store,
     E: Emit,
 {

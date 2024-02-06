@@ -8,14 +8,12 @@ pub mod error;
 pub mod macros;
 pub mod manager;
 pub mod networks;
-pub mod provider;
 pub mod storage;
 
 pub use collector::Collector;
 pub use error::Error;
 pub use manager::Manager;
-pub use networks::eth;
-pub use provider::{Node, NodeError};
+pub use networks::{eth, Network, NetworkError};
 pub use storage::{Storage, StoreError};
 
 type Result<T> = std::result::Result<T, error::Error>;

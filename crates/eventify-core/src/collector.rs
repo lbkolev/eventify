@@ -5,7 +5,7 @@ use alloy_primitives::{BlockNumber, FixedBytes};
 use tokio::sync::watch::Receiver;
 use tracing::{info, trace};
 
-use crate::{emit::Emit, provider::Node, Collect, Store};
+use crate::{emit::Emit, networks::Network, Collect, Store};
 use eventify_configs::core::CollectorConfig;
 use eventify_primitives::{
     consts,
@@ -15,7 +15,7 @@ use eventify_primitives::{
 #[derive(Debug, Clone)]
 pub struct Collector<N, S, E>
 where
-    N: Node,
+    N: Network,
     S: Store,
     E: Emit,
 {
@@ -27,7 +27,7 @@ where
 
 impl<N, S, E> Collector<N, S, E>
 where
-    N: Node,
+    N: Network,
     S: Store,
     E: Emit,
 {
@@ -47,7 +47,7 @@ where
 
 impl<N, S, E> Collect<crate::Error> for Collector<N, S, E>
 where
-    N: Node,
+    N: Network,
     S: Store,
     E: Emit,
 {
