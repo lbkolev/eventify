@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
+use crate::traits::Transaction;
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
 pub struct TransactionResponse {
     pub transactions: Vec<EthTransaction>,
@@ -33,6 +35,16 @@ pub struct EthTransaction {
 impl EthTransaction {
     pub fn contract_creation(&self) -> bool {
         self.to.is_none()
+    }
+}
+
+impl Transaction for EthTransaction {
+    fn block_hash(&self) -> Option<alloy_primitives::B256> {
+        self.block_hash
+    }
+
+    fn hash(&self) -> alloy_primitives::B256 {
+        self.hash
     }
 }
 

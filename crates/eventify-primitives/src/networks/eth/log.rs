@@ -1,14 +1,15 @@
 use std::{
     fmt::{Display, Formatter},
-    fs,
     str::FromStr,
 };
 
-use alloy_primitives::{keccak256, Address, BlockNumber, Bytes, B256, U64};
+use alloy_primitives::{Address, BlockNumber, Bytes, B256, U64};
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use sqlx::prelude::FromRow;
 use utoipa::ToSchema;
+
+use crate::traits::Log;
 
 #[derive(
     Clone,
@@ -39,48 +40,69 @@ pub struct EthLog {
     pub topics: Vec<B256>,
 }
 
+impl Log for EthLog {
+    fn block_hash(&self) -> Option<B256> {
+        self.block_hash
+    }
+    fn block_number(&self) -> Option<U64> {
+        self.block_number
+    }
+
+    fn transaction_hash(&self) -> Option<B256> {
+        self.transaction_hash
+    }
+
+    fn transaction_index(&self) -> Option<U64> {
+        self.transaction_index
+    }
+
+    fn topics(&self) -> &Vec<B256> {
+        &self.topics
+    }
+
+    fn data(&self) -> &alloy_primitives::Bytes {
+        &self.data
+    }
+
+    fn address(&self) -> &alloy_primitives::Address {
+        &self.address
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct Criteria {
-    pub name: String,
-    pub src_block: Option<BlockNumber>,
-    pub dst_block: Option<BlockNumber>,
-    pub addresses: Option<Vec<Address>>,
+    #[serde(rename = "fromBlock", serialize_with = "serialize_block_number")]
+    pub from: BlockNumber,
+    #[serde(rename = "toBlock", serialize_with = "serialize_block_number")]
+    pub to: BlockNumber,
+    pub address: Option<Vec<Address>>,
 
-    pub filter0: Option<Vec<String>>, // aka event signature
-    pub filter1: Option<Vec<String>>,
-    pub filter2: Option<Vec<String>>,
-    pub filter3: Option<Vec<String>>,
+    pub topics: Option<Vec<B256>>,
 }
 
 impl Criteria {
-    pub fn from_file(file_path: &str) -> crate::Result<Criteria> {
-        let contents = fs::read_to_string(file_path)
-            .map_err(|e| crate::Error::InvalidCriteriaFile(e.to_string()))?;
-
-        let criteria = serde_json::from_str(&contents)
-            .map_err(|e| crate::Error::InvalidCriteriaFile(e.to_string()))?;
-
-        Ok(criteria)
+    pub fn new(
+        from: BlockNumber,
+        to: BlockNumber,
+        address: Option<Vec<Address>>,
+        topics: Option<Vec<B256>>,
+    ) -> Criteria {
+        Criteria {
+            from,
+            to,
+            address,
+            topics,
+        }
     }
+}
 
-    pub fn hashed_events(&self) -> Vec<B256> {
-        self.filter0
-            .clone()
-            .unwrap_or_default()
-            .into_iter()
-            .map(|event| B256::from(keccak256(event)))
-            .collect()
-    }
-
-    pub fn filter_as_b256(&self) -> Vec<B256> {
-        self.filter1
-            .clone()
-            .unwrap_or_default()
-            .into_iter()
-            .map(|f| B256::from_str(&f).unwrap())
-            .collect()
-    }
+fn serialize_block_number<S>(x: &BlockNumber, s: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let hex = format!("0x{:x}", x);
+    s.serialize_str(&hex)
 }
 
 impl Display for Criteria {
@@ -143,41 +165,47 @@ mod tests {
     fn test_deserialize_criteria() {
         let json = serde_json::json!(
         {
-            "name": "test",
-            "srcBlock": "1",
-            "dstBlock": "2",
-            "addresses": ["0x0000000000000000000000000000000000000001", "0x0000000000000000000000000000000000000002"],
-            "filter0": ["Transfer(address,address,uint256)"],
-            "filter1": ["0x000000"],
-            "filter2": ["0x000000"],
-            "filter3": ["0x000000"]
+            "fromBlock": 1,
+            "toBlock": 2,
+            "address": ["0x0000000000000000000000000000000000000001", "0x0000000000000000000000000000000000000002"],
+            "topics": [
+                "0x326edc3ac586176abeebb61e309fff4802231bb425463a8b205dc4c6bee35089",
+                "0x24e6d6115f6446ccdee52f6150d0eb60d34dbe3072db714a11a601aeb3ee7503",
+                "0x843f098f2784e8517a5ee9d050daa270e91403e1e4eaafa90bc535ef5910518c",
+                "0x3ed3d15056b62bf1e6eae92a1eba5af40d8a7b42b2d05fdb94d1e3e1a61781c8"
+            ]
         });
         let res = serde_json::from_value::<Criteria>(json).unwrap();
-        assert_eq!(res.name, "test");
-        assert_eq!(res.src_block, Some(1));
-        assert_eq!(res.dst_block, Some(2));
+        assert_eq!(res.from, 1);
+        assert_eq!(res.to, 2);
         assert_eq!(
-            res.addresses,
+            res.address,
             Some(vec![
                 Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
                 Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
             ]),
         );
         assert_eq!(
-            res.filter0,
-            Some(vec!["Transfer(address,address,uint256)".to_string()]),
+            res.topics,
+            Some(vec![
+                B256::from_str(
+                    "0x326edc3ac586176abeebb61e309fff4802231bb425463a8b205dc4c6bee35089"
+                )
+                .unwrap(),
+                B256::from_str(
+                    "0x24e6d6115f6446ccdee52f6150d0eb60d34dbe3072db714a11a601aeb3ee7503"
+                )
+                .unwrap(),
+                B256::from_str(
+                    "0x843f098f2784e8517a5ee9d050daa270e91403e1e4eaafa90bc535ef5910518c"
+                )
+                .unwrap(),
+                B256::from_str(
+                    "0x3ed3d15056b62bf1e6eae92a1eba5af40d8a7b42b2d05fdb94d1e3e1a61781c8"
+                )
+                .unwrap()
+            ]),
         );
-        assert_eq!(res.filter1, Some(vec!["0x000000".to_string()]));
-        assert_eq!(res.filter2, Some(vec!["0x000000".to_string()]));
-        assert_eq!(res.filter3, Some(vec!["0x000000".to_string()]));
-
-        let json = serde_json::json!(
-        {
-            "name": "test",
-            "src_block": 1,
-            "dst_block": 2,
-        });
-        assert!(serde_json::from_value::<Criteria>(json).is_ok());
     }
 
     #[test]

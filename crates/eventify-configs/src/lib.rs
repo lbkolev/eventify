@@ -12,7 +12,7 @@ pub mod configs {
 
 use std::{collections::HashSet, fmt, str::FromStr};
 
-use eventify_primitives::network::{LogKind, ResourceKind};
+use eventify_primitives::networks::{LogKind, ResourceKind};
 use serde::{self, Deserialize, Deserializer};
 use server::ServerConfig;
 
@@ -122,7 +122,7 @@ where
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
     pub database_url: String,
-    pub redis_url: String,
+    pub queue_url: String,
 
     #[serde(deserialize_with = "deserialize_resource_kinds")]
     pub collect: HashSet<ResourceKind>,
@@ -135,7 +135,7 @@ pub struct Config {
 impl Config {
     pub fn new(
         database_url: String,
-        redis_url: String,
+        queue_url: String,
         collect: HashSet<ResourceKind>,
         mode: Mode,
         server: Option<ServerConfig>,
@@ -144,7 +144,7 @@ impl Config {
     ) -> Self {
         Self {
             database_url,
-            redis_url,
+            queue_url,
             collect,
             mode,
             server,
@@ -185,14 +185,15 @@ mod tests {
     fn test_parses_config_with_stream_mode_correctly() {
         const TEST_TOML: &str = r#"
 database_url = "postgres://postgres:password@localhost:5432/eventify"
-redis_url = "redis://localhost:6379"
+queue_url = "redis://localhost:6379"
 collect = "blocks,tx,logs"
 
 [server]
+host = "0.0.0.0"
 port = 21420
 
 [mode]
-type = "stream"
+kind = "stream"
 
 [network]
     [network.eth]
@@ -214,7 +215,7 @@ type = "stream"
             config.database_url,
             "postgres://postgres:password@localhost:5432/eventify"
         );
-        assert_eq!(config.redis_url, "redis://localhost:6379");
+        assert_eq!(config.queue_url, "redis://localhost:6379");
         assert_eq!(
             config.collect,
             HashSet::from([
@@ -236,27 +237,23 @@ type = "stream"
             config.network.zksync.unwrap().node_url,
             "wss://mainnet.era.zksync.io/ws"
         );
-        //assert_eq!(
-        //    config.platform.unwrap().discord.unwrap().token,
-        //    "discord_token"
-        //);
-        //assert_eq!(config.platform.unwrap().slack.unwrap().token, "slack_token");
     }
 
     #[test]
     fn test_parses_config_with_batch_mode_correctly() {
         const TEST_TOML: &str = r#"
 database_url = "postgres://postgres:password@localhost:5432/eventify"
-redis_url = "redis://localhost:6379"
+queue_url = "redis://localhost:6379"
 collect = "blocks"
 
 [mode]
-type = "batch"
+kind = "batch"
 src = 1
 dst = 15000
 step = 1
 
 [server]
+host = "0.0.0.0"
 port = 21420
 
 [network]
@@ -273,11 +270,11 @@ port = 21420
             config.database_url,
             "postgres://postgres:password@localhost:5432/eventify"
         );
-        assert_eq!(config.redis_url, "redis://localhost:6379");
+        assert_eq!(config.queue_url, "redis://localhost:6379");
         assert!(config.collect.contains(&ResourceKind::Block));
         assert_eq!(config.mode.kind, ModeKind::Batch);
         assert_eq!(config.mode.src, Some(1));
-        assert_eq!(config.mode.dst, Some(2));
+        assert_eq!(config.mode.dst, Some(15000));
         assert_eq!(config.mode.step, Some(1));
         assert_eq!(config.server.unwrap().port, 21420);
         assert_eq!(
@@ -292,14 +289,15 @@ port = 21420
     fn test_parses_config_without_platform_correctly() {
         const TEST_TOML: &str = r#"
 database_url = "postgres://postgres:password@localhost:5432/eventify"
-redis_url = "redis://localhost:6379"
+queue_url = "redis://localhost:6379"
 collect = "logs,tx"
 
 [server]
+host = "0.0.0.0"
 port = 21420
 
 [mode]
-type = "stream"
+kind = "stream"
 
 [network]
     [network.eth]
@@ -312,7 +310,7 @@ type = "stream"
             config.database_url,
             "postgres://postgres:password@localhost:5432/eventify"
         );
-        assert_eq!(config.redis_url, "redis://localhost:6379");
+        assert_eq!(config.queue_url, "redis://localhost:6379");
         assert_eq!(
             config.collect,
             HashSet::from([ResourceKind::Log(LogKind::Raw), ResourceKind::Transaction,])

@@ -1,25 +1,19 @@
 #![allow(dead_code)]
 
-use eventify_primitives::network::{NetworkKind, ResourceKind};
-use redis::{Commands, RedisError};
+use eventify_primitives::networks::{NetworkKind, ResourceKind};
+
+use redis::Commands;
 use serde::Serialize;
 
-pub trait Emit: 'static + Clone + Send + Sync {
-    fn publish<T: Serialize>(
-        &self,
-        network: &NetworkKind,
-        resource: &ResourceKind,
-        message: &T,
-    ) -> Result<(), EmitError>;
-}
+use crate::{eth::Eth, traits::Emit};
 
-impl Emit for redis::Client {
+impl Emit<Eth> for redis::Client {
     fn publish<T: Serialize>(
         &self,
         network: &NetworkKind,
         resource: &ResourceKind,
         message: &T,
-    ) -> Result<(), EmitError> {
+    ) -> eyre::Result<()> {
         let mut con = self.get_connection()?;
         let channel = format!("{}:{}", network, resource);
 
@@ -28,18 +22,8 @@ impl Emit for redis::Client {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum EmitError {
-    #[error("Redis publish error: {0}")]
-    RedisPublishError(#[from] RedisError),
-
-    #[error("Serde error: {0}")]
-    SerdeError(#[from] serde_json::Error),
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
     use redis::Commands;
     use serde::{Deserialize, Serialize};
 

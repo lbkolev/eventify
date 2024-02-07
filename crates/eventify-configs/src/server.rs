@@ -1,10 +1,10 @@
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct ApplicationConfig {
     pub database: crate::configs::DatabaseConfig,
     pub server: ServerConfig,
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,

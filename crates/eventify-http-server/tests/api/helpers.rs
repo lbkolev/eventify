@@ -1,4 +1,3 @@
-use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 
@@ -26,7 +25,7 @@ pub async fn spawn_app() -> TestApp {
                 host: String::from("localhost"),
                 port: 5432,
                 username: String::from("postgres"),
-                password: Secret::new(String::from("password")),
+                password: String::from("password"),
                 database_name: String::from(""),
                 require_ssl: false,
             },
@@ -41,19 +40,20 @@ pub async fn spawn_app() -> TestApp {
     };
 
     // Create and migrate the database
-    configure_database(&configuration.database).await;
+    let pool = configure_database(&configuration.database).await;
 
     // Launch the application as a background task
-    let application = eventify_http_server::startup::Application::build(configuration.clone())
-        .await
-        .expect("Failed to build application.");
+    let application =
+        eventify_http_server::startup::Application::build(configuration.clone(), pool.clone())
+            .await
+            .expect("Failed to build application.");
     let application_port = application.port();
     let _ = tokio::spawn(application.run_until_stopped());
 
     TestApp {
         address: format!("http://localhost:{}", application_port),
         port: application_port,
-        db_pool: eventify_http_server::startup::get_connection_pool(&configuration.database),
+        db_pool: pool,
     }
 }
 

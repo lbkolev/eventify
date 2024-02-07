@@ -1,19 +1,17 @@
 use std::fmt::Display;
 
-use secrecy::{ExposeSecret, Secret};
-use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct DatabaseConfig {
     pub database_name: String,
     pub host: String,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub username: String,
-    pub password: Secret<String>,
+    pub password: String,
     pub require_ssl: bool,
 }
 
@@ -28,7 +26,7 @@ impl DatabaseConfig {
         PgConnectOptions::new()
             .host(&self.host)
             .username(&self.username)
-            .password(self.password.expose_secret())
+            .password(self.password.as_str())
             .port(self.port)
             .ssl_mode(require_ssl)
     }
@@ -41,11 +39,11 @@ impl DatabaseConfig {
 impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
-            database_name: "eventify".to_owned(),
-            host: "localhost".to_owned(),
+            database_name: "eventify".to_string(),
+            host: "localhost".to_string(),
             port: 5432,
-            username: "postgres".to_owned(),
-            password: Secret::new("password".to_owned()),
+            username: "postgres".to_string(),
+            password: "password".to_string(),
             require_ssl: false,
         }
     }
@@ -56,11 +54,11 @@ impl From<String> for DatabaseConfig {
         let url = Url::parse(&s).expect("Invalid database URL");
 
         Self {
-            database_name: url.path().trim_start_matches('/').to_owned(),
-            host: url.host_str().unwrap_or("localhost").to_owned(),
+            database_name: url.path().trim_start_matches('/').to_string(),
+            host: url.host_str().unwrap_or("localhost").to_string(),
             port: url.port().unwrap_or(5432),
-            username: url.username().to_owned(),
-            password: Secret::new(url.password().unwrap_or("").to_owned()),
+            username: url.username().to_string(),
+            password: url.password().unwrap_or("").to_string(),
             require_ssl: false,
         }
     }
@@ -71,7 +69,7 @@ impl From<DatabaseConfig> for String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
             settings.username,
-            settings.password.expose_secret(),
+            settings.password,
             settings.host,
             settings.port,
             settings.database_name
@@ -81,7 +79,7 @@ impl From<DatabaseConfig> for String {
 
 impl From<&str> for DatabaseConfig {
     fn from(s: &str) -> Self {
-        Self::from(s.to_owned())
+        Self::from(s.to_string())
     }
 }
 
@@ -90,11 +88,7 @@ impl Display for DatabaseConfig {
         write!(
             f,
             "postgres://{}:{}@{}:{}/{}",
-            self.username,
-            self.password.expose_secret(),
-            self.host,
-            self.port,
-            self.database_name
+            self.username, self.password, self.host, self.port, self.database_name
         )
     }
 }

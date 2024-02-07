@@ -1,6 +1,6 @@
-use eventify_primitives::network::{NetworkKind, ResourceKind};
+use eventify_primitives::networks::{NetworkKind, ResourceKind};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ManagerConfig {
     pub resources: std::collections::HashSet<ResourceKind>,
 }
@@ -11,7 +11,7 @@ impl ManagerConfig {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct CollectorConfig {
     pub network: NetworkKind,
 }

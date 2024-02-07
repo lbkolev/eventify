@@ -5,7 +5,7 @@ use clap::{Args, Parser};
 use secrecy::{ExposeSecret, Secret};
 
 use eventify_configs::{configs::ServerConfig, Config, Mode, ModeKind, Network, NetworkDetail};
-use eventify_primitives::network::{NetworkKind, ResourceKind};
+use eventify_primitives::networks::{NetworkKind, ResourceKind};
 
 #[derive(Clone, Debug, Parser)]
 #[command(about = "Idx from range or stream directly from the tip of the chain")]
@@ -62,11 +62,11 @@ pub(crate) struct Cmd {
 
     #[arg(
         long,
-        env = "REDIS_URL",
+        env = "queue_url",
         help = "The redis URL to connect to",
         default_value = "redis://localhost:6379"
     )]
-    pub(crate) redis_url: Secret<String>,
+    pub(crate) queue_url: Secret<String>,
 
     #[arg(
         long,
@@ -114,8 +114,8 @@ impl Cmd {
         self.database_url.expose_secret()
     }
 
-    pub(crate) fn redis_url(&self) -> &str {
-        self.redis_url.expose_secret()
+    pub(crate) fn queue_url(&self) -> &str {
+        self.queue_url.expose_secret()
     }
 
     pub(crate) fn node_url(&self) -> &str {
@@ -127,7 +127,7 @@ impl From<Cmd> for Config {
     fn from(settings: Cmd) -> Self {
         Self {
             database_url: settings.database_url().to_string(),
-            redis_url: settings.redis_url().to_string(),
+            queue_url: settings.queue_url().to_string(),
             collect: settings.collect(),
             mode: Mode::new(settings.mode, settings.src, settings.dst, settings.step),
             server: Some(ServerConfig {
@@ -246,7 +246,7 @@ mod tests {
             args.database_url(),
             "postgres://postgres:password@localhost:5432/eventify"
         );
-        assert_eq!(args.redis_url(), "redis://localhost:6379");
+        assert_eq!(args.queue_url(), "redis://localhost:6379");
         assert_eq!(args.network, NetworkKind::Ethereum);
         assert_eq!(args.node_url(), "wss://eth.llamarpc.com");
         assert_eq!(args.collect, "blocks,tx,logs");
@@ -264,7 +264,7 @@ mod tests {
             "DATABASE_URL",
             "postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify",
         );
-        set_var("REDIS_URL", "redis://localhost:6379");
+        set_var("queue_url", "redis://localhost:6379");
         set_var("EVENTIFY_NETWORK", "zksync");
         set_var("EVENTIFY_NODE_URL", "wss://zksync.llamarpc.com");
         set_var("EVENTIFY_COLLECT", "txs,logs");
@@ -281,7 +281,7 @@ mod tests {
             args.database_url(),
             "postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify"
         );
-        assert_eq!(args.redis_url(), "redis://localhost:6379");
+        assert_eq!(args.queue_url(), "redis://localhost:6379");
         assert_eq!(args.network, NetworkKind::Zksync);
         assert_eq!(args.node_url(), "wss://zksync.llamarpc.com");
         assert_eq!(args.collect, "txs,logs");
@@ -300,7 +300,7 @@ mod tests {
         remove_var("EVENTIFY_DST_BLOCK");
         remove_var("EVENTIFY_STEP");
         remove_var("DATABASE_URL");
-        remove_var("REDIS_URL");
+        remove_var("queue_url");
         remove_var("EVENTIFY_NETWORK");
         remove_var("EVENTIFY_NODE_URL");
         remove_var("EVENTIFY_COLLECT");
@@ -319,7 +319,7 @@ mod tests {
             "DATABASE_URL",
             "postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify",
         );
-        set_var("REDIS_URL", "redis://localhost:6379");
+        set_var("queue_url", "redis://localhost:6379");
         set_var("EVENTIFY_NETWORK", "zksync");
         set_var("EVENTIFY_NODE_URL", "wss://zksync.llamarpc.com");
         set_var("EVENTIFY_COLLECT", "txs,logs");
@@ -333,7 +333,7 @@ mod tests {
             "--dst-block=200",
             "--step=20",
             "--database-url=postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify",
-            "--redis-url=redis://localhost:6379",
+            "--queue-url=redis://localhost:6379",
             "--network=ethereum",
             "--node-url=wss://eth.llamarpc.com",
             "--collect=txs,logs,blocks",
@@ -349,7 +349,7 @@ mod tests {
             args.database_url(),
             "postgres://postgres:xxxxxxxx@xxxxxxxxx:5432/eventify"
         );
-        assert_eq!(args.redis_url(), "redis://localhost:6379");
+        assert_eq!(args.queue_url(), "redis://localhost:6379");
         assert_eq!(args.network, NetworkKind::Ethereum);
         assert_eq!(args.node_url(), "wss://eth.llamarpc.com");
         assert_eq!(args.collect, "txs,logs,blocks");
@@ -367,7 +367,7 @@ mod tests {
         remove_var("EVENTIFY_DST_BLOCK");
         remove_var("EVENTIFY_STEP");
         remove_var("DATABASE_URL");
-        remove_var("REDIS_URL");
+        remove_var("queue_url");
         remove_var("EVENTIFY_NETWORK");
         remove_var("EVENTIFY_NODE_URL");
         remove_var("EVENTIFY_COLLECT");

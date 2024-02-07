@@ -2,6 +2,9 @@ use alloy_primitives::{Address, Bloom, Bytes, B256, B64, U256, U64};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
+use super::EthTransaction;
+use crate::traits::Block;
+
 #[derive(
     Clone,
     Debug,
@@ -72,13 +75,41 @@ pub struct EthBlock<T> {
     // --
 }
 
+impl Block for EthBlock<alloy_primitives::B256> {
+    fn parent_hash(&self) -> alloy_primitives::B256 {
+        self.parent_hash
+    }
+
+    fn hash(&self) -> Option<alloy_primitives::B256> {
+        self.hash
+    }
+
+    fn number(&self) -> Option<alloy_primitives::U64> {
+        self.number
+    }
+}
+
+impl Block for EthBlock<EthTransaction> {
+    fn parent_hash(&self) -> alloy_primitives::B256 {
+        self.parent_hash
+    }
+
+    fn hash(&self) -> Option<alloy_primitives::B256> {
+        self.hash
+    }
+
+    fn number(&self) -> Option<alloy_primitives::U64> {
+        self.number
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn deserialize_eth_block() {
-        let mut json = serde_json::json!(
+        let json = serde_json::json!(
         {
             "baseFeePerGas": "0x7",
             "miner": "0x0000000000000000000000000000000000000001",
@@ -109,6 +140,8 @@ mod tests {
             "uncles": []
           }
         );
+
+        serde_json::from_value::<EthBlock<B256>>(json).unwrap();
     }
 
     #[test]
