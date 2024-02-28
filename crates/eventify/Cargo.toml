@@ -18,10 +18,11 @@ name = "eventify"
 
 [dependencies]
 # internal
-eventify-core = { workspace = true, features = ["eth", "zksync"] }
+eventify-core = { workspace = true, features = ["eth", "propagate"] }
 eventify-http-server.workspace = true
 eventify-primitives.workspace = true
 eventify-configs.workspace = true
+eventify-engine.workspace = true
 
 futures.workspace = true
 tokio.workspace = true
@@ -38,6 +39,8 @@ either.workspace = true
 toml.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+reqwest.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 temp-env = "0.3.6"

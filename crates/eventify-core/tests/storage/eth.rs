@@ -1,14 +1,15 @@
 use alloy_primitives::B256;
 
 use crate::utils::{setup_test_db, teardown_test_db};
-use eventify_configs::configs::DatabaseConfig;
-use eventify_core::{storage::Storage, traits::Store as _};
-use eventify_primitives::networks::eth::{Contract, EthBlock, EthLog, EthTransaction};
+
+use eventify_primitives::{
+    networks::ethereum::{EthBlock, EthLog, EthTransaction},
+    InsertT, LogT,
+};
 
 #[tokio::test]
-async fn test_store_block() {
+async fn test_insert_block() {
     let (pool, db_name) = setup_test_db().await.unwrap();
-    let db = Storage::new(pool, DatabaseConfig::default()).await;
 
     let json = serde_json::json!(
     {
@@ -44,15 +45,14 @@ async fn test_store_block() {
 
     let block = serde_json::from_value::<EthBlock<B256>>(json).unwrap();
     println!("{:?}", block);
-    db.store_block(&block).await.unwrap();
+    block.insert(&pool, "eth", &None).await.unwrap();
 
-    teardown_test_db(db.inner, &db_name).await.unwrap();
+    teardown_test_db(pool, &db_name).await.unwrap();
 }
 
 #[tokio::test]
-async fn test_store_transaction() {
+async fn test_insert_transaction() {
     let (pool, db_name) = setup_test_db().await.unwrap();
-    let db = Storage::new(pool, DatabaseConfig::default()).await;
 
     let json = serde_json::json!({
         "blockHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
@@ -73,33 +73,14 @@ async fn test_store_transaction() {
 
     let tx = serde_json::from_value::<EthTransaction>(json).unwrap();
     println!("{:?}", tx);
-    db.store_transaction(&tx).await.unwrap();
+    tx.insert(&pool, "eth", &None).await.unwrap();
 
-    teardown_test_db(db.inner, &db_name).await.unwrap();
+    teardown_test_db(pool, &db_name).await.unwrap();
 }
 
 #[tokio::test]
-async fn test_store_contract() {
+async fn test_insert_log() {
     let (pool, db_name) = setup_test_db().await.unwrap();
-    let db = Storage::new(pool, DatabaseConfig::default()).await;
-
-    let json = serde_json::json!({
-        "transactionHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
-        "from":"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d",
-        "input":"0x68656c6c6f21"
-    });
-
-    let contract = serde_json::from_value::<Contract>(json).unwrap();
-    println!("{:?}", contract);
-    db.store_contract(&contract).await.unwrap();
-
-    teardown_test_db(db.inner, &db_name).await.unwrap();
-}
-
-#[tokio::test]
-async fn test_store_log() {
-    let (pool, db_name) = setup_test_db().await.unwrap();
-    let db = Storage::new(pool, DatabaseConfig::default()).await;
 
     let json = serde_json::json!(
         {
@@ -123,7 +104,7 @@ async fn test_store_log() {
 
     let log = serde_json::from_value::<EthLog>(json).unwrap();
     println!("{:#?}", log);
-    db.store_log(&log).await.unwrap();
+    log.insert(&pool, "eth", &log.tx_hash()).await.unwrap();
 
-    teardown_test_db(db.inner, &db_name).await.unwrap();
+    teardown_test_db(pool, &db_name).await.unwrap();
 }

@@ -1,5 +1,5 @@
 #----
-FROM lukemathwalker/cargo-chef:latest-rust-1.73.0 as chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.75.0 as chef
 WORKDIR /app
 
 LABEL org.opencontainers.image.source="https://github.com/lbkolev/eventify"
@@ -47,10 +47,11 @@ WORKDIR /app
 # Copy the binary from the build stage
 COPY --from=builder /app/eventify /app
 COPY ./migrations/ /app/migrations
+COPY ./etc/configs/ /app/etc/configs
 
 # Copy licenses
 COPY LICENSE-* ./
 
 EXPOSE 21420
-ENTRYPOINT ["/app/eventify"]
+ENTRYPOINT ["RUST_LOG=debug /app/eventify run --config /app/etc/configs/stream.toml"]
 #----

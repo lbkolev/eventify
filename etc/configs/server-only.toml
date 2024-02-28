@@ -1,0 +1,6 @@
+queue_url = "redis://localhost:6379"
+database_url = "postgres://postgres:password@localhost:5432/eventify"
+
+[server]
+host = "0.0.0.0"
+port = 21420

@@ -1,6 +1,7 @@
 -- tables
-DROP TABLE IF EXISTS public.trigger;
+DROP TABLE IF EXISTS public.notification_details;
 DROP TABLE IF EXISTS public.notification;
+DROP TABLE IF EXISTS public.trigger;
 DROP TABLE IF EXISTS public.platform;
 DROP TABLE IF EXISTS public.network;
 

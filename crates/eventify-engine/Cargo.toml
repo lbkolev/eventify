@@ -25,3 +25,7 @@ futures.workspace = true
 eyre.workspace = true
 chrono = "0.4.33"
 serenity = "0.12.0"
+tracing.workspace = true
+redis.workspace = true
+alloy-primitives.workspace = true
+reqwest.workspace = true

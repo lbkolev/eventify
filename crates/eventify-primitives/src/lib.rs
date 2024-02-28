@@ -2,67 +2,98 @@
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 
-pub mod consts;
+pub mod events;
 pub mod networks;
 pub mod platform;
 
 pub mod eth {
-    pub use crate::networks::eth::{
+    pub use crate::networks::ethereum::{
         block::EthBlock as Block, log::EthLog as Log, transaction::EthTransaction as Transaction,
     };
 }
 
-pub mod traits {
+pub use traits::{
+    Block as BlockT, Emit as EmitT, Insert as InsertT, Log as LogT, Transaction as TransactionT,
+};
+
+mod traits {
+    pub trait Insert: Sync + Send {
+        fn insert(
+            &self,
+            pool: &sqlx::PgPool,
+            schema: &str,
+            tx_hash: &Option<alloy_primitives::B256>,
+        ) -> impl std::future::Future<Output = eyre::Result<(), sqlx::Error>> + Send;
+    }
+
+    pub trait Emit: Sync + Send {
+        fn emit<T: serde::Serialize + Sync + Send>(
+            &self,
+            queue: &redis::Client,
+            network: &crate::networks::NetworkKind,
+            message: &T,
+        ) -> impl std::future::Future<Output = eyre::Result<(), redis::RedisError>> + Send;
+    }
+
     pub trait Block:
-        Clone
+        Insert
+        + Emit
+        + Clone
         + std::fmt::Debug
         + Default
         + PartialEq
         + Eq
+        + std::hash::Hash
         + serde::Serialize
         + serde::de::DeserializeOwned
-        + Send
         + Sync
+        + Send
     {
-        fn parent_hash(&self) -> alloy_primitives::B256;
         fn hash(&self) -> Option<alloy_primitives::B256>;
         fn number(&self) -> Option<alloy_primitives::U64>;
+        fn parent_hash(&self) -> alloy_primitives::B256;
     }
 
     pub trait Transaction:
-        Clone
+        Insert
+        + Emit
+        + Clone
         + std::fmt::Debug
         + Default
         + PartialEq
         + Eq
+        + std::hash::Hash
         + serde::Serialize
         + serde::de::DeserializeOwned
-        + Send
         + Sync
+        + Send
     {
-        fn block_hash(&self) -> Option<alloy_primitives::B256>;
         fn hash(&self) -> alloy_primitives::B256;
+        fn block_hash(&self) -> Option<alloy_primitives::B256>;
     }
 
     pub trait Log:
-        Clone
+        Insert
+        + Emit
+        + Clone
         + std::fmt::Debug
         + Default
         + PartialEq
         + Eq
+        + std::hash::Hash
         + serde::Serialize
         + serde::de::DeserializeOwned
-        + Send
         + Sync
+        + Send
     {
         fn block_hash(&self) -> Option<alloy_primitives::B256>;
         fn block_number(&self) -> Option<alloy_primitives::U64>;
 
-        fn transaction_hash(&self) -> Option<alloy_primitives::B256>;
-        fn transaction_index(&self) -> Option<alloy_primitives::U64>;
+        fn tx_hash(&self) -> Option<alloy_primitives::B256>;
+        fn tx_index(&self) -> Option<alloy_primitives::U64>;
 
-        fn topics(&self) -> &Vec<alloy_primitives::B256>;
         fn data(&self) -> &alloy_primitives::Bytes;
+        fn topics(&self) -> &Vec<alloy_primitives::B256>;
         fn address(&self) -> &alloy_primitives::Address;
     }
 }

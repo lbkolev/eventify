@@ -62,6 +62,8 @@ DROP TABLE IF EXISTS eth.fn_sig;
 DROP TABLE IF EXISTS eth.log;
 DROP TABLE IF EXISTS eth.log_transfer;
 DROP TABLE IF EXISTS eth.log_approval;
+DROP TABLE IF EXISTS eth.log_erc721_transfer;
+DROP TABLE IF EXISTS eth.log_erc721_approval;
 DROP TABLE IF EXISTS eth.log_approval_for_all;
 DROP TABLE IF EXISTS eth.log_sent;
 DROP TABLE IF EXISTS eth.log_minted;

@@ -1,83 +1,35 @@
-use alloy_primitives::BlockNumber;
 use tokio::{sync::watch::Receiver, task::JoinHandle};
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use crate::{
     collector::Collector,
-    traits::{Collect, Emit, Network, Store},
+    traits::{Collect, Network},
 };
 use eventify_configs::configs::ManagerConfig;
-use eventify_primitives::networks::{eth::Criteria, ResourceKind};
+use eventify_primitives::networks::ResourceKind;
 
 #[derive(Debug, Clone)]
-pub struct Manager<N, S, E>
+pub struct Manager<N>
 where
     N: Network,
-    S: Store<N>,
-    E: Emit<N>,
 {
     pub config: ManagerConfig,
-    pub collector: Collector<N, S, E>,
+    pub collector: Collector<N>,
 }
 
-impl<N, S, E> Manager<N, S, E>
+impl<N> Manager<N>
 where
     N: Network,
-    S: Store<N>,
-    E: Emit<N>,
 {
-    pub fn new(config: ManagerConfig, collector: Collector<N, S, E>) -> Self {
+    pub fn new(config: ManagerConfig, collector: Collector<N>) -> Self {
         Self { config, collector }
     }
 }
 
-impl<N, S, E> Manager<N, S, E>
+impl<N> Manager<N>
 where
     N: Network,
-    S: Store<N>,
-    E: Emit<N>,
 {
-    pub async fn init_collect_tasks(
-        &self,
-        stop_signal: Receiver<bool>,
-        criteria: Criteria,
-    ) -> crate::Result<Vec<JoinHandle<()>>> {
-        let mut tasks = Vec::new();
-
-        for r in self.config.resources.iter() {
-            match r {
-                ResourceKind::Block => {
-                    tasks.push(
-                        self.create_block_collect_task(
-                            stop_signal.clone(),
-                            criteria.from,
-                            criteria.to,
-                        )
-                        .await?,
-                    );
-                }
-                ResourceKind::Transaction => {
-                    tasks.push(
-                        self.create_transaction_collect_task(
-                            stop_signal.clone(),
-                            criteria.from,
-                            criteria.to,
-                        )
-                        .await?,
-                    );
-                }
-                ResourceKind::Log(_) => {
-                    tasks.push(
-                        self.create_log_collect_task(stop_signal.clone(), criteria.clone())
-                            .await?,
-                    );
-                }
-            }
-        }
-
-        Ok(tasks)
-    }
-
     pub async fn init_stream_tasks(
         &self,
         stop_signal: Receiver<bool>,
@@ -87,13 +39,19 @@ where
         for r in self.config.resources.iter() {
             match r {
                 ResourceKind::Block => {
-                    tasks.push(self.create_block_stream_task(stop_signal.clone()).await?);
+                    let collector = self.collector.clone();
+                    let signal = stop_signal.clone();
+                    tasks.push(self.create_block_stream_task(collector, signal).await?);
                 }
                 ResourceKind::Transaction => {
-                    unimplemented!()
+                    let collector = self.collector.clone();
+                    let signal = stop_signal.clone();
+                    tasks.push(self.create_tx_stream_task(collector, signal).await?);
                 }
                 ResourceKind::Log(_) => {
-                    tasks.push(self.create_log_stream_task(stop_signal.clone()).await?);
+                    let collector = self.collector.clone();
+                    let signal = stop_signal.clone();
+                    tasks.push(self.create_log_stream_task(collector, signal).await?);
                 }
             }
         }
@@ -101,70 +59,123 @@ where
         Ok(tasks)
     }
 
-    pub async fn create_block_collect_task(
+    pub async fn create_block_stream_task(
         &self,
-        stop_signal: Receiver<bool>,
-        src: BlockNumber,
-        dst: BlockNumber,
+        collector: Collector<N>,
+        mut stop_signal: Receiver<bool>,
     ) -> crate::Result<JoinHandle<()>> {
-        let collector = self.collector.clone();
-        info!("Spawning blocks thread");
+        info!("Spawning block streaming thread");
         Ok(tokio::spawn(async move {
-            let _ = collector.collect_blocks(stop_signal, src, dst).await;
-        }))
-    }
-
-    pub async fn create_transaction_collect_task(
-        &self,
-        stop_signal: Receiver<bool>,
-        src: BlockNumber,
-        dst: BlockNumber,
-    ) -> crate::Result<JoinHandle<()>> {
-        let collector = self.collector.clone();
-        info!("Spawning transactions thread");
-        Ok(tokio::spawn(async move {
-            let _ = collector
-                .collect_transactions_from_range(stop_signal, src, dst)
-                .await;
-        }))
-    }
-
-    pub async fn create_log_collect_task(
-        &self,
-        stop_signal: Receiver<bool>,
-        criteria: Criteria,
-    ) -> crate::Result<JoinHandle<()>> {
-        let collector = self.collector.clone();
-        info!("Spawning logs thread");
-        Ok(tokio::spawn(async move {
-            match collector.collect_logs(stop_signal, &criteria).await {
-                Ok(_) => info!("good stuff"),
-                Err(e) => {
-                    warn!("{}", e)
+            loop {
+                tokio::select! {
+                    result = collector.stream_blocks() => {
+                        match result {
+                            Ok(()) => {
+                                info!(thread="stream_logs", "Finished streaming blocks");
+                                break;
+                            }
+                            Err(err) => match err {
+                                crate::Error::JsonRpsee(err)  => {
+                                    warn!(err=?err);
+                                    continue;
+                                }
+                                crate::Error::EmptyStream => {
+                                    warn!("Empty stream");
+                                    continue;
+                                }
+                                _ => {
+                                    error!(err=?err);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    _ = stop_signal.changed() => {
+                        warn!(thread="stream_block", "SIGINT signal. Terminating..");
+                        break;
+                    }
                 }
             }
         }))
     }
 
-    pub async fn create_block_stream_task(
+    pub async fn create_tx_stream_task(
         &self,
-        stop_signal: Receiver<bool>,
+        collector: Collector<N>,
+        mut stop_signal: Receiver<bool>,
     ) -> crate::Result<JoinHandle<()>> {
-        let collector = self.collector.clone();
-        info!("Spawning block streaming thread");
+        info!("Spawning tx streaming thread");
         Ok(tokio::spawn(async move {
-            let _ = collector.stream_blocks(stop_signal).await;
+            loop {
+                tokio::select! {
+                    result = collector.stream_txs() => {
+                        match result {
+                            Ok(()) => {
+                                info!(thread="stream_logs", "Finished streaming txs");
+                                break;
+                            }
+                            Err(err) => match err {
+                                crate::Error::JsonRpsee(err)  => {
+                                    warn!(err=?err);
+                                    continue;
+                                }
+                                crate::Error::EmptyStream => {
+                                    warn!(err="Empty stream");
+                                    continue;
+                                }
+                                _ => {
+                                    error!(err=?err);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    _ = stop_signal.changed() => {
+                        warn!(thread="stream_txs", "SIGINT signal. Terminating..");
+                        break;
+                    }
+                }
+            }
         }))
     }
 
     pub async fn create_log_stream_task(
         &self,
-        stop_signal: Receiver<bool>,
+        collector: Collector<N>,
+        mut stop_signal: Receiver<bool>,
     ) -> crate::Result<JoinHandle<()>> {
-        let collector = self.collector.clone();
         info!("Spawning log streaming thread");
         Ok(tokio::spawn(async move {
-            let _ = collector.stream_logs(stop_signal).await;
+            loop {
+                tokio::select! {
+                    result = collector.stream_logs() => {
+                        match result {
+                            Ok(()) => {
+                                info!(thread="stream_logs", "Finished streaming logs");
+                                break;
+                            }
+                            Err(err) => match err {
+                                crate::Error::JsonRpsee(err)  => {
+                                    warn!(err=?err);
+                                    continue;
+                                }
+                                crate::Error::EmptyStream => {
+                                    warn!(err="Empty stream");
+                                    continue;
+                                }
+                                _ => {
+                                    error!(err=?err);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    _ = stop_signal.changed() => {
+                        warn!(thread="stream_logs", "SIGINT signal. Terminating..");
+                        break;
+                    }
+                }
+            }
         }))
     }
 }

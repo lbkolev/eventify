@@ -2,6 +2,25 @@
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 
+use core::panic;
+use std::path::Path;
+
+use alloy_primitives::B256;
+use clap::Parser;
+use eyre::Result;
+
+use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
+use tokio::{
+    signal::{
+        ctrl_c,
+        unix::{signal, SignalKind},
+    },
+    sync::{
+        mpsc::{self},
+        watch,
+    },
+};
+
 //--
 pub mod cmd;
 pub mod subcommands;
@@ -10,29 +29,21 @@ use crate::cmd::Cmd;
 use eventify_configs::{
     configs::{ApplicationConfig, CollectorConfig, ManagerConfig},
     database::DatabaseConfig,
-    Config, ModeKind,
+    Config,
 };
 use eventify_core::{
-    networks::{eth::Eth, NetworkClient},
-    Collector, Manager, Storage,
+    networks::{ethereum::Eth, NetworkClient},
+    Collector, Manager,
 };
-use eventify_primitives::networks::{eth::Criteria, NetworkKind};
+use eventify_engine::notify;
+use eventify_primitives::{
+    eth::{Block, Log, Transaction},
+    networks::{NetworkKind, Resource},
+    EmitT,
+};
 //--
 
-use std::path::Path;
-
-use clap::Parser;
-use eyre::Result;
-use sqlx::{migrate::Migrator, postgres::PgPoolOptions};
-use tokio::{
-    signal::{
-        ctrl_c,
-        unix::{signal, SignalKind},
-    },
-    sync::watch,
-};
 use tracing::{debug, info, warn};
-
 use tracing_subscriber::EnvFilter;
 
 async fn run_migrations(url: &str) -> Result<()> {
@@ -40,6 +51,30 @@ async fn run_migrations(url: &str) -> Result<()> {
     let pool = PgPoolOptions::new().max_connections(1).connect(url).await?;
 
     migrator.run(&pool).await?;
+
+    Ok(())
+}
+
+async fn propagate(
+    queue_url: &str,
+    network: &NetworkKind,
+    mut receiver: mpsc::Receiver<Resource<Block<B256>, Transaction, Log>>,
+) -> Result<()> {
+    let redis = redis::Client::open(queue_url)?;
+
+    while let Some(rsrc) = receiver.recv().await {
+        match rsrc {
+            Resource::Block(ref block) => {
+                rsrc.emit(&redis, network, &block).await?;
+            }
+            Resource::Tx(ref tx) => {
+                rsrc.emit(&redis, network, &tx).await?;
+            }
+            Resource::Log(ref log) => {
+                rsrc.emit(&redis, network, &log).await?;
+            }
+        }
+    }
 
     Ok(())
 }
@@ -69,35 +104,46 @@ async fn main() -> Result<()> {
             debug!(target:"eventify::cli", ?config);
 
             let database_config = DatabaseConfig::from(config.database_url);
-            let store = Storage::connect(database_config.clone()).await;
-            let pool = store.inner().clone();
-
+            let pool = PgPoolOptions::new()
+                .acquire_timeout(std::time::Duration::from_secs(5))
+                .connect_lazy_with(database_config.with_db());
             let (signal_sender, signal_receiver) = watch::channel(false);
-            let redis = redis::Client::open(config.queue_url)?;
+            let mut tasks = vec![];
 
-            let collector_config = CollectorConfig::new(NetworkKind::Ethereum);
-            let network_client = NetworkClient::new(config.network.eth.unwrap().node_url).await?;
-            let collector =
-                Collector::new(collector_config, Eth::new(network_client), store, redis);
+            if let Some(network) = config.network {
+                if let Some(eth) = network.eth {
+                    let network_kind = NetworkKind::Ethereum;
+                    let (tx, rx) = mpsc::channel::<Resource<Block<B256>, Transaction, Log>>(1500);
+                    let network_client = NetworkClient::new(eth.node_url).await?;
 
-            let manager_config = ManagerConfig::new(config.collect);
-            let manager = Manager::new(manager_config.clone(), collector);
+                    let collector_config = CollectorConfig::new(network_kind);
+                    let collector = Collector::new(collector_config, Eth::new(network_client), tx);
 
-            let mut tasks = match config.mode.kind {
-                ModeKind::Batch => {
-                    if let (Some(src), Some(dst)) = (config.mode.src, config.mode.dst) {
-                        manager
-                            .init_collect_tasks(
-                                signal_receiver,
-                                Criteria::new(src, dst, None, None),
-                            )
-                            .await?
-                    } else {
-                        vec![]
-                    }
+                    let manager_config = ManagerConfig::new(config.collect);
+                    let manager = Manager::new(manager_config.clone(), collector);
+                    tasks.extend(manager.init_stream_tasks(signal_receiver).await?);
+
+                    let propagate_queue_url = config.queue_url.clone();
+                    let propagate_task = tokio::spawn(async move {
+                        match propagate(&propagate_queue_url, &network_kind, rx).await {
+                            Ok(_) => println!("Propagation completed successfully."),
+                            Err(e) => println!("Propagation failed with error: {:?}", e),
+                        }
+                    });
+                    tasks.push(propagate_task);
                 }
-                ModeKind::Stream => manager.init_stream_tasks(signal_receiver).await?,
-            };
+            }
+
+            if config.notify {
+                let (notify_queue_url, notify_pool) = (config.queue_url.clone(), pool.clone());
+                let notify_task = tokio::spawn(async move {
+                    match notify(notify_queue_url, notify_pool).await {
+                        Ok(_) => println!("Notify completed successfully."),
+                        Err(e) => println!("Notify failed with error: {:?}", e),
+                    }
+                });
+                tasks.push(notify_task);
+            }
 
             if let Some(server_config) = config.server {
                 let app_config = ApplicationConfig {
@@ -112,13 +158,15 @@ async fn main() -> Result<()> {
             tokio::select! {
                 _ = futures::future::select_all(tasks) => {
                     info!("Tasks finished.");
+                    std::process::exit(0);
                 }
                 _ = tokio::spawn(async move {
                     ctrl_c().await.unwrap();
                     signal_sender.send(true).unwrap();
                 }) => {
-                    warn!("Received SIGINT, shutting down...");
+                    warn!("Received SIGINT, shutting down..");
                     tokio::time::sleep(tokio::time::Duration::from_secs(6)).await; // give the streaming threads time to gracefully wind down
+                    std::process::exit(0);
                 }
                 _ = tokio::spawn(async move {
                     let mut stream = signal(SignalKind::terminate()).unwrap();
@@ -127,7 +175,7 @@ async fn main() -> Result<()> {
                         stream.recv().await;
                     }
                 }) => {
-                    warn!("Received SIGTERM, shutting down...");
+                    warn!("Received SIGTERM, shutting down..");
                 }
             }
         }

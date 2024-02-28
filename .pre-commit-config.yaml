@@ -16,19 +16,19 @@ repos:
     rev: v1.0
     hooks:
       - id: fmt
-        args: ['--all', '--']
+        args: ["--all", "--"]
       - id: clippy
-        args: ['--', '-D', 'warnings']
+        args: ["--", "-D", "warnings"]
       - id: cargo-check
   - repo: https://github.com/DevinR528/cargo-sort
     rev: v1.0.9
     hooks:
       - id: cargo-sort
-  - repo: local
-    hooks:
-      - id: lint-yaml
-        name: Lint - YAML
-        language: system
-        entry: yamllint .
-        files: \.(yaml|yml)$
-        require_serial: true
+#  - repo: local
+#    hooks:
+#      - id: lint-yaml
+#        name: Lint - YAML
+#        language: system
+#        entry: yamllint .
+#        files: \.(yaml|yml)$
+#        require_serial: true

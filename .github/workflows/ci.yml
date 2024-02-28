@@ -3,7 +3,7 @@ on:
     branches:
       - master
   pull_request:
-    types: [ opened, synchronize, reopened ]
+    types: [opened, synchronize, reopened]
     branches:
       - master
 
@@ -66,4 +66,4 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v3
-      - run: cargo test --workspace --all-features
+      - run: cargo test --workspace --features eth propagate

@@ -116,7 +116,7 @@ comment on column eth.contract.tx_hash is 'hash of the transaction that created 
 comment on column eth.contract.from is 'address creator of the contract';
 comment on column eth.contract.input is 'input data sent along with the transaction. Essentially the bytecode of the contract';
 
---- ERC20/721 transfer events
+--- ERC20 transfer events
 CREATE TABLE IF NOT EXISTS eth.log_transfer (
     tx_hash BYTEA,
     "from" BYTEA,
@@ -127,10 +127,10 @@ CREATE TABLE IF NOT EXISTS eth.log_transfer (
 
     PRIMARY KEY(tx_hash)
 );
-comment on table eth.log_transfer is 'Event used by ERC20, ERC721';
+comment on table eth.log_transfer is 'Event used by ERC20';
 comment on column eth.log_transfer.tx_hash is 'Transaction hash the event got triggered by';
 
---- ERC20/721 approval events
+--- ERC20 approval events
 CREATE TABLE IF NOT EXISTS eth.log_approval (
     tx_hash BYTEA,
     "owner" BYTEA,
@@ -141,11 +141,35 @@ CREATE TABLE IF NOT EXISTS eth.log_approval (
 
     PRIMARY KEY(tx_hash)
 );
-comment on table eth.log_approval is 'Event used by ERC20, ERC721';
+comment on table eth.log_approval is 'Event used by ERC20';
 comment on column eth.log_approval.tx_hash is 'Transaction hash the event got triggered by';
 comment on column eth.log_approval.owner is 'Owner of the resource';
 comment on column eth.log_approval.spender is 'Spender of the resource';
 comment on column eth.log_approval.value is 'Value|tokenId of the spent resource';
+
+--- ERC721 transfer events
+CREATE TABLE IF NOT EXISTS eth.log_erc721_transfer  (
+    tx_hash BYTEA,
+    "from" BYTEA,
+    "to" BYTEA,
+    token_id BYTEA,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY(tx_hash)
+);
+
+--- ERC721 approval events
+CREATE TABLE IF NOT EXISTS eth.log_erc721_approval (
+    tx_hash BYTEA,
+    "owner" BYTEA,
+    approved BYTEA,
+    token_id BYTEA,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY(tx_hash)
+);
 
 --- ERC721/1155 approvalForAll events
 CREATE TABLE IF NOT EXISTS eth.log_approval_for_all (
@@ -265,7 +289,7 @@ CREATE TABLE IF NOT EXISTS eth.log_transfer_single (
     operator BYTEA,
     "from" BYTEA,
     "to" BYTEA,
-    id BIGINT,
+    id BYTEA,
     "value" BYTEA,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -286,7 +310,7 @@ CREATE TABLE IF NOT EXISTS eth.log_transfer_batch (
     operator BYTEA,
     "from" BYTEA,
     "to" BYTEA,
-    ids BIGINT[],
+    ids BYTEA[],
     "values" BYTEA[],
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -305,7 +329,7 @@ comment on column eth.log_transfer_batch.values is 'contain the number of token 
 CREATE TABLE IF NOT EXISTS eth.log_uri (
     tx_hash BYTEA,
     "value" TEXT,
-    id BIGINT,
+    id BYTEA,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
@@ -321,8 +345,8 @@ CREATE TABLE IF NOT EXISTS eth.log_deposit (
     tx_hash BYTEA,
     sender BYTEA,
     "owner" BYTEA,
-    "assets" BIGINT,
-    shares BIGINT,
+    "assets" BYTEA,
+    shares BYTEA,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
@@ -337,8 +361,8 @@ CREATE TABLE IF NOT EXISTS eth.log_withdraw (
     sender BYTEA,
     "receiver" BYTEA,
     "owner" BYTEA,
-    "assets" BIGINT,
-    shares BIGINT,
+    "assets" BYTEA,
+    shares BYTEA,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
@@ -368,6 +392,11 @@ CREATE INDEX IF NOT EXISTS log_transfer_to_index ON eth.log_transfer ("to");
 
 CREATE INDEX IF NOT EXISTS log_approval_owner_index ON eth.log_approval (owner);
 CREATE INDEX IF NOT EXISTS log_approval_spender_index ON eth.log_approval (spender);
+
+CREATE INDEX IF NOT EXISTS log_erc721_transfer_from_index ON eth.log_erc721_transfer ("from");
+CREATE INDEX IF NOT EXISTS log_erc721_transfer_to_index ON eth.log_erc721_transfer ("to");
+
+CREATE INDEX IF NOT EXISTS log_erc721_approval_owner_index ON eth.log_erc721_approval (owner);
 
 CREATE INDEX IF NOT EXISTS log_approval_for_all_owner_index ON eth.log_approval_for_all (owner);
 CREATE INDEX IF NOT EXISTS log_approval_for_all_operator_index ON eth.log_approval_for_all (operator);

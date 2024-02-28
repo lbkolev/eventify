@@ -3,6 +3,7 @@ version: "3.8"
 services:
   postgres:
     image: postgres:latest
+    restart: unless-stopped
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -22,7 +23,8 @@ services:
 
   redis:
     image: redis:6.2
-    restart: always
+    restart: unless-stopped
+    container_name: redis
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     ports:
@@ -30,10 +32,13 @@ services:
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - redis_data:/data
+    networks:
+      - default
 
   eventify:
     depends_on:
       - postgres
+      - redis
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -41,11 +46,13 @@ services:
         BUILD_PROFILE: dev
     container_name: eventify
     environment:
+      RUST_LOG: trace
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-eventify}
+      EVENTIFY_QUEUE_URL: redis://redis:6379
     ports:
       - "21420:21420"
     entrypoint:
-      ["/app/eventify", "run", "--src-block=3000000", "--dst-block=3001000"]
+      ["/app/eventify", "run", "--config", "/app/etc/configs/stream-all.toml"]
     networks:
       - default
 

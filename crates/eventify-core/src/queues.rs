@@ -1,26 +1,15 @@
 #![allow(dead_code)]
 
-use eventify_primitives::networks::{NetworkKind, ResourceKind};
-
-use redis::Commands;
-use serde::Serialize;
-
-use crate::{eth::Eth, traits::Emit};
-
-impl Emit<Eth> for redis::Client {
-    fn publish<T: Serialize>(
-        &self,
-        network: &NetworkKind,
-        resource: &ResourceKind,
-        message: &T,
-    ) -> eyre::Result<()> {
-        let mut con = self.get_connection()?;
-        let channel = format!("{}:{}", network, resource);
-
-        con.publish(channel, serde_json::to_string(message)?)?;
-        Ok(())
-    }
-}
+//impl Emit<Eth> for redis::Client {
+//    fn emit<T: Serialize>(&self, network: &T, resource_type: &T, message: &T) -> eyre::Result<()> {
+//        let mut con = self.get_connection()?;
+//        let channel = format!("{}:{}", network, resource);
+//
+//        //con.lpush(key, value)
+//        con.lpush(channel, serde_json::to_string(message)?)?;
+//        Ok(())
+//    }
+//}
 
 #[cfg(test)]
 mod tests {
