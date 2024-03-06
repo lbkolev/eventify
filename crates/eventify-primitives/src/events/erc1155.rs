@@ -1,13 +1,14 @@
+use alloy_primitives::B256;
+use eyre::Result;
+use redis::Commands;
+use sqlx::{Error as SqlError, PgPool};
+
 use super::ERC1155;
 use crate::{
     networks::{LogKind, ResourceKind},
     traits::{Emit, Insert},
+    EmitError,
 };
-
-use alloy_primitives::B256;
-use eyre::Result;
-use redis::{Commands, RedisError};
-use sqlx::{Error, PgPool};
 
 impl Insert for ERC1155::TransferSingle {
     async fn insert(
@@ -15,7 +16,7 @@ impl Insert for ERC1155::TransferSingle {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let operator = self.operator.as_slice();
         let from = self.from.as_slice();
@@ -51,20 +52,20 @@ impl Insert for ERC1155::TransferSingle {
 }
 
 impl Emit for ERC1155::TransferSingle {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
+
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC1155_TransferSingle)
         );
+        con.lpush(channel, serde_json::to_string(self)?)?;
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
         Ok(())
     }
 }
@@ -75,7 +76,7 @@ impl Insert for ERC1155::TransferBatch {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let operator = self.operator.as_slice();
         let from = self.from.as_slice();
@@ -115,20 +116,20 @@ impl Insert for ERC1155::TransferBatch {
 }
 
 impl Emit for ERC1155::TransferBatch {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
+
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC1155_TransferBatch)
         );
+        con.lpush(channel, serde_json::to_string(self)?)?;
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
         Ok(())
     }
 }
@@ -139,7 +140,7 @@ impl Insert for ERC1155::URI {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let value = self.value.as_str();
         let id = self.id.as_le_slice();
@@ -166,16 +167,16 @@ impl Insert for ERC1155::URI {
 }
 
 impl Emit for ERC1155::URI {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
-        let channel = format!("{}:{}", network, ResourceKind::Log(LogKind::ERC1155_URI));
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
+        let channel = format!("{}:{}", network, ResourceKind::Log(LogKind::ERC1155_URI));
+        con.lpush(channel, serde_json::to_string(self)?)?;
+
         Ok(())
     }
 }

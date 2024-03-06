@@ -1,5 +1,4 @@
 use actix_web::{get, web, Responder};
-
 use sqlx::PgPool;
 
 use crate::api::get_count;

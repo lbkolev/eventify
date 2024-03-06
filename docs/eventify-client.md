@@ -1,1 +1,0 @@
-../crates/eventify-http-client/README.md

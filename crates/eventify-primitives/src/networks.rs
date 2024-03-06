@@ -3,11 +3,11 @@ pub mod ethereum;
 use std::fmt::Display;
 
 use alloy_primitives::B256;
-use sqlx::PgPool;
+use sqlx::{Error as SqlError, PgPool};
 
 use crate::{
     events::{ERC1155, ERC20, ERC4626, ERC721, ERC777},
-    BlockT, EmitT, InsertT, LogT, TransactionT,
+    BlockT, EmitError, EmitT, InsertT, LogT, TransactionT,
 };
 
 #[derive(Clone, Debug)]
@@ -94,7 +94,7 @@ impl<L: LogT> InsertT for Logs<L> {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> eyre::Result<(), sqlx::Error> {
+    ) -> eyre::Result<(), SqlError> {
         match self {
             Logs::Raw(log) => log.insert(pool, schema, tx_hash).await?,
             Logs::ERC20_Transfer(e) => e.insert(pool, schema, tx_hash).await?,
@@ -122,34 +122,33 @@ impl<L: LogT> InsertT for Logs<L> {
     }
 }
 
-impl<L: LogT> EmitT for Logs<L> {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+impl<L: LogT + serde::Serialize> EmitT for Logs<L> {
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> eyre::Result<(), redis::RedisError> {
+    ) -> eyre::Result<(), EmitError> {
         match self {
-            Logs::Raw(log) => log.emit(queue, network, message).await?,
-            Logs::ERC20_Transfer(e) => e.emit(queue, network, message).await?,
-            Logs::ERC20_Approval(e) => e.emit(queue, network, message).await?,
+            Logs::Raw(log) => log.emit(queue, network).await?,
+            Logs::ERC20_Transfer(e) => e.emit(queue, network).await?,
+            Logs::ERC20_Approval(e) => e.emit(queue, network).await?,
 
-            Logs::ERC721_Transfer(e) => e.emit(queue, network, message).await?,
-            Logs::ERC721_Approval(e) => e.emit(queue, network, message).await?,
-            Logs::ERC721_ApprovalForAll(e) => e.emit(queue, network, message).await?,
+            Logs::ERC721_Transfer(e) => e.emit(queue, network).await?,
+            Logs::ERC721_Approval(e) => e.emit(queue, network).await?,
+            Logs::ERC721_ApprovalForAll(e) => e.emit(queue, network).await?,
 
-            Logs::ERC777_Sent(e) => e.emit(queue, network, message).await?,
-            Logs::ERC777_Minted(e) => e.emit(queue, network, message).await?,
-            Logs::ERC777_Burned(e) => e.emit(queue, network, message).await?,
-            Logs::ERC777_AuthorizedOperator(e) => e.emit(queue, network, message).await?,
-            Logs::ERC777_RevokedOperator(e) => e.emit(queue, network, message).await?,
+            Logs::ERC777_Sent(e) => e.emit(queue, network).await?,
+            Logs::ERC777_Minted(e) => e.emit(queue, network).await?,
+            Logs::ERC777_Burned(e) => e.emit(queue, network).await?,
+            Logs::ERC777_AuthorizedOperator(e) => e.emit(queue, network).await?,
+            Logs::ERC777_RevokedOperator(e) => e.emit(queue, network).await?,
 
-            Logs::ERC1155_TransferSingle(e) => e.emit(queue, network, message).await?,
-            Logs::ERC1155_TransferBatch(e) => e.emit(queue, network, message).await?,
-            Logs::ERC1155_URI(e) => e.emit(queue, network, message).await?,
+            Logs::ERC1155_TransferSingle(e) => e.emit(queue, network).await?,
+            Logs::ERC1155_TransferBatch(e) => e.emit(queue, network).await?,
+            Logs::ERC1155_URI(e) => e.emit(queue, network).await?,
 
-            Logs::ERC4626_Deposit(e) => e.emit(queue, network, message).await?,
-            Logs::ERC4626_Withdraw(e) => e.emit(queue, network, message).await?,
+            Logs::ERC4626_Deposit(e) => e.emit(queue, network).await?,
+            Logs::ERC4626_Withdraw(e) => e.emit(queue, network).await?,
         }
 
         Ok(())
@@ -183,7 +182,7 @@ impl<T: LogT> Display for Logs<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub enum Resource<B, T, L>
 where
     B: BlockT,
@@ -206,7 +205,7 @@ where
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> eyre::Result<(), sqlx::Error> {
+    ) -> eyre::Result<(), SqlError> {
         match self {
             Resource::Block(block) => block.insert(pool, schema, tx_hash).await?,
             Resource::Tx(tx) => tx.insert(pool, schema, tx_hash).await?,
@@ -223,16 +222,15 @@ where
     T: TransactionT,
     L: LogT,
 {
-    async fn emit<M: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &M,
-    ) -> eyre::Result<(), redis::RedisError> {
+    ) -> eyre::Result<(), EmitError> {
         match self {
-            Resource::Block(block) => block.emit(queue, network, message).await?,
-            Resource::Tx(tx) => tx.emit(queue, network, message).await?,
-            Resource::Log(log) => log.emit(queue, network, message).await?,
+            Resource::Block(block) => block.emit(queue, network).await?,
+            Resource::Tx(tx) => tx.emit(queue, network).await?,
+            Resource::Log(log) => log.emit(queue, network).await?,
         }
 
         Ok(())

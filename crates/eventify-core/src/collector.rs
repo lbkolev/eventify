@@ -1,11 +1,13 @@
 use std::fmt::Debug;
 
 use alloy_primitives::{Address, FixedBytes, U256};
-
+use alloy_sol_types::SolEvent;
+#[cfg(feature = "index")]
+use sqlx::PgPool;
 use tokio::sync::mpsc;
 use tracing::{info, trace, warn};
 
-use crate::{CollectT, NetworkT};
+use crate::{networks::NetworkClient, CollectT, NetworkT};
 use eventify_configs::core::CollectorConfig;
 #[cfg(feature = "index")]
 use eventify_primitives::InsertT;
@@ -14,10 +16,6 @@ use eventify_primitives::{
     networks::{Logs, Resource},
     BlockT as _, LogT,
 };
-#[cfg(feature = "index")]
-use sqlx::PgPool;
-
-use alloy_sol_types::SolEvent;
 
 #[derive(Debug, Clone)]
 pub struct Collector<N>
@@ -39,23 +37,25 @@ impl<N> Collector<N>
 where
     N: NetworkT,
 {
-    pub fn new(
+    pub async fn new(
         config: CollectorConfig,
-        node: N,
         #[cfg(feature = "index")] pool: PgPool,
 
         #[cfg(feature = "propagate")] queue_rx: mpsc::Sender<
             Resource<N::LightBlock, N::Transaction, N::Log>,
         >,
-    ) -> Self {
-        Self {
+    ) -> eyre::Result<Self> {
+        let client = NetworkClient::new(config.client_url.clone()).await?;
+        let node = N::new(client);
+
+        Ok(Self {
             config,
             node,
             #[cfg(feature = "index")]
             pool,
             #[cfg(feature = "propagate")]
             queue_rx,
-        }
+        })
     }
 }
 
@@ -65,91 +65,89 @@ where
 {
     async fn stream_blocks(&self) -> crate::Result<()> {
         let mut stream = self.node.sub_blocks().await?;
-        tracing::warn!(subscribed = true, kind = "blocks");
+        info!(subscribed = true, kind = "blocks");
 
-        loop {
-            match stream.next().await {
-                Some(block) => {
-                    let block = block?;
-                    trace!(block=?block);
-                    info!(kind="block", number=?block.number(), hash=?block.hash());
-
-                    #[cfg(feature = "index")]
-                    {
-                        block.insert(&self.pool, "eth", &None).await?;
-                    }
-
-                    #[cfg(feature = "propagate")]
-                    {
-                        match self.queue_rx.send(Resource::Block(block)).await {
-                            Ok(_) => {}
-                            Err(err) => {
-                                warn!(kind="propagate_error", err=?err);
-                            }
-                        }
-                    }
+        while let Some(block) = stream.next().await {
+            trace!(block=?block);
+            let block = match block {
+                Ok(block) => serde_json::from_str::<<N as NetworkT>::LightBlock>(block.get())?,
+                Err(err) => {
+                    warn!(kind="block_error", err=?err);
+                    continue;
                 }
+            };
+            info!(kind="block", number=?block.number(), hash=?block.hash());
 
-                None => {
-                    return Err(crate::Error::EmptyStream);
+            #[cfg(feature = "index")]
+            {
+                block
+                    .insert(&self.pool, &self.config.network.to_string(), &None)
+                    .await?;
+            }
+
+            #[cfg(feature = "propagate")]
+            {
+                match self.queue_rx.send(Resource::Block(block)).await {
+                    Ok(_) => {}
+                    Err(err) => {
+                        warn!(kind="propagate_error", err=?err);
+                    }
                 }
             }
         }
+
+        Ok(())
     }
 
     async fn stream_txs(&self) -> crate::Result<()> {
         let mut stream = self.node.sub_txs().await?;
-        tracing::warn!(subscribed = true, kind = "txs");
+        info!(subscribed = true, kind = "txs");
 
-        loop {
-            match stream.next().await {
-                Some(tx) => {
-                    let tx = tx?;
-                    warn!(tx=?tx);
+        #[allow(clippy::never_loop)]
+        while let Some(tx) = stream.next().await {
+            trace!(tx=?tx);
 
-                    // TODO: get tx details
-                }
-
-                None => {
-                    return Err(crate::Error::EmptyStream);
-                }
-            }
+            // TODO: pending tx
+            unimplemented!()
         }
+
+        Ok(())
     }
 
     async fn stream_logs(&self) -> crate::Result<()> {
         let mut stream = self.node.sub_logs().await?;
-        tracing::warn!(subscribed = true, kind = "logs");
+        info!(subscribed = true, kind = "logs");
 
-        loop {
-            match stream.next().await {
-                Some(log) => {
-                    let log = log?;
-
-                    let event = match_events(log.clone());
-
-                    #[cfg(feature = "index")]
-                    {
-                        let tx_hash = &log.tx_hash();
-                        event.insert(&self.pool, "eth", tx_hash).await?;
-                    }
-
-                    #[cfg(feature = "propagate")]
-                    {
-                        match self.queue_rx.send(Resource::Log(event)).await {
-                            Ok(_) => {}
-                            Err(err) => {
-                                warn!(kind="propagate_error", err=?err);
-                            }
-                        }
-                    }
+        while let Some(log) = stream.next().await {
+            trace!(log=?log);
+            let log = match log {
+                Ok(log) => serde_json::from_str::<<N as NetworkT>::Log>(log.get())?,
+                Err(err) => {
+                    warn!(kind="log_error", err=?err);
+                    continue;
                 }
+            };
+            let event = match_events(log.clone());
 
-                None => {
-                    return Err(crate::Error::EmptyStream);
+            #[cfg(feature = "index")]
+            {
+                event
+                    .insert(&self.pool, &self.config.network.to_string(), &log.tx_hash())
+                    .await?;
+            }
+
+            #[cfg(feature = "propagate")]
+            {
+                match self.queue_rx.send(Resource::Log(event)).await {
+                    Ok(_) => {}
+                    Err(err) => {
+                        warn!(kind="propagate_error", err=?err);
+                    }
                 }
             }
         }
+
+        Ok(())
     }
 }
 
@@ -473,27 +471,5 @@ pub fn match_events<L: LogT>(log: L) -> Logs<L> {
             info!(kind="log_raw", address=?log.address(), tx_hash=?log.tx_hash());
             Logs::Raw(log)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use alloy_primitives::{hex::FromHex, Address, Bytes};
-
-    #[test]
-    fn test_bytes() {
-        let b =
-            Bytes::from_hex("0x0000000000000000000000000000000000000000000000000000000000000001")
-                .unwrap();
-        println!("{:?}", &b[15..]);
-        assert!(b.ends_with(&[0x1]));
-
-        let b =
-            Bytes::from_hex("0x0000000000000000000000000000000000000000000000000000000000000000")
-                .unwrap();
-        assert!(b.ends_with(&[0x0]));
-
-        let sent = Bytes::from_hex("0x0000000000000000000000000000000000000000000009976cd8feec903400000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
-        println!("{:?}", Address::try_from(&sent[12..32]).unwrap_or_default());
     }
 }

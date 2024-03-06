@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:latest
     restart: unless-stopped
-    container_name: postgres
+    container_name: eventify_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
@@ -24,7 +24,7 @@ services:
   redis:
     image: redis:6.2
     restart: unless-stopped
-    container_name: redis
+    container_name: eventify_redis
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     ports:

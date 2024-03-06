@@ -1,12 +1,11 @@
 openapi: 3.0.3
 info:
   title: eventify-http-server
-  description: Ethereum Indexer
+  description: Ledger event pipeline
   contact:
-    name: Lachezar Kolev
-    email: lachezarkolevgg@gmail.com
+    name: eventify contributors
   license:
-    name: MIT
+    name: MIT OR Apache-2.0
   version: 0.0.1
 paths:
   /api/v1/blocks/count:

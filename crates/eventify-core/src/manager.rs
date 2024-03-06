@@ -1,28 +1,40 @@
-use tokio::{sync::watch::Receiver, task::JoinHandle};
+use tokio::{
+    sync::{mpsc, watch::Receiver},
+    task::JoinHandle,
+};
 use tracing::{error, info, warn};
 
 use crate::{
     collector::Collector,
     traits::{Collect, Network},
 };
-use eventify_configs::configs::ManagerConfig;
-use eventify_primitives::networks::ResourceKind;
+use eventify_configs::configs::{CollectorConfig, ManagerConfig};
+use eventify_primitives::networks::{Resource, ResourceKind};
 
 #[derive(Debug, Clone)]
 pub struct Manager<N>
 where
     N: Network,
 {
-    pub config: ManagerConfig,
-    pub collector: Collector<N>,
+    pub manager_config: ManagerConfig,
+    pub collector_config: CollectorConfig,
+    queue_rx: mpsc::Sender<Resource<N::LightBlock, N::Transaction, N::Log>>,
 }
 
 impl<N> Manager<N>
 where
     N: Network,
 {
-    pub fn new(config: ManagerConfig, collector: Collector<N>) -> Self {
-        Self { config, collector }
+    pub fn new(
+        manager_config: ManagerConfig,
+        collector_config: CollectorConfig,
+        queue_rx: mpsc::Sender<Resource<N::LightBlock, N::Transaction, N::Log>>,
+    ) -> Self {
+        Self {
+            manager_config,
+            collector_config,
+            queue_rx,
+        }
     }
 }
 
@@ -36,144 +48,51 @@ where
     ) -> crate::Result<Vec<JoinHandle<()>>> {
         let mut tasks = Vec::new();
 
-        for r in self.config.resources.iter() {
-            match r {
-                ResourceKind::Block => {
-                    let collector = self.collector.clone();
-                    let signal = stop_signal.clone();
-                    tasks.push(self.create_block_stream_task(collector, signal).await?);
-                }
-                ResourceKind::Transaction => {
-                    let collector = self.collector.clone();
-                    let signal = stop_signal.clone();
-                    tasks.push(self.create_tx_stream_task(collector, signal).await?);
-                }
-                ResourceKind::Log(_) => {
-                    let collector = self.collector.clone();
-                    let signal = stop_signal.clone();
-                    tasks.push(self.create_log_stream_task(collector, signal).await?);
-                }
-            }
+        for r in self.manager_config.resources.iter() {
+            tasks.push(
+                self.create_stream_task(r, &self.collector_config, &stop_signal)
+                    .await?,
+            );
         }
 
         Ok(tasks)
     }
 
-    pub async fn create_block_stream_task(
+    async fn create_stream_task(
         &self,
-        collector: Collector<N>,
-        mut stop_signal: Receiver<bool>,
+        resource: &ResourceKind,
+        collector_config: &CollectorConfig,
+        stop_signal: &Receiver<bool>,
     ) -> crate::Result<JoinHandle<()>> {
-        info!("Spawning block streaming thread");
-        Ok(tokio::spawn(async move {
-            loop {
-                tokio::select! {
-                    result = collector.stream_blocks() => {
-                        match result {
-                            Ok(()) => {
-                                info!(thread="stream_logs", "Finished streaming blocks");
-                                break;
-                            }
-                            Err(err) => match err {
-                                crate::Error::JsonRpsee(err)  => {
-                                    warn!(err=?err);
-                                    continue;
-                                }
-                                crate::Error::EmptyStream => {
-                                    warn!("Empty stream");
-                                    continue;
-                                }
-                                _ => {
-                                    error!(err=?err);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    _ = stop_signal.changed() => {
-                        warn!(thread="stream_block", "SIGINT signal. Terminating..");
-                        break;
-                    }
-                }
-            }
-        }))
-    }
+        let collector: Collector<N> =
+            Collector::new(collector_config.clone(), self.queue_rx.clone()).await?;
+        let mut stop_signal = stop_signal.clone();
+        let resource = *resource;
 
-    pub async fn create_tx_stream_task(
-        &self,
-        collector: Collector<N>,
-        mut stop_signal: Receiver<bool>,
-    ) -> crate::Result<JoinHandle<()>> {
-        info!("Spawning tx streaming thread");
         Ok(tokio::spawn(async move {
-            loop {
-                tokio::select! {
-                    result = collector.stream_txs() => {
-                        match result {
-                            Ok(()) => {
-                                info!(thread="stream_logs", "Finished streaming txs");
-                                break;
-                            }
-                            Err(err) => match err {
-                                crate::Error::JsonRpsee(err)  => {
-                                    warn!(err=?err);
-                                    continue;
-                                }
-                                crate::Error::EmptyStream => {
-                                    warn!(err="Empty stream");
-                                    continue;
-                                }
-                                _ => {
-                                    error!(err=?err);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    _ = stop_signal.changed() => {
-                        warn!(thread="stream_txs", "SIGINT signal. Terminating..");
-                        break;
-                    }
-                }
-            }
-        }))
-    }
+            let stream_result = match resource {
+                ResourceKind::Block => collector.stream_blocks().await,
+                ResourceKind::Transaction => collector.stream_txs().await,
+                ResourceKind::Log(_) => collector.stream_logs().await,
+            };
 
-    pub async fn create_log_stream_task(
-        &self,
-        collector: Collector<N>,
-        mut stop_signal: Receiver<bool>,
-    ) -> crate::Result<JoinHandle<()>> {
-        info!("Spawning log streaming thread");
-        Ok(tokio::spawn(async move {
-            loop {
-                tokio::select! {
-                    result = collector.stream_logs() => {
-                        match result {
-                            Ok(()) => {
-                                info!(thread="stream_logs", "Finished streaming logs");
-                                break;
-                            }
-                            Err(err) => match err {
-                                crate::Error::JsonRpsee(err)  => {
-                                    warn!(err=?err);
-                                    continue;
-                                }
-                                crate::Error::EmptyStream => {
-                                    warn!(err="Empty stream");
-                                    continue;
-                                }
-                                _ => {
-                                    error!(err=?err);
-                                    break;
-                                }
-                            }
-                        }
+            match stream_result {
+                Ok(()) => {
+                    info!(thread=?resource, "Finished streaming");
+                }
+                Err(err) => match err {
+                    crate::Error::EmptyStream => {
+                        warn!(err = "Empty stream");
                     }
-                    _ = stop_signal.changed() => {
-                        warn!(thread="stream_logs", "SIGINT signal. Terminating..");
-                        break;
+                    _ => {
+                        error!(err=?err);
                     }
+                },
+            }
+
+            tokio::select! {
+                _ = stop_signal.changed() => {
+                    warn!(thread=?resource, "SIGINT signal. Terminating..");
                 }
             }
         }))

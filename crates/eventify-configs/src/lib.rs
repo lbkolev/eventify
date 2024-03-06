@@ -13,16 +13,14 @@ pub mod configs {
 use std::collections::HashSet;
 
 use eventify_primitives::networks::{LogKind, ResourceKind};
-use serde::{self, Deserialize, Deserializer};
-use server::ServerConfig;
 
 pub fn deserialize_resource_kinds<'de, D>(
     deserializer: D,
 ) -> Result<HashSet<ResourceKind>, D::Error>
 where
-    D: Deserializer<'de>,
+    D: serde::Deserializer<'de>,
 {
-    let s: String = Deserialize::deserialize(deserializer)?;
+    let s: String = serde::Deserialize::deserialize(deserializer)?;
     s.split(',')
         .map(|x| match x.trim().to_lowercase().as_str() {
             "block" | "blocks" => Ok(ResourceKind::Block),
@@ -36,16 +34,15 @@ where
         .collect()
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, serde::Deserialize, Default)]
 pub struct Config {
     pub database_url: String,
     pub queue_url: String,
 
     #[serde(deserialize_with = "deserialize_resource_kinds")]
     pub collect: HashSet<ResourceKind>,
-    pub server: Option<ServerConfig>,
+    pub server: Option<crate::configs::ServerConfig>,
     pub network: Option<Network>,
-    pub notify: bool,
 }
 
 impl Config {
@@ -53,9 +50,8 @@ impl Config {
         database_url: String,
         queue_url: String,
         collect: HashSet<ResourceKind>,
-        server: Option<ServerConfig>,
+        server: Option<crate::configs::ServerConfig>,
         network: Option<Network>,
-        notify: bool,
     ) -> Self {
         Self {
             database_url,
@@ -63,12 +59,11 @@ impl Config {
             collect,
             server,
             network,
-            notify,
         }
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, serde::Deserialize, Default)]
 pub struct Network {
     pub eth: Option<NetworkDetail>,
     pub zksync: Option<NetworkDetail>,
@@ -80,7 +75,7 @@ impl Network {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, serde::Deserialize, Default)]
 pub struct NetworkDetail {
     pub node_url: String,
 }
@@ -96,7 +91,6 @@ mod tests {
 database_url = "postgres://postgres:password@localhost:5432/eventify"
 queue_url = "redis://localhost:6379"
 collect = "blocks,tx,logs"
-notify = true
 
 [server]
 host = "0.0.0.0"
@@ -141,7 +135,6 @@ port = 21420
                 .map(|zksync| &zksync.node_url),
             Some(&"wss://mainnet.era.zksync.io/ws".to_string())
         );
-        assert!(config.notify);
     }
 
     #[test]
@@ -150,7 +143,6 @@ port = 21420
 database_url = "postgres://postgres:password@localhost:5432/eventify"
 queue_url = "redis://localhost:6379"
 collect = "logs,tx"
-notify = false
 
 [server]
 host = "0.0.0.0"
@@ -182,6 +174,5 @@ port = 21420
             Some(&"wss://eth.llamarpc.com".to_string())
         );
         assert!(config.network.unwrap().zksync.is_none());
-        assert!(!config.notify);
     }
 }

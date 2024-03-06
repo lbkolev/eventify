@@ -8,7 +8,7 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    api::{self, block, log, notification, transaction},
+    api::{self, block, log, transaction},
     Result,
 };
 use eventify_configs::configs::ApplicationConfig;
@@ -66,9 +66,6 @@ pub fn start(
             .service(
                 web::scope("/api").service(
                     web::scope("/v1")
-                        .service(
-                            web::scope("/notifications").service(notification::set_notification),
-                        )
                         .service(web::scope("/blocks").service(block::get_blocks_count))
                         .service(
                             web::scope("/transactions")

@@ -21,7 +21,7 @@ wait_for_server() {
 }
 
 echo "Starting the server..."
-cargo run -- run --server.enabled &
+cargo r -- run --config etc/configs/stream-eth-all.toml &
 
 wait_for_server
 curl --silent "$SERVER_URL" | yq --prettyPrint > crates/eventify-http-server/openapi.yaml

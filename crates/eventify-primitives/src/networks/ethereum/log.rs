@@ -7,12 +7,13 @@ use alloy_primitives::{Address, BlockNumber, Bytes, B256, U64};
 use eyre::Result;
 use redis::Commands;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Error};
+use sqlx::{prelude::FromRow, Error as SqlError};
 use utoipa::ToSchema;
 
 use crate::{
     networks::{LogKind, ResourceKind},
     traits::{Emit, Insert, Log},
+    EmitError,
 };
 
 #[derive(
@@ -50,7 +51,7 @@ impl Insert for EthLog {
         pool: &sqlx::PgPool,
         schema: &str,
         _: &Option<alloy_primitives::B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let address = self.address.as_slice();
         let topic0 = self.topics.first().map(|v| v.as_slice());
         let topic1 = self.topics.get(1).map(|v| v.as_slice());
@@ -104,16 +105,16 @@ impl Insert for EthLog {
 }
 
 impl Emit for EthLog {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> eyre::Result<(), redis::RedisError> {
+    ) -> eyre::Result<(), EmitError> {
         let mut con = queue.get_connection()?;
-        let channel = format!("{}:{}", network, ResourceKind::Log(LogKind::Raw));
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
+        let channel = format!("{}:{}", network, ResourceKind::Log(LogKind::Raw));
+        con.lpush(channel, serde_json::to_string(self)?)?;
+
         Ok(())
     }
 }

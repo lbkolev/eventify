@@ -6,7 +6,6 @@ pub mod collector;
 pub mod error;
 pub mod manager;
 pub mod networks;
-pub mod queues;
 
 pub use collector::Collector;
 pub use error::Error;
@@ -19,9 +18,8 @@ type Result<T> = std::result::Result<T, error::Error>;
 mod traits {
     use std::{fmt::Debug, future::Future};
 
-    use alloy_primitives::B256;
     use eyre::Result;
-    use jsonrpsee::core::client::{Error as RpcError, Subscription};
+    use reconnecting_jsonrpsee_ws_client::{RpcError, Subscription};
 
     use eventify_primitives::{BlockT, LogT, TransactionT};
 
@@ -40,12 +38,9 @@ mod traits {
         type Transaction: TransactionT;
         type Log: LogT;
 
-        fn sub_blocks(
-            &self,
-        ) -> impl Future<Output = Result<Subscription<Self::LightBlock>, RpcError>> + Send;
-        fn sub_txs(&self) -> impl Future<Output = Result<Subscription<B256>, RpcError>> + Send;
-        fn sub_logs(
-            &self,
-        ) -> impl Future<Output = Result<Subscription<Self::Log>, RpcError>> + Send;
+        fn new(client: crate::networks::NetworkClient) -> Self;
+        fn sub_blocks(&self) -> impl Future<Output = Result<Subscription, RpcError>> + Send;
+        fn sub_txs(&self) -> impl Future<Output = Result<Subscription, RpcError>> + Send;
+        fn sub_logs(&self) -> impl Future<Output = Result<Subscription, RpcError>> + Send;
     }
 }

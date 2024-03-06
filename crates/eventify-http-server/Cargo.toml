@@ -16,7 +16,6 @@ repository.workspace = true
 # internal
 eventify-primitives.workspace = true
 eventify-configs.workspace = true
-eventify-engine.workspace = true
 
 # core
 actix-web = "4.3.1"
@@ -30,7 +29,6 @@ utoipa-redoc = { version = "2.0.0", features = ["actix-web"] }
 serde = { workspace = true, features = ["derive"]}
 serde-aux.workspace = true
 serde_json.workspace = true
-serde_derive.workspace = true
 
 # async
 tokio.workspace = true
@@ -39,7 +37,6 @@ futures.workspace = true
 # auxiliary
 thiserror.workspace = true
 num_cpus.workspace = true
-secrecy.workspace = true
 uuid.workspace = true
 tracing.workspace = true
 reqwest.workspace = true

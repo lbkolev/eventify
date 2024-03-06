@@ -1,13 +1,14 @@
 use alloy_primitives::{Address, Bytes, B256, U256, U64};
 use eyre::Result;
-use redis::{Commands, RedisError};
+use redis::Commands;
 use serde::{Deserialize, Serialize};
-use sqlx::{Error, FromRow};
+use sqlx::{Error as SqlError, FromRow};
 use utoipa::ToSchema;
 
 use crate::{
     networks::ResourceKind,
     traits::{Emit, Insert, Transaction},
+    EmitError,
 };
 
 #[derive(Clone, Debug, Default, Hash, Deserialize, Serialize, PartialEq, Eq, FromRow, ToSchema)]
@@ -49,7 +50,7 @@ impl Insert for EthTransaction {
         pool: &sqlx::PgPool,
         schema: &str,
         _: &Option<alloy_primitives::B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let from = self.from.as_slice();
         let gas = self.gas.as_le_slice();
         let gas_price = self.gas_price.as_le_slice();
@@ -107,16 +108,16 @@ impl Insert for EthTransaction {
 }
 
 impl Emit for EthTransaction {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
-        let channel = format!("{}:{}", network, ResourceKind::Transaction);
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
+        let channel = format!("{}:{}", network, ResourceKind::Transaction);
+        con.lpush(channel, serde_json::to_string(self)?)?;
+
         Ok(())
     }
 }
