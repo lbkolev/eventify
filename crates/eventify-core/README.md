@@ -1,14 +1,13 @@
 ## eventify-core
 
-> <p align="center"> 🚧 work in progress 🚧<p>
-
 ```mermaid
 graph TD
     Manager --> Collector
     Collector --> Node
     Collector --> Storage
+    Collector -> Queue
     Node --> Ethereum
-    Node --> Starkware
     Node --> Zksync
     Storage --> Postgres
+    Queue ->> Redis
 ```

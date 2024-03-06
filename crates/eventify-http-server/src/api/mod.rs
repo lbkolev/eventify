@@ -1,14 +1,13 @@
 pub mod block;
 pub mod health;
 pub mod log;
-pub mod notification;
-//pub mod notification;
 pub mod transaction;
 
 pub use health::health;
 
 use actix_web::{web, HttpResponse};
 use sqlx::{PgPool, Row};
+use tracing::error;
 
 use crate::types::{CountResponse, ErrorResponse};
 
@@ -24,14 +23,14 @@ pub async fn get_count<'a>(
         Ok(row) => match row.try_get::<i64, _>(0) {
             Ok(count) => Ok(HttpResponse::Ok().json(CountResponse { count })),
             Err(_) => {
-                eprintln!("Error: Failed to parse count");
+                error!("Error: Failed to parse count");
                 Ok(HttpResponse::InternalServerError().json(ErrorResponse {
                     error: "Failed to parse count".to_string(),
                 }))
             }
         },
         Err(err) => {
-            eprintln!("Error: {}", err);
+            error!("Error: {}", err);
             Ok(HttpResponse::InternalServerError().json(ErrorResponse {
                 error: description.to_string(),
             }))

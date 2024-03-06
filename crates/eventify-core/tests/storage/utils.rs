@@ -2,7 +2,7 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
 pub async fn setup_test_db() -> std::result::Result<(Pool<Postgres>, String), sqlx::Error> {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let db_url = "postgres://postgres:password@localhost:5432/";
     let master_pool = PgPoolOptions::new()
         .connect(&format!("{}postgres", db_url))

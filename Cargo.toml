@@ -1,11 +1,11 @@
 [workspace.package]
 authors = ["eventify contributors"]
-description = "Ethereum L1/L2 block|tx|event listener, propagator & indexer"
+description = "Ledger event pipeline"
 documentation = "https://docs.rs/eventify"
 edition = "2021"
 homepage = "https://github.com/lbkolev/eventify"
 license = "MIT OR Apache-2.0"
-version = "0.0.1"
+version = "0.0.1-beta"
 rust-version = "1.75.0"
 readme = "README.md"
 repository = "https://github.com/lbkolev/eventify"
@@ -14,8 +14,7 @@ repository = "https://github.com/lbkolev/eventify"
 members = [
     "crates/eventify",
     "crates/eventify-configs",
-    "crates/eventify-core", "crates/eventify-engine",
-    "crates/eventify-http-client",
+    "crates/eventify-core",
     "crates/eventify-http-server",
     "crates/eventify-primitives"
 ]
@@ -23,12 +22,10 @@ resolver = "2"
 
 [workspace.dependencies]
 # internal
-eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1" }
-eventify-core = { path = "./crates/eventify-core", version = "0.0.1" }
-eventify-engine = { path = "./crates/eventify-engine", version = "0.0.1" }
-eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
-eventify-configs = { path = "./crates/eventify-configs", version = "0.0.1" }
-eventify-client = { path = "./crates/eventify-http-client", version = "0.0.1" }
+eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1-beta" }
+eventify-core = { path = "./crates/eventify-core", version = "0.0.1-beta" }
+eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1-beta" }
+eventify-configs = { path = "./crates/eventify-configs", version = "0.0.1-beta" }
 
 # async
 futures = "0.3.28"
@@ -37,7 +34,6 @@ tokio = { version = "1.29.1", features = ["macros", "full"] }
 # core
 serde = "1.0.171"
 serde-aux = "4.2.0"
-serde_derive = "1.0.171"
 serde_json = "1.0.104"
 sqlx = { version = "0.7.3", features = ["postgres", "runtime-tokio", "chrono"] }
 redis = "0.24.0"

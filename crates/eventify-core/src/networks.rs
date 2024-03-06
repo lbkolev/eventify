@@ -2,18 +2,28 @@ pub mod ethereum;
 
 use std::sync::Arc;
 
-use jsonrpsee::{core::client::Error as RpcError, ws_client::WsClientBuilder};
+use reconnecting_jsonrpsee_ws_client::{Client, RpcError};
 
 #[derive(Clone)]
 pub struct NetworkClient {
-    inner: Arc<jsonrpsee::ws_client::WsClient>,
+    inner: Arc<Client>,
     pub host: String,
 }
 
 impl NetworkClient {
     pub async fn new(host: String) -> Result<NetworkClient, RpcError> {
         Ok(Self {
-            inner: Arc::new(WsClientBuilder::default().build(&host).await?),
+            inner: std::sync::Arc::new(
+                reconnecting_jsonrpsee_ws_client::Client::builder()
+                    .retry_policy(reconnecting_jsonrpsee_ws_client::FixedInterval::from_millis(500))
+                    .enable_ws_ping(
+                        reconnecting_jsonrpsee_ws_client::PingConfig::new()
+                            .ping_interval(std::time::Duration::from_secs(6))
+                            .inactive_limit(std::time::Duration::from_secs(30)),
+                    )
+                    .build(host.clone())
+                    .await?,
+            ),
             host,
         })
     }

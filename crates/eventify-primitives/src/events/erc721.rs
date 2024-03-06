@@ -1,13 +1,14 @@
+use alloy_primitives::B256;
+use eyre::Result;
+use redis::Commands;
+use sqlx::{Error as SqlError, PgPool};
+
 use super::ERC721;
 use crate::{
     networks::{LogKind, ResourceKind},
     traits::{Emit, Insert},
+    EmitError,
 };
-
-use alloy_primitives::B256;
-use eyre::Result;
-use redis::{Commands, RedisError};
-use sqlx::{Error, PgPool};
 
 impl Insert for ERC721::Transfer {
     async fn insert(
@@ -15,7 +16,7 @@ impl Insert for ERC721::Transfer {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let from = self.from.as_slice();
         let to = self.to.as_slice();
@@ -45,20 +46,20 @@ impl Insert for ERC721::Transfer {
 }
 
 impl Emit for ERC721::Transfer {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
+
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC721_Transfer)
         );
+        con.lpush(channel, serde_json::to_string(self)?)?;
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
         Ok(())
     }
 }
@@ -69,7 +70,7 @@ impl Insert for ERC721::Approval {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let owner = self.owner.as_slice();
         let approved = self.approved.as_slice();
@@ -99,20 +100,20 @@ impl Insert for ERC721::Approval {
 }
 
 impl Emit for ERC721::Approval {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
+
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC721_Approval)
         );
+        con.lpush(channel, serde_json::to_string(self)?)?;
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
         Ok(())
     }
 }
@@ -123,7 +124,7 @@ impl Insert for ERC721::ApprovalForAll {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let owner = self.owner.as_slice();
         let operator = self.operator.as_slice();
@@ -153,20 +154,20 @@ impl Insert for ERC721::ApprovalForAll {
 }
 
 impl Emit for ERC721::ApprovalForAll {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
+
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC721_ApprovalForAll)
         );
+        con.lpush(channel, serde_json::to_string(self)?)?;
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
         Ok(())
     }
 }

@@ -1,13 +1,15 @@
+use std::{fmt::Debug, hash::Hash};
+
 use alloy_primitives::{Address, Bloom, Bytes, B256, B64, U256, U64};
 use eyre::Result;
-use redis::{Commands, RedisError};
-use sqlx::{Error, FromRow};
+use redis::Commands;
+use sqlx::{Error as SqlError, FromRow};
 use utoipa::ToSchema;
 
-use super::EthTransaction;
 use crate::{
     networks::ResourceKind,
     traits::{Block, Emit, Insert},
+    EmitError,
 };
 
 #[derive(
@@ -80,21 +82,18 @@ pub struct EthBlock<T> {
     // --
 }
 
-impl Block for EthBlock<B256> {
-    fn parent_hash(&self) -> alloy_primitives::B256 {
-        self.parent_hash
-    }
-
-    fn hash(&self) -> Option<alloy_primitives::B256> {
-        self.hash
-    }
-
-    fn number(&self) -> Option<alloy_primitives::U64> {
-        self.number
-    }
-}
-
-impl Block for EthBlock<EthTransaction> {
+impl<
+        T: serde::de::DeserializeOwned
+            + serde::Serialize
+            + Hash
+            + Eq
+            + Default
+            + Debug
+            + Clone
+            + Send
+            + Sync,
+    > Block for EthBlock<T>
+{
     fn parent_hash(&self) -> alloy_primitives::B256 {
         self.parent_hash
     }
@@ -114,7 +113,7 @@ impl<T: Send + Sync> Insert for EthBlock<T> {
         pool: &sqlx::PgPool,
         schema: &str,
         _: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let parent_hash = self.parent_hash.as_slice();
         let uncle_hash = self.uncle_hash.as_slice();
         let coinbase = self.coinbase.as_slice();
@@ -191,17 +190,17 @@ impl<T: Send + Sync> Insert for EthBlock<T> {
     }
 }
 
-impl<B: Send + Sync> Emit for EthBlock<B> {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+impl<B: Send + Sync + serde::Serialize> Emit for EthBlock<B> {
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
-        let channel = format!("{}:{}", network, ResourceKind::Block);
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
+        let channel = format!("{}:{}", network, ResourceKind::Block);
+        con.lpush(channel, serde_json::to_string(self)?)?;
+
         Ok(())
     }
 }

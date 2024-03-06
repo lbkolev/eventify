@@ -14,10 +14,14 @@ impl ManagerConfig {
 #[derive(Clone, Debug, Eq, PartialEq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct CollectorConfig {
     pub network: NetworkKind,
+    pub client_url: String,
 }
 
 impl CollectorConfig {
-    pub fn new(network: NetworkKind) -> Self {
-        Self { network }
+    pub fn new(network: NetworkKind, client_url: String) -> Self {
+        Self {
+            network,
+            client_url,
+        }
     }
 }

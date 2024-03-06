@@ -4,7 +4,6 @@
 
 pub mod events;
 pub mod networks;
-pub mod platform;
 
 pub mod eth {
     pub use crate::networks::ethereum::{
@@ -15,6 +14,14 @@ pub mod eth {
 pub use traits::{
     Block as BlockT, Emit as EmitT, Insert as InsertT, Log as LogT, Transaction as TransactionT,
 };
+
+#[derive(thiserror::Error, Debug)]
+pub enum EmitError {
+    #[error(transparent)]
+    RedisError(#[from] redis::RedisError),
+    #[error(transparent)]
+    SerdeError(#[from] serde_json::Error),
+}
 
 mod traits {
     pub trait Insert: Sync + Send {
@@ -27,12 +34,11 @@ mod traits {
     }
 
     pub trait Emit: Sync + Send {
-        fn emit<T: serde::Serialize + Sync + Send>(
+        fn emit(
             &self,
             queue: &redis::Client,
             network: &crate::networks::NetworkKind,
-            message: &T,
-        ) -> impl std::future::Future<Output = eyre::Result<(), redis::RedisError>> + Send;
+        ) -> impl std::future::Future<Output = eyre::Result<(), super::EmitError>> + Send;
     }
 
     pub trait Block:

@@ -7,7 +7,7 @@ use eventify_configs::{configs::ServerConfig, Config, Network, NetworkDetail};
 use eventify_primitives::networks::{NetworkKind, ResourceKind};
 
 #[derive(Clone, Debug, Parser)]
-#[command(about = "Idx from range or stream directly from the tip of the chain")]
+#[command()]
 pub(crate) struct Cmd {
     #[arg(
         long,
@@ -52,15 +52,6 @@ pub(crate) struct Cmd {
 
     #[arg(
         long,
-        env = "EVENTIFY_NOTIFY",
-        help = "Notify toggler, enabled means notify for all present notifications",
-        default_value = "true",
-        value_parser = |s: &str| s.parse::<bool>(),
-    )]
-    pub(crate) notify: bool,
-
-    #[arg(
-        long,
         env = "EVENTIFY_COLLECT",
         help = "Type of resources to collect",
         default_value = "blocks,tx,logs"
@@ -86,10 +77,6 @@ impl Cmd {
 
     pub(crate) fn node_url(&self) -> &str {
         &self.node_url
-    }
-
-    pub(crate) fn notify(&self) -> bool {
-        self.notify
     }
 }
 
@@ -122,7 +109,6 @@ impl From<Cmd> for Config {
             database_url: settings.database_url().to_string(),
             queue_url: settings.queue_url().to_string(),
             collect: settings.collect(),
-            notify: settings.notify(),
             server,
             network,
         }

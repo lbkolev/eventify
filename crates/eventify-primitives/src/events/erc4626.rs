@@ -1,13 +1,14 @@
+use alloy_primitives::B256;
+use eyre::Result;
+use redis::Commands;
+use sqlx::{Error as SqlError, PgPool};
+
 use super::ERC4626;
 use crate::{
     networks::{LogKind, ResourceKind},
     traits::{Emit, Insert},
+    EmitError,
 };
-
-use alloy_primitives::B256;
-use eyre::Result;
-use redis::{Commands, RedisError};
-use sqlx::{Error, PgPool};
 
 impl Insert for ERC4626::Deposit {
     async fn insert(
@@ -15,7 +16,7 @@ impl Insert for ERC4626::Deposit {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let sender = self.sender.as_slice();
         let owner = self.owner.as_slice();
@@ -48,20 +49,20 @@ impl Insert for ERC4626::Deposit {
 }
 
 impl Emit for ERC4626::Deposit {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
+
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC4626_Deposit)
         );
+        con.lpush(channel, serde_json::to_string(self)?)?;
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
         Ok(())
     }
 }
@@ -72,7 +73,7 @@ impl Insert for ERC4626::Withdraw {
         pool: &PgPool,
         schema: &str,
         tx_hash: &Option<B256>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let sender = self.sender.as_slice();
         let receiver = self.receiver.as_slice();
@@ -108,20 +109,20 @@ impl Insert for ERC4626::Withdraw {
 }
 
 impl Emit for ERC4626::Withdraw {
-    async fn emit<T: serde::Serialize + Send + Sync>(
+    async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
-        message: &T,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), EmitError> {
         let mut con = queue.get_connection()?;
+
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC4626_Withdraw)
         );
+        con.lpush(channel, serde_json::to_string(self)?)?;
 
-        con.lpush(channel, serde_json::to_string(message).unwrap())?;
         Ok(())
     }
 }

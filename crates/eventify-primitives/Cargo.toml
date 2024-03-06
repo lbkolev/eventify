@@ -22,7 +22,6 @@ serde_json.workspace = true
 
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
-clap.workspace = true
 tracing.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
