@@ -5,7 +5,7 @@ documentation = "https://docs.rs/eventify"
 edition = "2021"
 homepage = "https://github.com/lbkolev/eventify"
 license = "MIT OR Apache-2.0"
-version = "0.0.1"
+version = "0.0.1-beta"
 rust-version = "1.75.0"
 readme = "README.md"
 repository = "https://github.com/lbkolev/eventify"
@@ -22,10 +22,10 @@ resolver = "2"
 
 [workspace.dependencies]
 # internal
-eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1" }
-eventify-core = { path = "./crates/eventify-core", version = "0.0.1" }
-eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1" }
-eventify-configs = { path = "./crates/eventify-configs", version = "0.0.1" }
+eventify-primitives = { path = "./crates/eventify-primitives", version = "0.0.1-beta" }
+eventify-core = { path = "./crates/eventify-core", version = "0.0.1-beta" }
+eventify-http-server = { path = "./crates/eventify-http-server", version = "0.0.1-beta" }
+eventify-configs = { path = "./crates/eventify-configs", version = "0.0.1-beta" }
 
 # async
 futures = "0.3.28"

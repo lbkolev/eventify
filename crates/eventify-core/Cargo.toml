@@ -47,6 +47,6 @@ alloy-sol-types = "0.6.2"
 reconnecting-jsonrpsee-ws-client = "0.3.0"
 
 [dev-dependencies]
-dotenv = "0.15.0"
+dotenvy = "0.15.7"
 serde_json.workspace = true
 uuid.workspace = true
