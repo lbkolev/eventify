@@ -3,7 +3,9 @@ use uuid::Uuid;
 
 pub async fn setup_test_db() -> std::result::Result<(Pool<Postgres>, String), sqlx::Error> {
     dotenvy::dotenv().ok();
-    let db_url = "postgres://postgres:password@localhost:5432/";
+    let db_url = dotenvy::var("TESTS_DATABASE_URL")
+        .unwrap_or("postgres://postgres:password@localhost:5432/".to_string());
+    //let db_url = "postgres://postgres:password@localhost:5432/";
     let master_pool = PgPoolOptions::new()
         .connect(&format!("{}postgres", db_url))
         .await?;
@@ -37,4 +39,10 @@ pub async fn teardown_test_db(
         .await?;
 
     Ok(())
+}
+
+pub async fn setup_test_redis() -> redis::Client {
+    let redis_url = dotenvy::var("TESTS_REDIS_URL").unwrap_or("redis://localhost:6379".to_string());
+
+    redis::Client::open(redis_url).expect("Failed to connect to redis")
 }

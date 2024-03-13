@@ -8,7 +8,7 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    api::{self, block, log, transaction},
+    api::{self, block, log},
     Result,
 };
 use eventify_configs::configs::ApplicationConfig;
@@ -38,11 +38,7 @@ impl Application {
 }
 
 #[derive(OpenApi)]
-#[openapi(paths(
-    block::get_blocks_count,
-    transaction::get_transactions_count,
-    log::get_logs_count
-))]
+#[openapi(paths(block::get_blocks_count, log::get_logs_count))]
 struct ApiDoc;
 
 pub fn start(
@@ -67,10 +63,6 @@ pub fn start(
                 web::scope("/api").service(
                     web::scope("/v1")
                         .service(web::scope("/blocks").service(block::get_blocks_count))
-                        .service(
-                            web::scope("/transactions")
-                                .service(transaction::get_transactions_count),
-                        )
                         .service(web::scope("/logs").service(api::log::get_logs_count)),
                 ),
             )

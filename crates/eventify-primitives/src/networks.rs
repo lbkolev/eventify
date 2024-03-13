@@ -1,18 +1,24 @@
+pub mod arbitrum;
+pub mod avalanche;
+pub mod base;
+pub mod bsc;
+pub mod core;
 pub mod ethereum;
-
-use std::fmt::Display;
+pub mod linea;
+pub mod optimism;
+pub mod polygon;
+pub mod zksync;
 
 use alloy_primitives::B256;
 use sqlx::{Error as SqlError, PgPool};
 
 use crate::{
     events::{ERC1155, ERC20, ERC4626, ERC721, ERC777},
-    BlockT, EmitError, EmitT, InsertT, LogT, TransactionT,
+    BlockT, EmitError, EmitT, InsertT, LogT,
 };
 
 #[derive(Clone, Debug)]
 pub struct NetworkKindError(String);
-
 impl std::error::Error for NetworkKindError {}
 impl std::fmt::Display for NetworkKindError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -33,12 +39,19 @@ impl std::fmt::Display for NetworkKindError {
     sqlx::Type,
     utoipa::ToSchema,
 )]
+#[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "network_type", rename_all = "lowercase")]
 pub enum NetworkKind {
     #[default]
     Ethereum,
-
     Zksync,
+    Polygon,
+    Optimism,
+    Arbitrum,
+    Linea,
+    Avalanche,
+    Bsc,
+    Base,
 }
 
 impl std::fmt::Display for NetworkKind {
@@ -46,6 +59,13 @@ impl std::fmt::Display for NetworkKind {
         match self {
             NetworkKind::Ethereum => write!(f, "eth"),
             NetworkKind::Zksync => write!(f, "zksync"),
+            NetworkKind::Polygon => write!(f, "polygon"),
+            NetworkKind::Optimism => write!(f, "optimism"),
+            NetworkKind::Arbitrum => write!(f, "arbitrum"),
+            NetworkKind::Linea => write!(f, "linea"),
+            NetworkKind::Avalanche => write!(f, "avalanche"),
+            NetworkKind::Bsc => write!(f, "bsc"),
+            NetworkKind::Base => write!(f, "base"),
         }
     }
 }
@@ -57,6 +77,13 @@ impl std::str::FromStr for NetworkKind {
         match s.to_lowercase().as_str() {
             "ethereum" | "eth" => Ok(NetworkKind::Ethereum),
             "zksync" => Ok(NetworkKind::Zksync),
+            "polygon" => Ok(NetworkKind::Polygon),
+            "optimism" => Ok(NetworkKind::Optimism),
+            "arbitrum" => Ok(NetworkKind::Arbitrum),
+            "linea" => Ok(NetworkKind::Linea),
+            "avalanche" => Ok(NetworkKind::Avalanche),
+            "bsc" => Ok(NetworkKind::Bsc),
+            "base" => Ok(NetworkKind::Base),
             _ => Err(NetworkKindError(s.to_string())),
         }
     }
@@ -89,33 +116,28 @@ pub enum Logs<L: LogT> {
 }
 
 impl<L: LogT> InsertT for Logs<L> {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> eyre::Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> eyre::Result<(), SqlError> {
         match self {
-            Logs::Raw(log) => log.insert(pool, schema, tx_hash).await?,
-            Logs::ERC20_Transfer(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC20_Approval(e) => e.insert(pool, schema, tx_hash).await?,
+            Logs::Raw(log) => log.insert(pool, tx_hash).await?,
+            Logs::ERC20_Transfer(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC20_Approval(e) => e.insert(pool, tx_hash).await?,
 
-            Logs::ERC721_Transfer(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC721_Approval(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC721_ApprovalForAll(e) => e.insert(pool, schema, tx_hash).await?,
+            Logs::ERC721_Transfer(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC721_Approval(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC721_ApprovalForAll(e) => e.insert(pool, tx_hash).await?,
 
-            Logs::ERC777_Sent(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC777_Minted(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC777_Burned(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC777_AuthorizedOperator(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC777_RevokedOperator(e) => e.insert(pool, schema, tx_hash).await?,
+            Logs::ERC777_Sent(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC777_Minted(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC777_Burned(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC777_AuthorizedOperator(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC777_RevokedOperator(e) => e.insert(pool, tx_hash).await?,
 
-            Logs::ERC1155_TransferSingle(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC1155_TransferBatch(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC1155_URI(e) => e.insert(pool, schema, tx_hash).await?,
+            Logs::ERC1155_TransferSingle(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC1155_TransferBatch(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC1155_URI(e) => e.insert(pool, tx_hash).await?,
 
-            Logs::ERC4626_Deposit(e) => e.insert(pool, schema, tx_hash).await?,
-            Logs::ERC4626_Withdraw(e) => e.insert(pool, schema, tx_hash).await?,
+            Logs::ERC4626_Deposit(e) => e.insert(pool, tx_hash).await?,
+            Logs::ERC4626_Withdraw(e) => e.insert(pool, tx_hash).await?,
         }
 
         Ok(())
@@ -155,71 +177,34 @@ impl<L: LogT + serde::Serialize> EmitT for Logs<L> {
     }
 }
 
-impl<T: LogT> Display for Logs<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Logs::Raw(_) => write!(f, "log"),
-            Logs::ERC20_Transfer(_) => write!(f, "log_erc20_transfer"),
-            Logs::ERC20_Approval(_) => write!(f, "log_erc20_approval"),
-
-            Logs::ERC721_Transfer(_) => write!(f, "log_erc721_transfer"),
-            Logs::ERC721_Approval(_) => write!(f, "log_erc721_approval"),
-            Logs::ERC721_ApprovalForAll(_) => write!(f, "log_erc20_approval_for_all"),
-
-            Logs::ERC777_Sent(_) => write!(f, "log_erc777_sent"),
-            Logs::ERC777_Minted(_) => write!(f, "log_erc777_minted"),
-            Logs::ERC777_Burned(_) => write!(f, "log_erc777_burned"),
-            Logs::ERC777_AuthorizedOperator(_) => write!(f, "log_erc777_authorized_operator"),
-            Logs::ERC777_RevokedOperator(_) => write!(f, "log_erc777_revoked_operator"),
-
-            Logs::ERC1155_TransferSingle(_) => write!(f, "log_erc1155_transfer_single"),
-            Logs::ERC1155_TransferBatch(_) => write!(f, "log_erc1155_transfer_batch"),
-            Logs::ERC1155_URI(_) => write!(f, "log_erc1155_uri"),
-
-            Logs::ERC4626_Deposit(_) => write!(f, "log_erc4626_deposit"),
-            Logs::ERC4626_Withdraw(_) => write!(f, "log_erc4626_withdraw"),
-        }
-    }
-}
-
 #[derive(Debug, Clone, serde::Serialize)]
-pub enum Resource<B, T, L>
+pub enum Resource<B, L>
 where
     B: BlockT,
-    T: TransactionT,
     L: LogT,
 {
     Block(B),
-    Tx(T),
     Log(Logs<L>),
 }
 
-impl<B, T, L> InsertT for Resource<B, T, L>
+impl<B, L> InsertT for Resource<B, L>
 where
     B: BlockT,
-    T: TransactionT,
     L: LogT,
 {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> eyre::Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> eyre::Result<(), SqlError> {
         match self {
-            Resource::Block(block) => block.insert(pool, schema, tx_hash).await?,
-            Resource::Tx(tx) => tx.insert(pool, schema, tx_hash).await?,
-            Resource::Log(log) => log.insert(pool, schema, tx_hash).await?,
+            Resource::Block(block) => block.insert(pool, tx_hash).await?,
+            Resource::Log(log) => log.insert(pool, tx_hash).await?,
         }
 
         Ok(())
     }
 }
 
-impl<B, T, L> EmitT for Resource<B, T, L>
+impl<B, L> EmitT for Resource<B, L>
 where
     B: BlockT,
-    T: TransactionT,
     L: LogT,
 {
     async fn emit(
@@ -229,7 +214,6 @@ where
     ) -> eyre::Result<(), EmitError> {
         match self {
             Resource::Block(block) => block.emit(queue, network).await?,
-            Resource::Tx(tx) => tx.emit(queue, network).await?,
             Resource::Log(log) => log.emit(queue, network).await?,
         }
 
@@ -240,9 +224,9 @@ where
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, utoipa::ToSchema,
 )]
+#[serde(rename_all = "lowercase")]
 pub enum ResourceKind {
     Block,
-    Transaction,
     Log(LogKind),
 }
 
@@ -251,7 +235,6 @@ impl ResourceKind {
         s.split(',')
             .map(|x| match x.trim().to_lowercase().as_str() {
                 "block" | "blocks" => ResourceKind::Block,
-                "tx" | "txs" | "transactions" => ResourceKind::Transaction,
                 "log" | "logs" => ResourceKind::Log(LogKind::Raw),
                 _ => {
                     panic!("invalid resource: {}", x);
@@ -269,7 +252,6 @@ impl std::fmt::Display for ResourceKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ResourceKind::Block => write!(f, "block"),
-            ResourceKind::Transaction => write!(f, "tx"),
             ResourceKind::Log(kind) => write!(f, "{}", kind),
         }
     }
@@ -289,6 +271,7 @@ impl std::fmt::Display for ResourceKind {
     sqlx::Type,
     utoipa::ToSchema,
 )]
+#[serde(rename_all = "lowercase")]
 pub enum LogKind {
     #[default]
     Raw,
@@ -323,7 +306,7 @@ impl std::fmt::Display for LogKind {
 
             LogKind::ERC721_Transfer => write!(f, "log_erc721_transfer"),
             LogKind::ERC721_Approval => write!(f, "log_erc721_approval"),
-            LogKind::ERC721_ApprovalForAll => write!(f, "log_erc20_approval_for_all"),
+            LogKind::ERC721_ApprovalForAll => write!(f, "log_erc721_approval_for_all"),
 
             LogKind::ERC777_Sent => write!(f, "log_erc777_sent"),
             LogKind::ERC777_Minted => write!(f, "log_erc777_minted"),

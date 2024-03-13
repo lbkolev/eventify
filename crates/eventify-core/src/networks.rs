@@ -1,6 +1,14 @@
+pub mod arbitrum;
+pub mod avalanche;
+pub mod base;
+pub mod bsc;
 pub mod ethereum;
+pub mod linea;
+pub mod optimism;
+pub mod polygon;
+pub mod zksync;
 
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
 use reconnecting_jsonrpsee_ws_client::{Client, RpcError};
 
@@ -26,6 +34,14 @@ impl NetworkClient {
             ),
             host,
         })
+    }
+}
+
+impl Deref for NetworkClient {
+    type Target = Client;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 

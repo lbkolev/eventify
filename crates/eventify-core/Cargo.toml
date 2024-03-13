@@ -46,7 +46,3 @@ rayon = { version = "1.7.0", optional = true }
 alloy-sol-types = "0.6.2"
 reconnecting-jsonrpsee-ws-client = "0.3.0"
 
-[dev-dependencies]
-dotenvy = "0.15.7"
-serde_json.workspace = true
-uuid.workspace = true

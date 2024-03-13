@@ -19,6 +19,15 @@ pub(crate) struct Cmd {
 
     #[arg(
         long,
+        env = "EVENTIFY_NETWORK",
+        help = "The type of network to stream from",
+        value_parser = NetworkKind::from_str,
+        default_value_t = NetworkKind::Ethereum,
+    )]
+    pub(crate) network: NetworkKind,
+
+    #[arg(
+        long,
         env = "DATABASE_URL",
         help = "The database URL to connect to",
         default_value = "postgres://postgres:password@localhost:5432/eventify"
@@ -35,15 +44,6 @@ pub(crate) struct Cmd {
 
     #[arg(
         long,
-        env = "EVENTIFY_NETWORK",
-        help = "The type of network to stream from",
-        default_value_t = NetworkKind::Ethereum,
-        value_parser = NetworkKind::from_str,
-    )]
-    pub(crate) network: NetworkKind,
-
-    #[arg(
-        long,
         env = "EVENTIFY_NODE_URL",
         help = "The network node URL to connect to",
         default_value = "wss://eth.llamarpc.com"
@@ -54,7 +54,7 @@ pub(crate) struct Cmd {
         long,
         env = "EVENTIFY_COLLECT",
         help = "Type of resources to collect",
-        default_value = "blocks,tx,logs"
+        default_value = "blocks,logs"
     )]
     pub(crate) collect: String,
 
@@ -90,19 +90,53 @@ impl From<Cmd> for Config {
             None => None,
         };
 
-        let network = match settings.network {
-            NetworkKind::Ethereum => Some(Network {
-                eth: Some(NetworkDetail {
+        let mut network = Network::default();
+        match settings.network {
+            NetworkKind::Ethereum => {
+                network.eth = Some(NetworkDetail {
                     node_url: settings.clone().node_url().to_string(),
-                }),
-                zksync: None,
-            }),
-            NetworkKind::Zksync => Some(Network {
-                eth: None,
-                zksync: Some(NetworkDetail {
+                });
+            }
+            NetworkKind::Zksync => {
+                network.zksync = Some(NetworkDetail {
                     node_url: settings.clone().node_url().to_string(),
-                }),
-            }),
+                });
+            }
+            NetworkKind::Polygon => {
+                network.polygon = Some(NetworkDetail {
+                    node_url: settings.clone().node_url().to_string(),
+                });
+            }
+            NetworkKind::Optimism => {
+                network.optimism = Some(NetworkDetail {
+                    node_url: settings.clone().node_url().to_string(),
+                });
+            }
+            NetworkKind::Arbitrum => {
+                network.arbitrum = Some(NetworkDetail {
+                    node_url: settings.clone().node_url().to_string(),
+                });
+            }
+            NetworkKind::Linea => {
+                network.linea = Some(NetworkDetail {
+                    node_url: settings.clone().node_url().to_string(),
+                });
+            }
+            NetworkKind::Avalanche => {
+                network.avalanche = Some(NetworkDetail {
+                    node_url: settings.clone().node_url().to_string(),
+                });
+            }
+            NetworkKind::Bsc => {
+                network.bsc = Some(NetworkDetail {
+                    node_url: settings.clone().node_url().to_string(),
+                });
+            }
+            NetworkKind::Base => {
+                network.base = Some(NetworkDetail {
+                    node_url: settings.clone().node_url().to_string(),
+                });
+            }
         };
 
         Self {
@@ -215,7 +249,7 @@ mod tests {
         assert_eq!(args.queue_url(), "redis://localhost:6379");
         assert_eq!(args.network, NetworkKind::Ethereum);
         assert_eq!(args.node_url(), "wss://eth.llamarpc.com");
-        assert_eq!(args.collect, "blocks,tx,logs");
+        assert_eq!(args.collect, "blocks,logs");
         assert_eq!(args.server, None);
     }
 
@@ -229,7 +263,7 @@ mod tests {
         set_var("EVENTIFY_QUEUE_URL", "redis://localhost:6379");
         set_var("EVENTIFY_NETWORK", "zksync");
         set_var("EVENTIFY_NODE_URL", "wss://zksync.llamarpc.com");
-        set_var("EVENTIFY_COLLECT", "txs,logs");
+        set_var("EVENTIFY_COLLECT", "logs");
         set_var("EVENTIFY_SERVER_HOST", "127.0.0.1");
         set_var("EVENTIFY_SERVER_PORT", "1234");
 
@@ -242,7 +276,7 @@ mod tests {
         assert_eq!(args.queue_url(), "redis://localhost:6379");
         assert_eq!(args.network, NetworkKind::Zksync);
         assert_eq!(args.node_url(), "wss://zksync.llamarpc.com");
-        assert_eq!(args.collect, "txs,logs");
+        assert_eq!(args.collect, "logs");
         assert_eq!(
             args.server,
             Some(ServerSettings {
@@ -272,7 +306,7 @@ mod tests {
         set_var("EVENTIFY_QUEUE_URL", "redis://localhost:6379");
         set_var("EVENTIFY_NETWORK", "zksync");
         set_var("EVENTIFY_NODE_URL", "wss://zksync.llamarpc.com");
-        set_var("EVENTIFY_COLLECT", "txs,logs");
+        set_var("EVENTIFY_COLLECT", "logs");
         set_var("EVENTIFY_SERVER_HOST", "localhost");
         set_var("EVENTIFY_SERVER_PORT", "1234");
 
@@ -282,7 +316,7 @@ mod tests {
             "--queue-url=redis://localhost:6379",
             "--network=ethereum",
             "--node-url=wss://eth.llamarpc.com",
-            "--collect=txs,logs,blocks",
+            "--collect=logs,blocks",
             "--server.host=localhost",
         ])
         .args;
@@ -294,7 +328,7 @@ mod tests {
         assert_eq!(args.queue_url(), "redis://localhost:6379");
         assert_eq!(args.network, NetworkKind::Ethereum);
         assert_eq!(args.node_url(), "wss://eth.llamarpc.com");
-        assert_eq!(args.collect, "txs,logs,blocks");
+        assert_eq!(args.collect, "logs,blocks");
         assert_eq!(
             args.server,
             Some(ServerSettings {

@@ -20,4 +20,7 @@ pub enum Error {
 
     #[error(transparent)]
     Eyre(#[from] eyre::Error),
+
+    #[error(transparent)]
+    SignalRecv(#[from] tokio::sync::watch::error::RecvError),
 }
