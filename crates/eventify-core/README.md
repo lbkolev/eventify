@@ -9,5 +9,5 @@ graph TD
     Node --> Ethereum
     Node --> Zksync
     Storage --> Postgres
-    Queue ->> Redis
+    Queue --> Redis
 ```

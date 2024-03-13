@@ -1,6 +1,6 @@
 use alloy_primitives::B256;
 use eyre::Result;
-use redis::Commands;
+use redis::AsyncCommands;
 use sqlx::{Error as SqlError, PgPool};
 
 use super::ERC777;
@@ -11,12 +11,7 @@ use crate::{
 };
 
 impl Insert for ERC777::Sent {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let operator = self.operator.as_slice();
         let from = self.from.as_slice();
@@ -25,8 +20,7 @@ impl Insert for ERC777::Sent {
         let data = self.data.as_slice();
         let operator_data = self.operatorData.as_slice();
 
-        let sql = format!(
-            r#"INSERT INTO {schema}.log_sent (
+        let sql = r#"INSERT INTO erc777_sent (
             tx_hash,
             operator,
             "from",
@@ -36,10 +30,9 @@ impl Insert for ERC777::Sent {
             operator_data )
             VALUES (
                 $1, $2, $3, $4, $5, $6, $7
-            ) ON CONFLICT DO NOTHING"#,
-        );
+            ) ON CONFLICT DO NOTHING"#;
 
-        sqlx::query(&sql)
+        sqlx::query(sql)
             .bind(tx)
             .bind(operator)
             .bind(from)
@@ -60,22 +53,17 @@ impl Emit for ERC777::Sent {
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
     ) -> Result<(), EmitError> {
-        let mut con = queue.get_connection()?;
+        let mut con = queue.get_async_connection().await?;
 
         let channel = format!("{}:{}", network, ResourceKind::Log(LogKind::ERC777_Sent));
-        con.lpush(channel, serde_json::to_string(self)?)?;
+        con.lpush(channel, serde_json::to_string(self)?).await?;
 
         Ok(())
     }
 }
 
 impl Insert for ERC777::Minted {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let operator = self.operator.as_slice();
         let to = self.to.as_slice();
@@ -83,8 +71,7 @@ impl Insert for ERC777::Minted {
         let data = self.data.as_slice();
         let operator_data = self.operatorData.as_slice();
 
-        let sql = format!(
-            r#"INSERT INTO {schema}.log_minted (
+        let sql = r#"INSERT INTO erc777_minted (
             tx_hash,
             operator,
             "to",
@@ -93,10 +80,9 @@ impl Insert for ERC777::Minted {
             operator_data )
             VALUES (
                 $1, $2, $3, $4, $5, $6
-            ) ON CONFLICT DO NOTHING"#,
-        );
+            ) ON CONFLICT DO NOTHING"#;
 
-        sqlx::query(&sql)
+        sqlx::query(sql)
             .bind(tx)
             .bind(operator)
             .bind(to)
@@ -116,22 +102,17 @@ impl Emit for ERC777::Minted {
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
     ) -> Result<(), EmitError> {
-        let mut con = queue.get_connection()?;
+        let mut con = queue.get_async_connection().await?;
 
         let channel = format!("{}:{}", network, ResourceKind::Log(LogKind::ERC777_Minted));
-        con.lpush(channel, serde_json::to_string(self)?)?;
+        con.lpush(channel, serde_json::to_string(self)?).await?;
 
         Ok(())
     }
 }
 
 impl Insert for ERC777::Burned {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let operator = self.operator.as_slice();
         let from = self.from.as_slice();
@@ -139,8 +120,7 @@ impl Insert for ERC777::Burned {
         let data = self.data.as_slice();
         let operator_data = self.operatorData.as_slice();
 
-        let sql = format!(
-            r#"INSERT INTO {schema}.log_burned (
+        let sql = r#"INSERT INTO erc777_burned (
             tx_hash,
             operator,
             "from",
@@ -149,10 +129,9 @@ impl Insert for ERC777::Burned {
             operator_data )
             VALUES (
                 $1, $2, $3, $4, $5, $6
-            ) ON CONFLICT DO NOTHING"#,
-        );
+            ) ON CONFLICT DO NOTHING"#;
 
-        sqlx::query(&sql)
+        sqlx::query(sql)
             .bind(tx)
             .bind(operator)
             .bind(from)
@@ -172,37 +151,30 @@ impl Emit for ERC777::Burned {
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
     ) -> Result<(), EmitError> {
-        let mut con = queue.get_connection()?;
+        let mut con = queue.get_async_connection().await?;
 
         let channel = format!("{}:{}", network, ResourceKind::Log(LogKind::ERC777_Burned));
-        con.lpush(channel, serde_json::to_string(self)?)?;
+        con.lpush(channel, serde_json::to_string(self)?).await?;
 
         Ok(())
     }
 }
 
 impl Insert for ERC777::AuthorizedOperator {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let operator = self.operator.as_slice();
         let holder = self.holder.as_slice();
 
-        let sql = format!(
-            r#"INSERT INTO {schema}.log_authorized_operator (
+        let sql = r#"INSERT INTO erc777_authorized_operator (
             tx_hash,
             operator,
             holder )
             VALUES (
                 $1, $2, $3
-            ) ON CONFLICT DO NOTHING"#,
-        );
+            ) ON CONFLICT DO NOTHING"#;
 
-        sqlx::query(&sql)
+        sqlx::query(sql)
             .bind(tx)
             .bind(operator)
             .bind(holder)
@@ -219,41 +191,34 @@ impl Emit for ERC777::AuthorizedOperator {
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
     ) -> Result<(), EmitError> {
-        let mut con = queue.get_connection()?;
+        let mut con = queue.get_async_connection().await?;
 
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC777_AuthorizedOperator)
         );
-        con.lpush(channel, serde_json::to_string(self)?)?;
+        con.lpush(channel, serde_json::to_string(self)?).await?;
 
         Ok(())
     }
 }
 
 impl Insert for ERC777::RevokedOperator {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let operator = self.operator.as_slice();
         let holder = self.holder.as_slice();
 
-        let sql = format!(
-            r#"INSERT INTO {schema}.log_revoked_operator (
+        let sql = r#"INSERT INTO erc777_revoked_operator (
             tx_hash,
             operator,
             holder )
             VALUES (
                 $1, $2, $3
-            ) ON CONFLICT DO NOTHING"#,
-        );
+            ) ON CONFLICT DO NOTHING"#;
 
-        sqlx::query(&sql)
+        sqlx::query(sql)
             .bind(tx)
             .bind(operator)
             .bind(holder)
@@ -270,14 +235,14 @@ impl Emit for ERC777::RevokedOperator {
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
     ) -> Result<(), EmitError> {
-        let mut con = queue.get_connection()?;
+        let mut con = queue.get_async_connection().await?;
 
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC777_RevokedOperator)
         );
-        con.lpush(channel, serde_json::to_string(self)?)?;
+        con.lpush(channel, serde_json::to_string(self)?).await?;
 
         Ok(())
     }

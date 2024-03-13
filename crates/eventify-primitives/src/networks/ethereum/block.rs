@@ -1,13 +1,13 @@
 use std::{fmt::Debug, hash::Hash};
 
-use alloy_primitives::{Address, Bloom, Bytes, B256, B64, U256, U64};
+use alloy_primitives::{B256, U256};
 use eyre::Result;
-use redis::Commands;
+use redis::AsyncCommands;
 use sqlx::{Error as SqlError, FromRow};
 use utoipa::ToSchema;
 
 use crate::{
-    networks::ResourceKind,
+    networks::{core::CoreBlock, NetworkKind, ResourceKind},
     traits::{Block, Emit, Insert},
     EmitError,
 };
@@ -24,43 +24,19 @@ use crate::{
     FromRow,
     ToSchema,
 )]
-pub struct EthBlock<T> {
-    // -- header
-    #[serde(rename = "parentHash")]
-    pub parent_hash: B256,
-    #[serde(rename = "sha3Uncles")]
-    pub uncle_hash: B256,
-    #[serde(rename = "miner")]
-    pub coinbase: Address,
-    #[serde(rename = "stateRoot")]
-    pub root: B256,
-    #[serde(rename = "transactionsRoot")]
-    pub tx_hash: B256,
-    #[serde(rename = "receiptsRoot")]
-    pub receipt_hash: B256,
-    #[serde(rename = "logsBloom")]
-    pub bloom: Option<Bloom>,
-    pub difficulty: U256,
-    pub number: Option<U64>,
-    #[serde(rename = "gasLimit")]
-    pub gas_limit: U256,
-    #[serde(rename = "gasUsed")]
-    pub gas_used: U256,
-    #[serde(rename = "timestamp")]
-    pub time: U256,
-    #[serde(rename = "extraData")]
-    pub extra: Bytes,
-    #[serde(rename = "mixHash")]
-    pub mix_digest: B256,
-    pub nonce: Option<B64>,
+pub struct EthBlock {
+    #[serde(flatten)]
+    core: CoreBlock,
+
+    #[serde(rename = "withdrawalsRoot")]
+    pub withdrawals_hash: Option<B256>,
+
+    #[serde(rename = "totalDifficulty")]
+    pub total_difficulty: Option<U256>,
 
     /// added by EIP-1559
     #[serde(rename = "baseFeePerGas")]
     pub base_fee: Option<U256>,
-
-    /// added by EIP-4788
-    #[serde(rename = "parentBeaconBlockRoot")]
-    pub parent_beacon_root: Option<B256>,
 
     /// added by EIP-4844
     #[serde(rename = "blobGasUsed")]
@@ -70,119 +46,98 @@ pub struct EthBlock<T> {
     #[serde(rename = "excessBlobGas")]
     pub excess_blob_gas: Option<U256>,
 
-    /// added by EIP-4895
-    #[serde(rename = "withdrawalsHash")]
-    pub withdrawals_hash: Option<B256>,
-    // --
-
-    // -- body
-    // either list of tx hashes or list of tx objects
-    pub transactions: Option<Vec<T>>,
-    pub hash: Option<B256>,
-    // --
+    /// added by EIP-4788
+    #[serde(rename = "parentBeaconBlockRoot")]
+    pub parent_beacon_root: Option<B256>,
 }
 
-impl<
-        T: serde::de::DeserializeOwned
-            + serde::Serialize
-            + Hash
-            + Eq
-            + Default
-            + Debug
-            + Clone
-            + Send
-            + Sync,
-    > Block for EthBlock<T>
-{
-    fn parent_hash(&self) -> alloy_primitives::B256 {
-        self.parent_hash
-    }
-
-    fn hash(&self) -> Option<alloy_primitives::B256> {
-        self.hash
-    }
-
-    fn number(&self) -> Option<alloy_primitives::U64> {
-        self.number
+impl Block for EthBlock {
+    fn core(&self) -> &CoreBlock {
+        &self.core
     }
 }
 
-impl<T: Send + Sync> Insert for EthBlock<T> {
-    async fn insert(
-        &self,
-        pool: &sqlx::PgPool,
-        schema: &str,
-        _: &Option<B256>,
-    ) -> Result<(), SqlError> {
-        let parent_hash = self.parent_hash.as_slice();
-        let uncle_hash = self.uncle_hash.as_slice();
-        let coinbase = self.coinbase.as_slice();
-        let root = self.root.as_slice();
-        let tx_hash = self.tx_hash.as_slice();
-        let receipt_hash = self.receipt_hash.as_slice();
-        let difficulty = self.difficulty.as_le_slice();
-        let number = self.number.map(|v| v.to::<i64>());
-        let gas_limit = self.gas_limit.as_le_slice();
-        let gas_used = self.gas_used.as_le_slice();
-        let time = self.time.to::<i64>();
-        let extra = self.extra.to_vec();
-        let mix_digest = self.mix_digest.as_slice();
-        let nonce = self.nonce.as_ref().map(|v| v.as_slice());
+impl Insert for EthBlock {
+    async fn insert(&self, pool: &sqlx::PgPool, _: &Option<B256>) -> Result<(), SqlError> {
+        let (
+            number,
+            hash,
+            parent_hash,
+            mix_digest,
+            uncle_hash,
+            receipt_hash,
+            root,
+            tx_hash,
+            coinbase,
+            nonce,
+            gas_used,
+            gas_limit,
+            difficulty,
+            extra,
+            bloom,
+            time,
+        ) = self.core().db_repr();
+
+        let withdrawals_hash = self.withdrawals_hash.as_ref().map(|v| v.as_slice());
+        let total_difficulty = self.total_difficulty.as_ref().map(|v| v.as_le_slice());
         let base_fee = self.base_fee.map(|v| v.to::<i64>());
         let parent_beacon_root = self.parent_beacon_root.as_ref().map(|v| v.as_slice());
-        let blob_gas_used = self.blob_gas_used.map(|v| v.to::<i64>());
-        let excess_blob_gas = self.excess_blob_gas.map(|v| v.to::<i64>());
-        let withdrawals_hash = self.withdrawals_hash.as_ref().map(|v| v.as_slice());
-        let hash = self.hash.as_ref().map(|v| v.as_slice());
+        let blob_gas_used = self.blob_gas_used.as_ref().map(|v| v.as_le_slice());
+        let excess_blob_gas = self.excess_blob_gas.as_ref().map(|v| v.as_le_slice());
 
-        let sql = format!(
-            r#"INSERT INTO {schema}.block (
-                parent_hash,
-                uncles_hash,
-                coinbase,
-                root,
-                tx_hash,
-                receipt_hash,
-                difficulty,
-                number,
-                gas_limit,
-                gas_used,
-                time,
-                extra,
-                mix_digest,
-                nonce,
-                base_fee,
-                parent_beacon_root,
-                blob_gas_used,
-                excess_blob_gas,
-                withdraws_hash,
-                hash
-                ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
-                ) ON CONFLICT DO NOTHING"#,
-        );
+        let sql = r#"INSERT INTO block (
+            network,
+            number,
+            hash,
+            parent_hash,
+            mix_digest,
+            uncle_hash,
+            receipt_hash,
+            root,
+            tx_hash,
+            coinbase,
+            nonce,
+            gas_used,
+            gas_limit,
+            difficulty,
+            extra,
+            bloom,
+            time,
 
-        sqlx::query(&sql)
+            withdrawals_hash,
+            total_difficulty,
+            base_fee,
+            parent_beacon_root,
+            blob_gas_used,
+            excess_blob_gas
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+            ) ON CONFLICT DO NOTHING"#;
+
+        sqlx::query(sql)
+            .bind(NetworkKind::Ethereum)
+            .bind(number)
+            .bind(hash)
             .bind(parent_hash)
+            .bind(mix_digest)
             .bind(uncle_hash)
-            .bind(coinbase)
+            .bind(receipt_hash)
             .bind(root)
             .bind(tx_hash)
-            .bind(receipt_hash)
-            .bind(difficulty)
-            .bind(number)
-            .bind(gas_limit)
-            .bind(gas_used)
-            .bind(time)
-            .bind(extra)
-            .bind(mix_digest)
+            .bind(coinbase)
             .bind(nonce)
+            .bind(gas_used)
+            .bind(gas_limit)
+            .bind(difficulty)
+            .bind(extra)
+            .bind(bloom)
+            .bind(time)
+            .bind(withdrawals_hash)
+            .bind(total_difficulty)
             .bind(base_fee)
             .bind(parent_beacon_root)
             .bind(blob_gas_used)
             .bind(excess_blob_gas)
-            .bind(withdrawals_hash)
-            .bind(hash)
             .execute(pool)
             .await?;
 
@@ -190,16 +145,16 @@ impl<T: Send + Sync> Insert for EthBlock<T> {
     }
 }
 
-impl<B: Send + Sync + serde::Serialize> Emit for EthBlock<B> {
+impl Emit for EthBlock {
     async fn emit(
         &self,
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
     ) -> Result<(), EmitError> {
-        let mut con = queue.get_connection()?;
+        let mut con = queue.get_async_connection().await?;
 
         let channel = format!("{}:{}", network, ResourceKind::Block);
-        con.lpush(channel, serde_json::to_string(self)?)?;
+        con.lpush(channel, serde_json::to_string(self)?).await?;
 
         Ok(())
     }
@@ -212,44 +167,38 @@ mod tests {
     #[test]
     fn deserialize_eth_block() {
         let json = serde_json::json!(
-        {
-            "baseFeePerGas": "0x7",
-            "miner": "0x0000000000000000000000000000000000000001",
-            "number": "0x1b4",
-            "hash": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
-            "parentHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
-            "unclesHash": "0x9646252be9520f6e71339a8df9c55e4d7619deeb018d2a3f2d21fc165dde5eb5",
-            "mixHash": "0x1010101010101010101010101010101010101010101010101010101010101010",
-            "nonce": "0x0000000000000000",
-            "sealFields": [
-              "0xe04d296d2460cfb8472af2c5fd05b5a214109c25688d3704aed5484f9a7792f2",
-              "0x0000000000000042"
-            ],
-            "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-            "logsBloom":  "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d15273310e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
-            "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "stateRoot": "0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff",
-            "difficulty": "0x27f07",
-            "totalDifficulty": "0x27f07",
-            "extraData": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "size": "0x27f07",
-            "gasLimit": "0x9f759",
-            "minGasPrice": "0x9f759",
-            "gasUsed": "0x9f759",
-            "timestamp": "0x54e34e8e",
-            "transactions": [],
-            "uncles": []
-          }
+            {
+                "parentHash": "0xe21d9fc49e447805ab1f8cf3c647aa12bf8342c4418076ee9ef2e9fb8d551136",
+                "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                "miner": "0xe43cc5b6ff052f5aa931a4f9ef2bfa0c500014ca",
+                "stateRoot": "0x06d72f7ea43994c1ecc8c639367751c60c314efd8ad7d1ff45683b5db841ba09",
+                "transactionsRoot": "0x93069aa747ff207ed717eb530f1a297104473fb71cfa5422b6300581c656e02c",
+                "receiptsRoot": "0xb2e099561441fa9d7d25d69780d185eb00f5ca39033679ef827423ddc68b81f0",
+                "logsBloom": "0x2d3110858080012b80550082c0a412160001000064020408800522102ac019100040140842a8804090412300100c45040a61022008402c0702429080042b050128004288012088084c10180880d870a004008205e17001809489014000ec088005000080229009690200d100801808040320906104284e0c0601e450044a0004800091c0816a100020400242000a00c041600020210050280002a35b11900811c700202000822120001050805138008045400080240298081020042252a08c50130c000601930100100e00810286a0448260000205200018e8d200824010f00030f03001010010060000766328406081082a15624211406504a0089001c006a0",
+                "difficulty": "0x0",
+                "number": "0x128669b",
+                "gasLimit": "0x1c9c380",
+                "gasUsed": "0x377830",
+                "timestamp": "0x65f161eb",
+                "extraData": "0xd883010d0e846765746888676f312e32312e36856c696e7578",
+                "mixHash": "0xc282f24a1ac767946aafb8de743847a3561b4f0dc203e6e0093660670a77ffdc",
+                "nonce": "0x0000000000000000",
+                "baseFeePerGas": "0xb00d096a1",
+                "withdrawalsRoot": "0x4be4c436558be298a46793081f03ea74aaedd8fb5ac8ee90ab1eba42b1a38f35",
+                "blobGasUsed": null,
+                "excessBlobGas": null,
+                "parentBeaconBlockRoot": null,
+                "hash": "0xe2eb1899da1f3c73105cfd383de9f7792c9491a60d5ac1a61a68c521c0c53902"
+              }
         );
 
-        serde_json::from_value::<EthBlock<B256>>(json).unwrap();
+        assert!(serde_json::from_value::<EthBlock>(json).is_ok());
     }
 
     #[test]
     fn deserialize_empty_eth_block() {
         let json = serde_json::json!({});
 
-        assert!(serde_json::from_value::<EthBlock<B256>>(json).is_err());
+        assert!(serde_json::from_value::<EthBlock>(json).is_err());
     }
 }

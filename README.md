@@ -29,6 +29,14 @@ Eventify is an event pipeline designed with the following objectives in mind:
 
 ## Implemented ledgers
 - Ethereum
+- Zksync
+- Polygon
+- Optimism
+- Arbitrum
+- Linea
+- Avalanche
+- BSC
+- Base
 
 ## Example usage
 *example configurations can be found at etc/configs/*

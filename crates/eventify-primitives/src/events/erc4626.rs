@@ -1,6 +1,6 @@
 use alloy_primitives::B256;
 use eyre::Result;
-use redis::Commands;
+use redis::AsyncCommands;
 use sqlx::{Error as SqlError, PgPool};
 
 use super::ERC4626;
@@ -11,20 +11,14 @@ use crate::{
 };
 
 impl Insert for ERC4626::Deposit {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let sender = self.sender.as_slice();
         let owner = self.owner.as_slice();
         let assets = self.assets.as_le_slice();
         let shares = self.shares.as_le_slice();
 
-        let sql = format!(
-            r#"INSERT INTO {schema}.log_deposit (
+        let sql = r#"INSERT INTO erc4626_deposit (
             tx_hash,
             sender,
             "owner",
@@ -32,10 +26,9 @@ impl Insert for ERC4626::Deposit {
             shares )
             VALUES (
                 $1, $2, $3, $4, $5
-            ) ON CONFLICT DO NOTHING"#,
-        );
+            ) ON CONFLICT DO NOTHING"#;
 
-        sqlx::query(&sql)
+        sqlx::query(sql)
             .bind(tx)
             .bind(sender)
             .bind(owner)
@@ -54,26 +47,21 @@ impl Emit for ERC4626::Deposit {
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
     ) -> Result<(), EmitError> {
-        let mut con = queue.get_connection()?;
+        let mut con = queue.get_async_connection().await?;
 
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC4626_Deposit)
         );
-        con.lpush(channel, serde_json::to_string(self)?)?;
+        con.lpush(channel, serde_json::to_string(self)?).await?;
 
         Ok(())
     }
 }
 
 impl Insert for ERC4626::Withdraw {
-    async fn insert(
-        &self,
-        pool: &PgPool,
-        schema: &str,
-        tx_hash: &Option<B256>,
-    ) -> Result<(), SqlError> {
+    async fn insert(&self, pool: &PgPool, tx_hash: &Option<B256>) -> Result<(), SqlError> {
         let tx = tx_hash.as_ref().map(|v| v.as_slice());
         let sender = self.sender.as_slice();
         let receiver = self.receiver.as_slice();
@@ -81,8 +69,7 @@ impl Insert for ERC4626::Withdraw {
         let assets = self.assets.as_le_slice();
         let shares = self.shares.as_le_slice();
 
-        let sql = format!(
-            r#"INSERT INTO {schema}.log_withdraw (
+        let sql = r#"INSERT INTO erc4626_withdraw (
             tx_hash,
             sender,
             "receiver",
@@ -91,10 +78,9 @@ impl Insert for ERC4626::Withdraw {
             shares )
             VALUES (
                 $1, $2, $3, $4, $5, $6
-            ) ON CONFLICT DO NOTHING"#,
-        );
+            ) ON CONFLICT DO NOTHING"#;
 
-        sqlx::query(&sql)
+        sqlx::query(sql)
             .bind(tx)
             .bind(sender)
             .bind(receiver)
@@ -114,14 +100,14 @@ impl Emit for ERC4626::Withdraw {
         queue: &redis::Client,
         network: &crate::networks::NetworkKind,
     ) -> Result<(), EmitError> {
-        let mut con = queue.get_connection()?;
+        let mut con = queue.get_async_connection().await?;
 
         let channel = format!(
             "{}:{}",
             network,
             ResourceKind::Log(LogKind::ERC4626_Withdraw)
         );
-        con.lpush(channel, serde_json::to_string(self)?)?;
+        con.lpush(channel, serde_json::to_string(self)?).await?;
 
         Ok(())
     }

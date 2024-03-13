@@ -1,7 +1,6 @@
 pub mod block;
 pub mod health;
 pub mod log;
-pub mod transaction;
 
 pub use health::health;
 

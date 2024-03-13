@@ -2,18 +2,49 @@
 #![warn(missing_debug_implementations, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 
+pub mod criteria;
 pub mod events;
 pub mod networks;
 
-pub mod eth {
-    pub use crate::networks::ethereum::{
-        block::EthBlock as Block, log::EthLog as Log, transaction::EthTransaction as Transaction,
+pub mod ethereum {
+    pub use crate::networks::ethereum::{block::EthBlock as Block, log::EthLog as Log};
+}
+
+pub mod zksync {
+    pub use crate::networks::zksync::{block::ZksyncBlock as Block, log::ZksyncLog as Log};
+}
+
+pub mod polygon {
+    pub use crate::networks::polygon::{block::PolygonBlock as Block, log::PolygonLog as Log};
+}
+
+pub mod optimism {
+    pub use crate::networks::optimism::{block::OptimismBlock as Block, log::OptimismLog as Log};
+}
+
+pub mod arbitrum {
+    pub use crate::networks::arbitrum::{block::ArbitrumBlock as Block, log::ArbitrumLog as Log};
+}
+
+pub mod linea {
+    pub use crate::networks::linea::{block::LineaBlock as Block, log::LineaLog as Log};
+}
+
+pub mod avalanche {
+    pub use crate::networks::avalanche::{
+        block::AvalancheBlock as Block, log::AvalancheLog as Log,
     };
 }
 
-pub use traits::{
-    Block as BlockT, Emit as EmitT, Insert as InsertT, Log as LogT, Transaction as TransactionT,
-};
+pub mod bsc {
+    pub use crate::networks::bsc::{block::BscBlock as Block, log::BscLog as Log};
+}
+
+pub mod base {
+    pub use crate::networks::base::{block::BaseBlock as Block, log::BaseLog as Log};
+}
+
+pub use traits::{Block as BlockT, Emit as EmitT, Insert as InsertT, Log as LogT};
 
 #[derive(thiserror::Error, Debug)]
 pub enum EmitError {
@@ -28,7 +59,6 @@ mod traits {
         fn insert(
             &self,
             pool: &sqlx::PgPool,
-            schema: &str,
             tx_hash: &Option<alloy_primitives::B256>,
         ) -> impl std::future::Future<Output = eyre::Result<(), sqlx::Error>> + Send;
     }
@@ -55,27 +85,7 @@ mod traits {
         + Sync
         + Send
     {
-        fn hash(&self) -> Option<alloy_primitives::B256>;
-        fn number(&self) -> Option<alloy_primitives::U64>;
-        fn parent_hash(&self) -> alloy_primitives::B256;
-    }
-
-    pub trait Transaction:
-        Insert
-        + Emit
-        + Clone
-        + std::fmt::Debug
-        + Default
-        + PartialEq
-        + Eq
-        + std::hash::Hash
-        + serde::Serialize
-        + serde::de::DeserializeOwned
-        + Sync
-        + Send
-    {
-        fn hash(&self) -> alloy_primitives::B256;
-        fn block_hash(&self) -> Option<alloy_primitives::B256>;
+        fn core(&self) -> &crate::networks::core::CoreBlock;
     }
 
     pub trait Log:
@@ -92,14 +102,6 @@ mod traits {
         + Sync
         + Send
     {
-        fn block_hash(&self) -> Option<alloy_primitives::B256>;
-        fn block_number(&self) -> Option<alloy_primitives::U64>;
-
-        fn tx_hash(&self) -> Option<alloy_primitives::B256>;
-        fn tx_index(&self) -> Option<alloy_primitives::U64>;
-
-        fn data(&self) -> &alloy_primitives::Bytes;
-        fn topics(&self) -> &Vec<alloy_primitives::B256>;
-        fn address(&self) -> &alloy_primitives::Address;
+        fn core(&self) -> &crate::networks::core::CoreLog;
     }
 }

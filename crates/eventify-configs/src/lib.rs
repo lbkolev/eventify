@@ -24,7 +24,6 @@ where
     s.split(',')
         .map(|x| match x.trim().to_lowercase().as_str() {
             "block" | "blocks" => Ok(ResourceKind::Block),
-            "tx" | "txs" | "transactions" => Ok(ResourceKind::Transaction),
             "log" | "logs" => Ok(ResourceKind::Log(LogKind::Raw)),
             other => Err(serde::de::Error::custom(format!(
                 "unknown resource kind: {}",
@@ -42,7 +41,7 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_resource_kinds")]
     pub collect: HashSet<ResourceKind>,
     pub server: Option<crate::configs::ServerConfig>,
-    pub network: Option<Network>,
+    pub network: Network,
 }
 
 impl Config {
@@ -51,7 +50,7 @@ impl Config {
         queue_url: String,
         collect: HashSet<ResourceKind>,
         server: Option<crate::configs::ServerConfig>,
-        network: Option<Network>,
+        network: Network,
     ) -> Self {
         Self {
             database_url,
@@ -67,12 +66,13 @@ impl Config {
 pub struct Network {
     pub eth: Option<NetworkDetail>,
     pub zksync: Option<NetworkDetail>,
-}
-
-impl Network {
-    pub fn new(eth: Option<NetworkDetail>, zksync: Option<NetworkDetail>) -> Self {
-        Self { eth, zksync }
-    }
+    pub polygon: Option<NetworkDetail>,
+    pub optimism: Option<NetworkDetail>,
+    pub arbitrum: Option<NetworkDetail>,
+    pub linea: Option<NetworkDetail>,
+    pub avalanche: Option<NetworkDetail>,
+    pub bsc: Option<NetworkDetail>,
+    pub base: Option<NetworkDetail>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, Default)]
@@ -90,7 +90,7 @@ mod tests {
         const TEST_TOML: &str = r#"
 database_url = "postgres://postgres:password@localhost:5432/eventify"
 queue_url = "redis://localhost:6379"
-collect = "blocks,tx,logs"
+collect = "blocks,logs"
 
 [server]
 host = "0.0.0.0"
@@ -112,26 +112,18 @@ port = 21420
         assert_eq!(config.queue_url, "redis://localhost:6379");
         assert_eq!(
             config.collect,
-            HashSet::from([
-                ResourceKind::Block,
-                ResourceKind::Log(LogKind::Raw),
-                ResourceKind::Transaction
-            ])
+            HashSet::from([ResourceKind::Block, ResourceKind::Log(LogKind::Raw),])
         );
         assert_eq!(config.server.unwrap().port, 21420);
         assert_eq!(
-            config
-                .network
-                .as_ref()
-                .and_then(|network| network.eth.as_ref())
-                .map(|eth| &eth.node_url),
+            config.network.eth.as_ref().map(|eth| &eth.node_url),
             Some(&"wss://eth.llamarpc.com".to_string())
         );
         assert_eq!(
             config
                 .network
+                .zksync
                 .as_ref()
-                .and_then(|network| network.zksync.as_ref())
                 .map(|zksync| &zksync.node_url),
             Some(&"wss://mainnet.era.zksync.io/ws".to_string())
         );
@@ -142,7 +134,7 @@ port = 21420
         const TEST_TOML: &str = r#"
 database_url = "postgres://postgres:password@localhost:5432/eventify"
 queue_url = "redis://localhost:6379"
-collect = "logs,tx"
+collect = "logs"
 
 [server]
 host = "0.0.0.0"
@@ -162,17 +154,13 @@ port = 21420
         assert_eq!(config.queue_url, "redis://localhost:6379");
         assert_eq!(
             config.collect,
-            HashSet::from([ResourceKind::Log(LogKind::Raw), ResourceKind::Transaction,])
+            HashSet::from([ResourceKind::Log(LogKind::Raw)])
         );
         assert_eq!(config.server.unwrap().port, 21420);
         assert_eq!(
-            config
-                .network
-                .as_ref()
-                .and_then(|network| network.eth.as_ref())
-                .map(|eth| &eth.node_url),
+            config.network.eth.as_ref().map(|eth| &eth.node_url),
             Some(&"wss://eth.llamarpc.com".to_string())
         );
-        assert!(config.network.unwrap().zksync.is_none());
+        assert!(config.network.zksync.is_none());
     }
 }

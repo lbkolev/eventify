@@ -18,7 +18,7 @@ where
 {
     pub manager_config: ManagerConfig,
     pub collector_config: CollectorConfig,
-    queue_rx: mpsc::Sender<Resource<N::LightBlock, N::Transaction, N::Log>>,
+    queue_rx: mpsc::Sender<Resource<N::Block, N::Log>>,
 }
 
 impl<N> Manager<N>
@@ -28,7 +28,7 @@ where
     pub fn new(
         manager_config: ManagerConfig,
         collector_config: CollectorConfig,
-        queue_rx: mpsc::Sender<Resource<N::LightBlock, N::Transaction, N::Log>>,
+        queue_rx: mpsc::Sender<Resource<N::Block, N::Log>>,
     ) -> Self {
         Self {
             manager_config,
@@ -66,14 +66,13 @@ where
     ) -> crate::Result<JoinHandle<()>> {
         let collector: Collector<N> =
             Collector::new(collector_config.clone(), self.queue_rx.clone()).await?;
-        let mut stop_signal = stop_signal.clone();
         let resource = *resource;
+        let stop_signal = stop_signal.clone();
 
         Ok(tokio::spawn(async move {
             let stream_result = match resource {
-                ResourceKind::Block => collector.stream_blocks().await,
-                ResourceKind::Transaction => collector.stream_txs().await,
-                ResourceKind::Log(_) => collector.stream_logs().await,
+                ResourceKind::Block => collector.stream_blocks(stop_signal).await,
+                ResourceKind::Log(_) => collector.stream_logs(stop_signal).await,
             };
 
             match stream_result {
@@ -84,16 +83,13 @@ where
                     crate::Error::EmptyStream => {
                         warn!(err = "Empty stream");
                     }
+                    crate::Error::SignalRecv(err) => {
+                        info!(err = "Received stop signal", ?err);
+                    }
                     _ => {
                         error!(err=?err);
                     }
                 },
-            }
-
-            tokio::select! {
-                _ = stop_signal.changed() => {
-                    warn!(thread=?resource, "SIGINT signal. Terminating..");
-                }
             }
         }))
     }
